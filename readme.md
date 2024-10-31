@@ -14,6 +14,14 @@ This repository contains tools for evaluating the quality of summaries generated
 - **BERT Score**: Will leverage contextual embeddings to better capture semantic similarity
 - **Truthfulness Assessment**: Will evaluate factual consistency between summary and source text
 
+## Features
+
+- **Remove Common Stopwords**: Allows for adding custom stopwords to the evaluation process
+    - This is useful for removing common words that are often included in summaries but do not contribute to the overall meaning
+    - evaluate_summary(full_text, summary, remove_stopwords=True)
+- **Custom Stopwords**: Allows for adding custom stopwords to the evaluation process
+    - Usage: from assert_llm_tools.utils import add_custom_stopwords
+    - Example: add_custom_stopwords(["your", "custom", "stopwords", "here"])
 
 ## Installation
 
@@ -26,6 +34,12 @@ pip install assert_llm_tools
 ```python
 # test_assert.py
 from assert_llm_tools.core import evaluate_summary
+from assert_llm_tools.utils import add_custom_stopwords
+
+
+# Add custom stopwords
+add_custom_stopwords(["this", "artificial", "intelligence"])
+
 
 # Example text from an article
 full_text = """
@@ -43,7 +57,7 @@ automation and analytics while raising job and ethical concerns.
 """
 
 # Get evaluation metrics
-metrics = evaluate_summary(full_text, summary)
+metrics = evaluate_summary(full_text, summary, remove_stopwords=False)
 
 # Print results
 print("\nOriginal Text:")
@@ -53,6 +67,7 @@ print(summary)
 print("\nEvaluation Metrics:")
 for metric, score in metrics.items():
     print(f"{metric}: {score:.4f}")
+
 
 ```
 

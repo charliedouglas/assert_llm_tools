@@ -15,12 +15,15 @@ def initialize_nltk():
         nltk.data.path.append(nltk_data_dir)
 
         # List of required NLTK resources
-        required_resources = ["punkt", "punkt_tab"]
+        required_resources = ["punkt", "punkt_tab", "stopwords"]
 
         # Download all required resources
         for resource in required_resources:
             try:
-                nltk.data.find(f"tokenizers/{resource}")
+                if resource == "stopwords":
+                    nltk.data.find("corpora/stopwords")
+                else:
+                    nltk.data.find(f"tokenizers/{resource}")
             except LookupError:
                 print(f"Downloading {resource}...")
                 nltk.download(resource, download_dir=nltk_data_dir, quiet=False)
