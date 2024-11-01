@@ -11,16 +11,14 @@ This repository contains tools for evaluating the quality of summaries generated
 - **BERT Score**: Leverages contextual embeddings to better capture semantic similarity
 - **Faithfulness**: Measures factual consistency between summary and source text (requires an LLM provider)
 - **Topic Preservation**: Will verify that the most important topics from the source are retained in the summary (requires an LLM provider)
+- **Redundancy Detection**: Will identify and flag repeated information within summaries (requires an LLM provider)
 
 ### Planned Features
 
 - **Conciseness Assessment**: Will evaluate if the summary effectively condenses information without unnecessary verbosity
 - **Coherence Evaluation**: Will assess the logical flow and readability of the generated summary
-- **Redundancy Detection**: Will identify and flag repeated information within summaries
 - **Style Consistency**: Will evaluate if the summary maintains a consistent writing style and tone
 - **Information Density**: Will measure the ratio of meaningful content to length in summaries
-
-
 
 
 #### LLM Provider Support for Faithfulness Metric
@@ -39,15 +37,28 @@ The faithfulness metric requires an LLM provider. Currently supported providers:
 - **Custom Stopwords**: Allows for adding custom stopwords to the evaluation process
   - Usage: from assert_llm_tools.utils import add_custom_stopwords
   - Example: add_custom_stopwords(["your", "custom", "stopwords", "here"])
+  - remove_stopwords=True must be enabled 
 - **Select Metrics**: Allows for selecting which metrics to calculate
   - Usage: evaluate_summary(full_text, summary, metrics=["rouge", "bleu"])
   - Defaults to all metrics
-  - Available metrics: ["rouge", "bleu", "bert_score", "faithfulness", "topic_preservation"]
+  - Available metrics: ["rouge", "bleu", "bert_score", "faithfulness", "topic_preservation", "redundancy"]
 - **LLM Provider**: Allows for specifying the LLM provider and model to use for the faithfulness metric
   - Usage: evaluate_summary(full_text, summary, llm_config=LLMConfig(provider="bedrock", model_id="anthropic.claude-v2", region="us-east-1", api_key="your-api-key", api_secret="your-api-secret"))
   - Available providers: ["bedrock", "openai"]
+- **Show Progress**: Allows for showing a progress bar during metric calculation
+  - Usage: evaluate_summary(full_text, summary, show_progress=True)
+  - Defaults to showing progress bar if not included.
 
+## Understanding Scores
 
+All metrics are normalized to return scores between 0 and 1, where higher scores indicate better performance:
+
+- ROUGE Score: Higher means better overlap with reference
+- BLEU Score: Higher means better translation quality
+- BERT Score: Higher means better semantic similarity
+- Faithfulness: Higher means better factual consistency
+- Topic Preservation: Higher means better retention of key topics
+- Redundancy: Higher means less redundant content (1.0 = no redundancy)
 
 ## Installation
 
@@ -151,16 +162,3 @@ SOFTWARE.
 
 - [ROUGE](https://github.com/google-research/google-research/tree/master/rouge)
 - [NLTK](https://www.nltk.org/)
-
-## Metric Selection
-
-You can choose which metrics to calculate when evaluating summaries:
-
-#### LLM Provider Support for Faithfulness Metric
-
-The faithfulness metric requires an LLM provider. Currently supported providers:
-
-- **Amazon Bedrock** (requires `assert_llm_tools[bedrock]`)
-- **OpenAI** (requires `assert_llm_tools[openai]`)
-
-Example usage with specific provider:
