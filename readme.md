@@ -8,10 +8,10 @@ This repository contains tools for evaluating the quality of summaries generated
 
 - **ROUGE Score**: Measures overlap of n-grams between the reference text and generated summary
 - **BLEU Score**: Evaluates translation quality by comparing n-gram matches, with custom weights emphasizing unigrams and bigrams
+- **BERT Score**: Leverages contextual embeddings to better capture semantic similarity
 
 ### Planned Features
 
-- **BERT Score**: Will leverage contextual embeddings to better capture semantic similarity
 - **Truthfulness Assessment**: Will evaluate factual consistency between summary and source text
 
 ## Features
@@ -22,6 +22,11 @@ This repository contains tools for evaluating the quality of summaries generated
 - **Custom Stopwords**: Allows for adding custom stopwords to the evaluation process
     - Usage: from assert_llm_tools.utils import add_custom_stopwords
     - Example: add_custom_stopwords(["your", "custom", "stopwords", "here"])
+- **Select Metrics**: Allows for selecting which metrics to calculate
+    - Usage: evaluate_summary(full_text, summary, metrics=["rouge", "bleu"])
+    - Defaults to all metrics
+    - Available metrics: ["rouge", "bleu", "bert_score"]
+
 
 ## Installation
 
@@ -40,6 +45,7 @@ from assert_llm_tools.utils import add_custom_stopwords
 # Add custom stopwords
 add_custom_stopwords(["this", "artificial", "intelligence"])
 
+metrics = ["rouge", "bleu", "bert_score"]
 
 # Example text from an article
 full_text = """
@@ -57,7 +63,7 @@ automation and analytics while raising job and ethical concerns.
 """
 
 # Get evaluation metrics
-metrics = evaluate_summary(full_text, summary, remove_stopwords=False)
+metrics = evaluate_summary(full_text, summary, remove_stopwords=False, metrics=metrics)
 
 # Print results
 print("\nOriginal Text:")
@@ -99,3 +105,7 @@ SOFTWARE.
 
 - [ROUGE](https://github.com/google-research/google-research/tree/master/rouge)
 - [NLTK](https://www.nltk.org/)
+
+## Metric Selection
+
+You can choose which metrics to calculate when evaluating summaries:
