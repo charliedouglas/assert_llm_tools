@@ -9,30 +9,70 @@ This repository contains tools for evaluating the quality of summaries generated
 - **ROUGE Score**: Measures overlap of n-grams between the reference text and generated summary
 - **BLEU Score**: Evaluates translation quality by comparing n-gram matches, with custom weights emphasizing unigrams and bigrams
 - **BERT Score**: Leverages contextual embeddings to better capture semantic similarity
+- **Faithfulness**: Measures factual consistency between summary and source text (requires an LLM provider)
 
 ### Planned Features
 
 - **Truthfulness Assessment**: Will evaluate factual consistency between summary and source text
+- **Conciseness Assessment**: Will evaluate if the summary effectively condenses information without unnecessary verbosity
+- **Coverage Analysis**: Will measure how well the summary captures the key topics and main points from the source text
+- **Coherence Evaluation**: Will assess the logical flow and readability of the generated summary
+- **Redundancy Detection**: Will identify and flag repeated information within summaries
+- **Style Consistency**: Will evaluate if the summary maintains a consistent writing style and tone
+- **Information Density**: Will measure the ratio of meaningful content to length in summaries
+- **Topic Preservation**: Will verify that the most important topics from the source are retained in the summary
+
+
+
+#### LLM Provider Support for Faithfulness Metric
+
+The faithfulness metric requires an LLM provider. Currently supported providers:
+
+- **Amazon Bedrock** (requires `assert_llm_tools[bedrock]`)
+- **OpenAI** (requires `assert_llm_tools[openai]`)
+
 
 ## Features
 
 - **Remove Common Stopwords**: Allows for adding custom stopwords to the evaluation process
-    - This is useful for removing common words that are often included in summaries but do not contribute to the overall meaning
-    - evaluate_summary(full_text, summary, remove_stopwords=True)
+  - This is useful for removing common words that are often included in summaries but do not contribute to the overall meaning
+  - evaluate_summary(full_text, summary, remove_stopwords=True)
 - **Custom Stopwords**: Allows for adding custom stopwords to the evaluation process
-    - Usage: from assert_llm_tools.utils import add_custom_stopwords
-    - Example: add_custom_stopwords(["your", "custom", "stopwords", "here"])
+  - Usage: from assert_llm_tools.utils import add_custom_stopwords
+  - Example: add_custom_stopwords(["your", "custom", "stopwords", "here"])
 - **Select Metrics**: Allows for selecting which metrics to calculate
-    - Usage: evaluate_summary(full_text, summary, metrics=["rouge", "bleu"])
-    - Defaults to all metrics
-    - Available metrics: ["rouge", "bleu", "bert_score"]
+  - Usage: evaluate_summary(full_text, summary, metrics=["rouge", "bleu"])
+  - Defaults to all metrics
+  - Available metrics: ["rouge", "bleu", "bert_score"]
+- **LLM Provider**: Allows for specifying the LLM provider and model to use for the faithfulness metric
+  - Usage: evaluate_summary(full_text, summary, llm_config=LLMConfig(provider="bedrock", model_id="anthropic.claude-v2", region="us-east-1", api_key="your-api-key", api_secret="your-api-secret"))
+  - Available providers: ["bedrock", "openai"]
+
 
 
 ## Installation
 
+Basic installation:
 ```bash
 pip install assert_llm_tools
 ```
+
+Optional Dependencies:
+
+- For Amazon Bedrock support:
+  ```bash
+  pip install "assert_llm_tools[bedrock]"
+  ```
+
+- For OpenAI support:
+  ```bash
+  pip install "assert_llm_tools[openai]"
+  ```
+
+- To install all optional dependencies:
+  ```bash
+  pip install "assert_llm_tools[all]"
+  ```
 
 ## Usage
 
@@ -40,7 +80,7 @@ pip install assert_llm_tools
 # test_assert.py
 from assert_llm_tools.core import evaluate_summary
 from assert_llm_tools.utils import add_custom_stopwords
-
+from assert_llm_tools.llm.config import LLMConfig
 
 # Add custom stopwords
 add_custom_stopwords(["this", "artificial", "intelligence"])
@@ -62,8 +102,15 @@ AI is transforming the economy through major investments, bringing advances in
 automation and analytics while raising job and ethical concerns.
 """
 
+# Using OpenAI
+config = LLMConfig(
+    provider="openai",
+    model_id="gpt-4",
+    api_key="your-api-key"
+)
+
 # Get evaluation metrics
-metrics = evaluate_summary(full_text, summary, remove_stopwords=False, metrics=metrics)
+metrics = evaluate_summary(full_text, summary, remove_stopwords=False, metrics=metrics, llm_config=config)
 
 # Print results
 print("\nOriginal Text:")
@@ -109,3 +156,12 @@ SOFTWARE.
 ## Metric Selection
 
 You can choose which metrics to calculate when evaluating summaries:
+
+#### LLM Provider Support for Faithfulness Metric
+
+The faithfulness metric requires an LLM provider. Currently supported providers:
+
+- **Amazon Bedrock** (requires `assert_llm_tools[bedrock]`)
+- **OpenAI** (requires `assert_llm_tools[openai]`)
+
+Example usage with specific provider:
