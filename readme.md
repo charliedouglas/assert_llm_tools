@@ -10,17 +10,16 @@ This repository contains tools for evaluating the quality of summaries generated
 - **BLEU Score**: Evaluates translation quality by comparing n-gram matches, with custom weights emphasizing unigrams and bigrams
 - **BERT Score**: Leverages contextual embeddings to better capture semantic similarity
 - **Faithfulness**: Measures factual consistency between summary and source text (requires an LLM provider)
+- **Topic Preservation**: Will verify that the most important topics from the source are retained in the summary (requires an LLM provider)
 
 ### Planned Features
 
-- **Truthfulness Assessment**: Will evaluate factual consistency between summary and source text
 - **Conciseness Assessment**: Will evaluate if the summary effectively condenses information without unnecessary verbosity
-- **Coverage Analysis**: Will measure how well the summary captures the key topics and main points from the source text
 - **Coherence Evaluation**: Will assess the logical flow and readability of the generated summary
 - **Redundancy Detection**: Will identify and flag repeated information within summaries
 - **Style Consistency**: Will evaluate if the summary maintains a consistent writing style and tone
 - **Information Density**: Will measure the ratio of meaningful content to length in summaries
-- **Topic Preservation**: Will verify that the most important topics from the source are retained in the summary
+
 
 
 
@@ -43,7 +42,7 @@ The faithfulness metric requires an LLM provider. Currently supported providers:
 - **Select Metrics**: Allows for selecting which metrics to calculate
   - Usage: evaluate_summary(full_text, summary, metrics=["rouge", "bleu"])
   - Defaults to all metrics
-  - Available metrics: ["rouge", "bleu", "bert_score"]
+  - Available metrics: ["rouge", "bleu", "bert_score", "faithfulness", "topic_preservation"]
 - **LLM Provider**: Allows for specifying the LLM provider and model to use for the faithfulness metric
   - Usage: evaluate_summary(full_text, summary, llm_config=LLMConfig(provider="bedrock", model_id="anthropic.claude-v2", region="us-east-1", api_key="your-api-key", api_secret="your-api-secret"))
   - Available providers: ["bedrock", "openai"]
