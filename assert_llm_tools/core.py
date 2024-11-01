@@ -4,7 +4,10 @@ from .metrics.bleu import calculate_bleu
 from .metrics.bert_score import calculate_bert_score
 from .metrics.faithfulness import calculate_faithfulness
 from .metrics.topic_preservation import calculate_topic_preservation
+from .metrics.redundancy import calculate_redundancy
 from .llm.config import LLMConfig
+from typing import Dict, Union, List, Optional
+from tqdm import tqdm
 
 # Define available metrics
 AVAILABLE_METRICS = [
@@ -13,6 +16,7 @@ AVAILABLE_METRICS = [
     "bert_score",
     "faithfulness",
     "topic_preservation",
+    "redundancy",
 ]
 
 
@@ -22,6 +26,7 @@ def evaluate_summary(
     metrics: Optional[List[str]] = None,
     remove_stopwords: bool = False,
     llm_config: Optional[LLMConfig] = None,
+    show_progress: bool = True,
 ) -> Dict[str, float]:
     """
     Evaluate a summary using specified metrics.
@@ -32,6 +37,7 @@ def evaluate_summary(
         metrics: List of metrics to calculate. Defaults to all available metrics.
         remove_stopwords: Whether to remove stopwords before evaluation
         llm_config: Configuration for LLM-based metrics (e.g., faithfulness, topic_preservation)
+        show_progress: Whether to show progress bar (default: True)
 
     Returns:
         Dictionary containing scores for each metric
@@ -50,19 +56,26 @@ def evaluate_summary(
     results = {}
 
     # Calculate requested metrics
-    if "rouge" in metrics:
-        results.update(calculate_rouge(full_text, summary))
+    metric_iterator = tqdm(
+        metrics, disable=not show_progress, desc="Calculating metrics"
+    )
+    for metric in metric_iterator:
+        if metric == "rouge":
+            results.update(calculate_rouge(full_text, summary))
 
-    if "bleu" in metrics:
-        results["bleu"] = calculate_bleu(full_text, summary)
+        elif metric == "bleu":
+            results["bleu"] = calculate_bleu(full_text, summary)
 
-    if "bert_score" in metrics:
-        results.update(calculate_bert_score(full_text, summary))
+        elif metric == "bert_score":
+            results.update(calculate_bert_score(full_text, summary))
 
-    if "faithfulness" in metrics:
-        results.update(calculate_faithfulness(full_text, summary, llm_config))
+        elif metric == "faithfulness":
+            results.update(calculate_faithfulness(full_text, summary, llm_config))
 
-    if "topic_preservation" in metrics:
-        results.update(calculate_topic_preservation(full_text, summary, llm_config))
+        elif metric == "topic_preservation":
+            results.update(calculate_topic_preservation(full_text, summary, llm_config))
+
+        elif metric == "redundancy":
+            results.update(calculate_redundancy(summary, llm_config))
 
     return results
