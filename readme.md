@@ -12,10 +12,11 @@ This repository contains tools for evaluating the quality of summaries generated
 - **Faithfulness**: Measures factual consistency between summary and source text (requires an LLM provider)
 - **Topic Preservation**: Will verify that the most important topics from the source are retained in the summary (requires an LLM provider)
 - **Redundancy Detection**: Will identify and flag repeated information within summaries (requires an LLM provider)
+- **Conciseness Assessment**: Will evaluate if the summary effectively condenses information without unnecessary verbosity
 
 ### Planned Features
 
-- **Conciseness Assessment**: Will evaluate if the summary effectively condenses information without unnecessary verbosity
+
 - **Coherence Evaluation**: Will assess the logical flow and readability of the generated summary
 - **Style Consistency**: Will evaluate if the summary maintains a consistent writing style and tone
 - **Information Density**: Will measure the ratio of meaningful content to length in summaries
@@ -41,7 +42,7 @@ The faithfulness metric requires an LLM provider. Currently supported providers:
 - **Select Metrics**: Allows for selecting which metrics to calculate
   - Usage: evaluate_summary(full_text, summary, metrics=["rouge", "bleu"])
   - Defaults to all metrics
-  - Available metrics: ["rouge", "bleu", "bert_score", "faithfulness", "topic_preservation", "redundancy"]
+  - Available metrics: ["rouge", "bleu", "bert_score", "faithfulness", "topic_preservation", "redundancy", "conciseness"]
 - **LLM Provider**: Allows for specifying the LLM provider and model to use for the faithfulness metric
   - Usage: evaluate_summary(full_text, summary, llm_config=LLMConfig(provider="bedrock", model_id="anthropic.claude-v2", region="us-east-1", api_key="your-api-key", api_secret="your-api-secret"))
   - Available providers: ["bedrock", "openai"]
@@ -59,6 +60,7 @@ All metrics are normalized to return scores between 0 and 1, where higher scores
 - Faithfulness: Higher means better factual consistency
 - Topic Preservation: Higher means better retention of key topics
 - Redundancy: Higher means less redundant content (1.0 = no redundancy)
+- Conciseness: Higher means less verbose content (1.0 = optimal conciseness)
 
 ## Installation
 

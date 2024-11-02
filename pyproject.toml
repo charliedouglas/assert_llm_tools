@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "assert_llm_tools"
-version = "0.0.5.2"
+version = "0.0.5.6"
 description = "Automated Summary Scoring & Evaluation of Retained Text"
 authors = [
     {name = "Charlie Douglas", email = "cdouglas@gmail.com"},
@@ -48,7 +48,7 @@ bedrock = [
     "boto3>=1.28.0",
 ]
 openai = [
-    "openai>=1.0.0",
+    "openai>=1.53.0",
 ]
 all = [
     "boto3>=1.35.53",
@@ -62,5 +62,6 @@ all = [
 [tool.setuptools]
 packages = [
     "assert_llm_tools",
-    "assert_llm_tools.metrics"
+    "assert_llm_tools.metrics",
+    "assert_llm_tools.llm" 
 ]
