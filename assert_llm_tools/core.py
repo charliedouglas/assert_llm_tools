@@ -5,6 +5,7 @@ from .metrics.bert_score import calculate_bert_score
 from .metrics.faithfulness import calculate_faithfulness
 from .metrics.topic_preservation import calculate_topic_preservation
 from .metrics.redundancy import calculate_redundancy
+from .metrics.conciseness import calculate_conciseness_score
 from .llm.config import LLMConfig
 from typing import Dict, Union, List, Optional
 from tqdm import tqdm
@@ -17,6 +18,15 @@ AVAILABLE_METRICS = [
     "faithfulness",
     "topic_preservation",
     "redundancy",
+    "conciseness",
+]
+
+# Define which metrics require LLM
+LLM_REQUIRED_METRICS = [
+    "faithfulness",
+    "topic_preservation",
+    "redundancy",
+    "conciseness",
 ]
 
 
@@ -52,6 +62,11 @@ def evaluate_summary(
     if invalid_metrics:
         raise ValueError(f"Invalid metrics: {invalid_metrics}")
 
+    # Validate LLM config for metrics that require it
+    llm_metrics = set(metrics) & set(LLM_REQUIRED_METRICS)
+    if llm_metrics and llm_config is None:
+        raise ValueError(f"LLM configuration required for metrics: {llm_metrics}")
+
     # Initialize results dictionary
     results = {}
 
@@ -77,5 +92,10 @@ def evaluate_summary(
 
         elif metric == "redundancy":
             results.update(calculate_redundancy(summary, llm_config))
+
+        elif metric == "conciseness":
+            results["conciseness"] = calculate_conciseness_score(
+                full_text, summary, llm_config
+            )
 
     return results

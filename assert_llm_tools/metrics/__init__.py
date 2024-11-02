@@ -1,1 +1,7 @@
-from .topic_preservation import calculate_topic_preservation
+from .faithfulness import calculate_faithfulness
+from .redundancy import calculate_redundancy
+
+__all__ = [
+    "calculate_faithfulness",
+    "calculate_redundancy",
+]

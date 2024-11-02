@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional
-from ..llm.config import LLMConfig
-from ..llm.bedrock import BedrockLLM
-from ..llm.openai import OpenAILLM
+from assert_llm_tools.llm.config import LLMConfig
+from assert_llm_tools.llm.bedrock import BedrockLLM
+from assert_llm_tools.llm.openai import OpenAILLM
 
 
 class RedundancyCalculator:
