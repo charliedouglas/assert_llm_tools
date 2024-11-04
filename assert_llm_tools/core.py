@@ -38,7 +38,7 @@ def evaluate_summary(
     metrics: Optional[List[str]] = None,
     remove_stopwords: bool = False,
     llm_config: Optional[LLMConfig] = None,
-    bert_model: Optional[ModelType] = "microsoft/deberta-v3-small-mnli",
+    bert_model: Optional[ModelType] = "microsoft/deberta-base-mnli",
     show_progress: bool = True,
 ) -> Dict[str, float]:
     """
