@@ -6,15 +6,21 @@ This repository contains tools for evaluating the quality of summaries generated
 
 ## Metrics
 
-### Currently Supported
+### Currently Supported Non-LLM Metrics
 
 - **ROUGE Score**: Measures overlap of n-grams between the reference text and generated summary
 - **BLEU Score**: Evaluates translation quality by comparing n-gram matches, with custom weights emphasizing unigrams and bigrams
 - **BERT Score**: Leverages contextual embeddings to better capture semantic similarity
+- **BART Score**: Uses BART's sequence-to-sequence model to evaluate semantic similarity and generation quality
+
+
+### Currently Supported LLM Metrics
+
 - **Faithfulness**: Measures factual consistency between summary and source text (requires an LLM provider)
 - **Topic Preservation**: Will verify that the most important topics from the source are retained in the summary (requires an LLM provider)
 - **Redundancy Detection**: Will identify and flag repeated information within summaries (requires an LLM provider)
-- **Conciseness Assessment**: Will evaluate if the summary effectively condenses information without unnecessary verbosity
+- **Conciseness Assessment**: Will evaluate if the summary effectively condenses information without unnecessary verbosity (requires an LLM provider)
+
 
 ### Planned Features
 
@@ -44,7 +50,7 @@ The faithfulness metric requires an LLM provider. Currently supported providers:
 - **Select Metrics**: Allows for selecting which metrics to calculate
   - Usage: evaluate_summary(full_text, summary, metrics=["rouge", "bleu"])
   - Defaults to all metrics if not included
-  - Available metrics: ["rouge", "bleu", "bert_score", "faithfulness", "topic_preservation", "redundancy", "conciseness"]
+  - Available metrics: ["rouge", "bleu", "bert_score", "bart_score", "faithfulness", "topic_preservation", "redundancy", "conciseness"]
 - **LLM Provider**: Allows for specifying the LLM provider and model to use for the faithfulness metric
   - Usage: evaluate_summary(full_text, summary, llm_config=LLMConfig(provider="bedrock", model_id="anthropic.claude-v2", region="us-east-1", api_key="your-api-key", api_secret="your-api-secret"))
   - Available providers: ["bedrock", "openai"]
@@ -61,8 +67,12 @@ All metrics are normalized to return scores between 0 and 1, where higher scores
 - BERT Score: Higher means better semantic similarity
   - Note that running BERT score for the first time will require a download of the model weights, which may take a while.
   - Use the `bert_model` parameter to specify the model to use for BERTScore calculation.
-  - Default model is "microsoft/deberta-base-mnli". 500mb download
-  - Other options is "microsoft/deberta-xlarge-mnli". 3gb download.
+  - Default model is "microsoft/deberta-base-mnli". (~500mb download on first use.)
+  - Other options is "microsoft/deberta-xlarge-mnli". (~3gb download on first use.)
+- BART Score: Higher means better semantic similarity and generation quality
+  - Returns log-likelihood scores normalized to be interpretable, therefore results are likely to be negative. Closer to 0 is better.
+  - Calculates bidirectional scores (reference→summary and summary→reference)
+  - Uses the BART-large-CNN model by default (~1.6GB download on first use)
 - Faithfulness: Higher means better factual consistency
 - Topic Preservation: Higher means better retention of key topics
 - Redundancy: Higher means less redundant content (1.0 = no redundancy)
