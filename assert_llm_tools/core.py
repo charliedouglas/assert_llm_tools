@@ -6,6 +6,7 @@ from .metrics.faithfulness import calculate_faithfulness
 from .metrics.topic_preservation import calculate_topic_preservation
 from .metrics.redundancy import calculate_redundancy
 from .metrics.conciseness import calculate_conciseness_score
+from .metrics.bart_score import calculate_bart_score
 from .llm.config import LLMConfig
 from typing import Dict, Union, List, Optional
 from tqdm import tqdm
@@ -15,6 +16,7 @@ AVAILABLE_METRICS = [
     "rouge",
     "bleu",
     "bert_score",
+    "bart_score",
     "faithfulness",
     "topic_preservation",
     "redundancy",
@@ -105,5 +107,8 @@ def evaluate_summary(
             results["conciseness"] = calculate_conciseness_score(
                 full_text, summary, llm_config
             )
+
+        elif metric == "bart_score":
+            results.update(calculate_bart_score(full_text, summary))
 
     return results
