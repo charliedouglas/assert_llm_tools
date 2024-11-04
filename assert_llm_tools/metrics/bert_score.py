@@ -1,35 +1,46 @@
-from typing import Dict
+from typing import Dict, Literal
 import bert_score
 import torch
+import warnings
+
+# Define valid model options using Literal type
+ModelType = Literal[
+    "microsoft/deberta-base-mnli",
+    "microsoft/deberta-xlarge-mnli",
+]
 
 
-def calculate_bert_score(reference: str, candidate: str) -> Dict[str, float]:
+def calculate_bert_score(
+    reference: str,
+    candidate: str,
+    model_type: ModelType = "microsoft/deberta-base-mnli",
+) -> Dict[str, float]:
     """
     Calculate BERTScore for a candidate summary against a reference text.
-
-    BERTScore leverages the pre-trained contextual embeddings from BERT and matches words
-    in candidate and reference sentences by cosine similarity.
 
     Args:
         reference (str): The reference text
         candidate (str): The candidate summary to evaluate
+        model_type (ModelType): The model to use for BERTScore calculation. Options are:
+            - "microsoft/deberta-base-mnli" (~86M parameters)
+            - "microsoft/deberta-xlarge-mnli" (~750M parameters)
 
     Returns:
         Dict[str, float]: Dictionary containing precision, recall, and F1 scores
     """
-    # Convert single strings to lists as bert_score expects lists
     references = [reference]
     candidates = [candidate]
-
-    # Use cuda if available for faster computation
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    # Calculate BERTScore
     P, R, F1 = bert_score.score(
-        cands=candidates, refs=references, lang="en", device=device, verbose=False
+        cands=candidates,
+        refs=references,
+        lang="en",
+        device=device,
+        model_type=model_type,
+        verbose=True,
     )
 
-    # Convert tensor values to float
     scores = {
         "bert_score_precision": P.item(),
         "bert_score_recall": R.item(),

@@ -1,7 +1,28 @@
 from nltk.corpus import stopwords
 from typing import Set, Optional, List
+import nltk
 
 _custom_stopwords: Set[str] = set()
+
+
+def initialize_nltk():
+    """Initialize required NLTK data."""
+    required_packages = [
+        "punkt",
+        "stopwords",
+        "averaged_perceptron_tagger",
+        "punkt_tab",
+    ]
+
+    for package in required_packages:
+        try:
+            nltk.data.find(f"tokenizers/{package}")
+        except LookupError:
+            try:
+                nltk.download(package, quiet=True)
+            except:
+                # Some packages might have different paths
+                nltk.download(package.replace("_tab", ""), quiet=True)
 
 
 def add_custom_stopwords(words: List[str]) -> None:

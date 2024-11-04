@@ -1,12 +1,35 @@
 from typing import Dict, Union, List, Optional
 from .metrics.rouge import calculate_rouge
 from .metrics.bleu import calculate_bleu
-from .metrics.bert_score import calculate_bert_score
+from .metrics.bert_score import calculate_bert_score, ModelType
 from .metrics.faithfulness import calculate_faithfulness
+from .metrics.topic_preservation import calculate_topic_preservation
+from .metrics.redundancy import calculate_redundancy
+from .metrics.conciseness import calculate_conciseness_score
+from .metrics.bart_score import calculate_bart_score
 from .llm.config import LLMConfig
+from typing import Dict, Union, List, Optional
+from tqdm import tqdm
 
 # Define available metrics
-AVAILABLE_METRICS = ["rouge", "bleu", "bert_score", "faithfulness"]
+AVAILABLE_METRICS = [
+    "rouge",
+    "bleu",
+    "bert_score",
+    "bart_score",
+    "faithfulness",
+    "topic_preservation",
+    "redundancy",
+    "conciseness",
+]
+
+# Define which metrics require LLM
+LLM_REQUIRED_METRICS = [
+    "faithfulness",
+    "topic_preservation",
+    "redundancy",
+    "conciseness",
+]
 
 
 def evaluate_summary(
@@ -15,6 +38,8 @@ def evaluate_summary(
     metrics: Optional[List[str]] = None,
     remove_stopwords: bool = False,
     llm_config: Optional[LLMConfig] = None,
+    bert_model: Optional[ModelType] = "microsoft/deberta-base-mnli",
+    show_progress: bool = True,
 ) -> Dict[str, float]:
     """
     Evaluate a summary using specified metrics.
@@ -24,35 +49,66 @@ def evaluate_summary(
         summary: Generated summary to evaluate
         metrics: List of metrics to calculate. Defaults to all available metrics.
         remove_stopwords: Whether to remove stopwords before evaluation
-        llm_config: Configuration for LLM-based metrics (e.g., faithfulness)
+        llm_config: Configuration for LLM-based metrics (e.g., faithfulness, topic_preservation)
+        bert_model: Model to use for BERTScore calculation. Options are:
+            - "microsoft/deberta-v3-small" (~44M parameters, default)
+            - "microsoft/deberta-base-mnli" (~86M parameters)
+            - "microsoft/deberta-v3-base-mnli" (~86M parameters)
+            - "microsoft/deberta-xlarge-mnli" (~750M parameters)
+        show_progress: Whether to show progress bar (default: True)
 
     Returns:
         Dictionary containing scores for each metric
     """
     # Default to all metrics if none specified
     if metrics is None:
-        metrics = ["rouge", "bleu", "bert_score", "faithfulness"]
+        metrics = AVAILABLE_METRICS
 
     # Validate metrics
-    valid_metrics = {"rouge", "bleu", "bert_score", "faithfulness"}
+    valid_metrics = set(AVAILABLE_METRICS)
     invalid_metrics = set(metrics) - valid_metrics
     if invalid_metrics:
         raise ValueError(f"Invalid metrics: {invalid_metrics}")
+
+    # Validate LLM config for metrics that require it
+    llm_metrics = set(metrics) & set(LLM_REQUIRED_METRICS)
+    if llm_metrics and llm_config is None:
+        raise ValueError(f"LLM configuration required for metrics: {llm_metrics}")
 
     # Initialize results dictionary
     results = {}
 
     # Calculate requested metrics
-    if "rouge" in metrics:
-        results.update(calculate_rouge(full_text, summary))
+    metric_iterator = tqdm(
+        metrics, disable=not show_progress, desc="Calculating metrics"
+    )
+    for metric in metric_iterator:
+        if metric == "rouge":
+            results.update(calculate_rouge(full_text, summary))
 
-    if "bleu" in metrics:
-        results["bleu"] = calculate_bleu(full_text, summary)
+        elif metric == "bleu":
+            results["bleu"] = calculate_bleu(full_text, summary)
 
-    if "bert_score" in metrics:
-        results.update(calculate_bert_score(full_text, summary))
+        elif metric == "bert_score":
+            results.update(
+                calculate_bert_score(full_text, summary, model_type=bert_model)
+            )
 
-    if "faithfulness" in metrics:
-        results.update(calculate_faithfulness(full_text, summary, llm_config))
+        elif metric == "faithfulness":
+            results.update(calculate_faithfulness(full_text, summary, llm_config))
+
+        elif metric == "topic_preservation":
+            results.update(calculate_topic_preservation(full_text, summary, llm_config))
+
+        elif metric == "redundancy":
+            results.update(calculate_redundancy(summary, llm_config))
+
+        elif metric == "conciseness":
+            results["conciseness"] = calculate_conciseness_score(
+                full_text, summary, llm_config
+            )
+
+        elif metric == "bart_score":
+            results.update(calculate_bart_score(full_text, summary))
 
     return results

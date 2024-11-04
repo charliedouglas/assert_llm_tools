@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional
-from ..llm.config import LLMConfig
-from ..llm.bedrock import BedrockLLM
-from ..llm.openai import OpenAILLM
+from assert_llm_tools.llm.config import LLMConfig
+from assert_llm_tools.llm.bedrock import BedrockLLM
+from assert_llm_tools.llm.openai import OpenAILLM
 
 
 class FaithfulnessCalculator:
@@ -34,21 +34,26 @@ class FaithfulnessCalculator:
         claims = response.strip().split("\n")
         return [claim.strip() for claim in claims if claim.strip()]
 
-    def _verify_claim(self, claim: str, context: str) -> bool:
+    def _verify_claims_batch(self, claims: List[str], context: str) -> List[bool]:
+        claims_text = "\n".join(
+            f"Claim {i+1}: {claim}" for i, claim in enumerate(claims)
+        )
         prompt = f"""
-        System: You are a helpful assistant that verifies if claims can be directly inferred from given context. Answer only with 'true' or 'false'.
-
-        Human: Can the following claim be directly inferred from the given context?
+        System: You are a helpful assistant that verifies if claims can be directly inferred from given context. 
+        For each claim, answer with only 'true' or 'false'.
 
         Context: {context}
-        Claim: {claim}
 
-        Answer with only 'true' or 'false'.
+        Claims to verify:
+        {claims_text}
+
+        For each claim, answer with only 'true' or 'false', one per line.
 
         Assistant:"""
 
-        response = self.llm.generate(prompt, max_tokens=10)
-        return response.strip().lower() == "true"
+        response = self.llm.generate(prompt, max_tokens=300)
+        results = response.strip().split("\n")
+        return [result.strip().lower() == "true" for result in results]
 
 
 def calculate_faithfulness(
@@ -63,21 +68,32 @@ def calculate_faithfulness(
         llm_config (Optional[LLMConfig]): Configuration for the LLM to use
 
     Returns:
-        Dict[str, float]: Dictionary containing faithfulness score
+        Dict[str, float]: Dictionary containing faithfulness score and claim counts
     """
     calculator = FaithfulnessCalculator(llm_config)
 
     # Extract claims from both texts
+    reference_claims = calculator._extract_claims(reference)
     summary_claims = calculator._extract_claims(candidate)
 
-    # Verify each claim from summary against the reference
-    verified_claims = sum(
-        calculator._verify_claim(claim, reference) for claim in summary_claims
-    )
+    if not reference_claims:  # avoid division by zero
+        return {
+            "faithfulness": 0.0,
+            "reference_claims_count": 0,
+            "summary_claims_count": len(summary_claims),
+            "verified_claims_count": 0,
+        }
 
-    # Calculate faithfulness score
-    faithfulness_score = (
-        verified_claims / len(summary_claims) if summary_claims else 0.0
-    )
+    # Verify all claims in a single batch
+    verification_results = calculator._verify_claims_batch(summary_claims, reference)
+    verified_claims_count = sum(verification_results)
 
-    return {"faithfulness": faithfulness_score}
+    # Calculate faithfulness score based on reference claims
+    faithfulness_score = verified_claims_count / len(reference_claims)
+
+    return {
+        "faithfulness": faithfulness_score,
+        "reference_claims_count": len(reference_claims),
+        "summary_claims_count": len(summary_claims),
+        "verified_claims_count": verified_claims_count,
+    }
