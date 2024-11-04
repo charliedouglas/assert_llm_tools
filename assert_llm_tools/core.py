@@ -1,7 +1,7 @@
 from typing import Dict, Union, List, Optional
 from .metrics.rouge import calculate_rouge
 from .metrics.bleu import calculate_bleu
-from .metrics.bert_score import calculate_bert_score
+from .metrics.bert_score import calculate_bert_score, ModelType
 from .metrics.faithfulness import calculate_faithfulness
 from .metrics.topic_preservation import calculate_topic_preservation
 from .metrics.redundancy import calculate_redundancy
@@ -36,6 +36,7 @@ def evaluate_summary(
     metrics: Optional[List[str]] = None,
     remove_stopwords: bool = False,
     llm_config: Optional[LLMConfig] = None,
+    bert_model: Optional[ModelType] = "microsoft/deberta-v3-small-mnli",
     show_progress: bool = True,
 ) -> Dict[str, float]:
     """
@@ -47,6 +48,11 @@ def evaluate_summary(
         metrics: List of metrics to calculate. Defaults to all available metrics.
         remove_stopwords: Whether to remove stopwords before evaluation
         llm_config: Configuration for LLM-based metrics (e.g., faithfulness, topic_preservation)
+        bert_model: Model to use for BERTScore calculation. Options are:
+            - "microsoft/deberta-v3-small" (~44M parameters, default)
+            - "microsoft/deberta-base-mnli" (~86M parameters)
+            - "microsoft/deberta-v3-base-mnli" (~86M parameters)
+            - "microsoft/deberta-xlarge-mnli" (~750M parameters)
         show_progress: Whether to show progress bar (default: True)
 
     Returns:
@@ -82,7 +88,9 @@ def evaluate_summary(
             results["bleu"] = calculate_bleu(full_text, summary)
 
         elif metric == "bert_score":
-            results.update(calculate_bert_score(full_text, summary))
+            results.update(
+                calculate_bert_score(full_text, summary, model_type=bert_model)
+            )
 
         elif metric == "faithfulness":
             results.update(calculate_faithfulness(full_text, summary, llm_config))
