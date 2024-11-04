@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "assert_llm_tools"
-version = "0.0.5.6"
+version = "0.0.5.7"
 description = "Automated Summary Scoring & Evaluation of Retained Text"
 authors = [
     {name = "Charlie Douglas", email = "cdouglas@gmail.com"},
@@ -32,6 +32,8 @@ dependencies = [
     "rouge-score>=0.1.2",
     "huggingface_hub>=0.20.0",
     "tqdm>=4.66.6",
+    "protobuf>=5.28.3",
+    "tiktoken>=0.8.0"
 ]
 requires-python = ">=3.8"
 
