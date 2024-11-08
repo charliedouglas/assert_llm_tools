@@ -51,10 +51,8 @@ def evaluate_summary(
         remove_stopwords: Whether to remove stopwords before evaluation
         llm_config: Configuration for LLM-based metrics (e.g., faithfulness, topic_preservation)
         bert_model: Model to use for BERTScore calculation. Options are:
-            - "microsoft/deberta-v3-small" (~44M parameters, default)
             - "microsoft/deberta-base-mnli" (~86M parameters)
-            - "microsoft/deberta-v3-base-mnli" (~86M parameters)
-            - "microsoft/deberta-xlarge-mnli" (~750M parameters)
+            - "microsoft/deberta-xlarge-mnli" (~750M parameters) (default)
         show_progress: Whether to show progress bar (default: True)
 
     Returns:
