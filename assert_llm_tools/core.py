@@ -1,18 +1,18 @@
 from typing import Dict, Union, List, Optional
-from .metrics.rouge import calculate_rouge
-from .metrics.bleu import calculate_bleu
-from .metrics.bert_score import calculate_bert_score, ModelType
-from .metrics.faithfulness import calculate_faithfulness
-from .metrics.topic_preservation import calculate_topic_preservation
-from .metrics.redundancy import calculate_redundancy
-from .metrics.conciseness import calculate_conciseness_score
-from .metrics.bart_score import calculate_bart_score
+from .metrics.summary.rouge import calculate_rouge
+from .metrics.summary.bleu import calculate_bleu
+from .metrics.summary.bert_score import calculate_bert_score, ModelType
+from .metrics.summary.faithfulness import calculate_faithfulness
+from .metrics.summary.topic_preservation import calculate_topic_preservation
+from .metrics.summary.redundancy import calculate_redundancy
+from .metrics.summary.conciseness import calculate_conciseness_score
+from .metrics.summary.bart_score import calculate_bart_score
 from .llm.config import LLMConfig
 from typing import Dict, Union, List, Optional
 from tqdm import tqdm
 
 # Define available metrics
-AVAILABLE_METRICS = [
+AVAILABLE_SUMMARY_METRICS = [
     "rouge",
     "bleu",
     "bert_score",
@@ -24,7 +24,7 @@ AVAILABLE_METRICS = [
 ]
 
 # Define which metrics require LLM
-LLM_REQUIRED_METRICS = [
+LLM_REQUIRED_SUMMARY_METRICS = [
     "faithfulness",
     "topic_preservation",
     "redundancy",
@@ -60,16 +60,16 @@ def evaluate_summary(
     """
     # Default to all metrics if none specified
     if metrics is None:
-        metrics = AVAILABLE_METRICS
+        metrics = AVAILABLE_SUMMARY_METRICS
 
     # Validate metrics
-    valid_metrics = set(AVAILABLE_METRICS)
+    valid_metrics = set(AVAILABLE_SUMMARY_METRICS)
     invalid_metrics = set(metrics) - valid_metrics
     if invalid_metrics:
         raise ValueError(f"Invalid metrics: {invalid_metrics}")
 
     # Validate LLM config for metrics that require it
-    llm_metrics = set(metrics) & set(LLM_REQUIRED_METRICS)
+    llm_metrics = set(metrics) & set(LLM_REQUIRED_SUMMARY_METRICS)
     if llm_metrics and llm_config is None:
         raise ValueError(f"LLM configuration required for metrics: {llm_metrics}")
 
