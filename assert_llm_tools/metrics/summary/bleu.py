@@ -1,6 +1,6 @@
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 from nltk.tokenize import word_tokenize
-from .. import initialize_nltk
+from ... import initialize_nltk
 
 
 def calculate_bleu(reference: str, candidate: str) -> float:
