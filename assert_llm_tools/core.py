@@ -10,6 +10,7 @@ from .metrics.summary.bart_score import calculate_bart_score
 from .llm.config import LLMConfig
 from typing import Dict, Union, List, Optional
 from tqdm import tqdm
+from .metrics.rag.answer_relevance import calculate_answer_relevance
 
 # Define available metrics
 AVAILABLE_SUMMARY_METRICS = [
@@ -30,6 +31,18 @@ LLM_REQUIRED_SUMMARY_METRICS = [
     "redundancy",
     "conciseness",
 ]
+
+# Define available metrics for RAG evaluation
+AVAILABLE_RAG_METRICS = [
+    "answer_relevance",
+    "context_relevance",
+    "faithfulness",
+    "coherence",
+    "completeness",
+]
+
+# All RAG metrics require LLM
+LLM_REQUIRED_RAG_METRICS = AVAILABLE_RAG_METRICS
 
 
 def evaluate_summary(
@@ -108,5 +121,62 @@ def evaluate_summary(
 
         elif metric == "bart_score":
             results.update(calculate_bart_score(full_text, summary))
+
+    return results
+
+
+# Define available metrics for RAG evaluation
+AVAILABLE_RAG_METRICS = [
+    "answer_relevance",
+    "context_relevance",
+    "faithfulness",
+    "coherence",
+    "completeness",
+]
+
+
+def evaluate_rag(
+    question: str,
+    answer: str,
+    context: Union[str, List[str]],
+    llm_config: LLMConfig,
+    metrics: Optional[List[str]] = None,
+    show_progress: bool = True,
+) -> Dict[str, float]:
+    """
+    Evaluate a RAG (Retrieval-Augmented Generation) system's output using specified metrics.
+
+    Args:
+        question: The input question
+        answer: The generated answer to evaluate
+        context: Retrieved context(s) used to generate the answer. Can be a single string or list of strings.
+        llm_config: Configuration for LLM-based metrics
+        metrics: List of metrics to calculate. Defaults to all available metrics.
+        show_progress: Whether to show progress bar (default: True)
+
+    Returns:
+        Dictionary containing scores for each metric
+    """
+    # Default to all metrics if none specified
+    if metrics is None:
+        metrics = AVAILABLE_RAG_METRICS
+
+    # Validate metrics
+    valid_metrics = set(AVAILABLE_RAG_METRICS)
+    invalid_metrics = set(metrics) - valid_metrics
+    if invalid_metrics:
+        raise ValueError(f"Invalid metrics: {invalid_metrics}")
+
+    # Initialize results dictionary
+    results = {}
+
+    # Calculate requested metrics
+    metric_iterator = tqdm(
+        metrics, disable=not show_progress, desc="Calculating RAG metrics"
+    )
+    for metric in metric_iterator:
+        if metric == "answer_relevance":
+            results.update(calculate_answer_relevance(question, answer, llm_config))
+        # ... other metrics to be implemented ...
 
     return results
