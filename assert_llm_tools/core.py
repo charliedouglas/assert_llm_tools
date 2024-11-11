@@ -11,6 +11,8 @@ from .llm.config import LLMConfig
 from typing import Dict, Union, List, Optional
 from tqdm import tqdm
 from .metrics.rag.answer_relevance import calculate_answer_relevance
+from .metrics.rag.context_relevance import calculate_context_relevance
+from .metrics.rag.answer_attribution import calculate_answer_attribution
 
 # Define available metrics
 AVAILABLE_SUMMARY_METRICS = [
@@ -39,6 +41,7 @@ AVAILABLE_RAG_METRICS = [
     "faithfulness",
     "coherence",
     "completeness",
+    "answer_attribution",
 ]
 
 # All RAG metrics require LLM
@@ -125,16 +128,6 @@ def evaluate_summary(
     return results
 
 
-# Define available metrics for RAG evaluation
-AVAILABLE_RAG_METRICS = [
-    "answer_relevance",
-    "context_relevance",
-    "faithfulness",
-    "coherence",
-    "completeness",
-]
-
-
 def evaluate_rag(
     question: str,
     answer: str,
@@ -177,6 +170,10 @@ def evaluate_rag(
     for metric in metric_iterator:
         if metric == "answer_relevance":
             results.update(calculate_answer_relevance(question, answer, llm_config))
+        elif metric == "context_relevance":
+            results.update(calculate_context_relevance(question, context, llm_config))
+        elif metric == "answer_attribution":
+            results.update(calculate_answer_attribution(answer, context, llm_config))
         # ... other metrics to be implemented ...
 
     return results
