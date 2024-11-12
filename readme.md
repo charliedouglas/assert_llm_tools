@@ -8,25 +8,32 @@ This repository contains tools for evaluating the quality of summaries generated
 
 View a live demo of the library [here](https://www.getassert.io/demo)
 
-![Demo](demo.png)
-
 
 ## Metrics
 
-### Currently Supported Non-LLM Metrics
+### Summary Evaluation Metrics
+
+#### Currently Supported Non-LLM Metrics
 
 - **ROUGE Score**: Measures overlap of n-grams between the reference text and generated summary
 - **BLEU Score**: Evaluates translation quality by comparing n-gram matches, with custom weights emphasizing unigrams and bigrams
 - **BERT Score**: Leverages contextual embeddings to better capture semantic similarity
 - **BART Score**: Uses BART's sequence-to-sequence model to evaluate semantic similarity and generation quality
 
-
-### Currently Supported LLM Metrics
+#### Currently Supported LLM Metrics
 
 - **Faithfulness**: Measures factual consistency between summary and source text (requires an LLM provider)
 - **Topic Preservation**: Will verify that the most important topics from the source are retained in the summary (requires an LLM provider)
 - **Redundancy Detection**: Will identify and flag repeated information within summaries (requires an LLM provider)
 - **Conciseness Assessment**: Will evaluate if the summary effectively condenses information without unnecessary verbosity (requires an LLM provider)
+
+### RAG Evaluation Metrics
+
+#### Currently Supported Metrics
+
+- **Context Relevance**: Evaluates how well the retrieved context matches the query
+- **Answer Accuracy**: Measures the factual correctness of the generated answer based on the provided context
+- **Context Utilization**: Assesses how effectively the model uses the provided context in generating the answer
 
 
 ### Planned Features
@@ -36,13 +43,6 @@ View a live demo of the library [here](https://www.getassert.io/demo)
 - **Style Consistency**: Will evaluate if the summary maintains a consistent writing style and tone
 - **Information Density**: Will measure the ratio of meaningful content to length in summaries
 
-
-#### LLM Provider Support for Faithfulness Metric
-
-The faithfulness metric requires an LLM provider. Currently supported providers:
-
-- **Amazon Bedrock** (requires `assert_llm_tools[bedrock]`)
-- **OpenAI** (requires `assert_llm_tools[openai]`)
 
 
 ## Features
@@ -67,6 +67,8 @@ The faithfulness metric requires an LLM provider. Currently supported providers:
 
 ## Understanding Scores
 
+### Summary Evaluation Scores
+
 All metrics are normalized to return scores between 0 and 1, where higher scores indicate better performance:
 
 - ROUGE Score: Higher means better overlap with reference
@@ -84,6 +86,15 @@ All metrics are normalized to return scores between 0 and 1, where higher scores
 - Topic Preservation: Higher means better retention of key topics
 - Redundancy: Higher means less redundant content (1.0 = no redundancy)
 - Conciseness: Higher means less verbose content (1.0 = optimal conciseness)
+
+### RAG Evaluation Scores
+
+All RAG metrics return scores between 0 and 1:
+
+- Context Relevance: Higher means better match between query and retrieved context
+- Answer Accuracy: Higher means better factual correctness based on context
+- Context Utilization: Higher means better use of provided context
+- Citation Accuracy: Higher means better support for claims from context
 
 ## Installation
 
@@ -112,8 +123,7 @@ Optional Dependencies:
 ## Usage
 
 ```python
-# test_assert.py
-from assert_llm_tools.core import evaluate_summary
+from assert_llm_tools.core import evaluate_summary, evaluate_rag
 from assert_llm_tools.utils import add_custom_stopwords
 from assert_llm_tools.llm.config import LLMConfig
 
@@ -144,8 +154,18 @@ config = LLMConfig(
     api_key="your-api-key"
 )
 
-# Get evaluation metrics
-metrics = evaluate_summary(full_text, summary, remove_stopwords=False, metrics=metrics, llm_config=config)
+# Summary Evaluation Example
+metrics = evaluate_summary(full_text, summary, 
+                         remove_stopwords=False, 
+                         metrics=["rouge", "bleu", "bert_score"], 
+                         llm_config=config)
+
+# RAG Evaluation Example
+rag_metrics = evaluate_rag(query="What is the capital of France?",
+                          context="Paris is the capital and largest city of France.",
+                          answer="The capital of France is Paris.",
+                          metrics=["context_relevance", "answer_accuracy"],
+                          llm_config=config)
 
 # Print results
 print("\nEvaluation Metrics:")
