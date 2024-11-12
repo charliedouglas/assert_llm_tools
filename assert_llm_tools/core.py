@@ -13,6 +13,8 @@ from tqdm import tqdm
 from .metrics.rag.answer_relevance import calculate_answer_relevance
 from .metrics.rag.context_relevance import calculate_context_relevance
 from .metrics.rag.answer_attribution import calculate_answer_attribution
+from .metrics.rag.faithfulness import calculate_faithfulness
+from .metrics.rag.completeness import calculate_completeness
 
 # Define available metrics
 AVAILABLE_SUMMARY_METRICS = [
@@ -174,6 +176,10 @@ def evaluate_rag(
             results.update(calculate_context_relevance(question, context, llm_config))
         elif metric == "answer_attribution":
             results.update(calculate_answer_attribution(answer, context, llm_config))
+        elif metric == "faithfulness":
+            results.update(calculate_faithfulness(answer, context, llm_config))
+        elif metric == "completeness":
+            results.update(calculate_completeness(question, answer, llm_config))
         # ... other metrics to be implemented ...
 
     return results
