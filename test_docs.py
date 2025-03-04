@@ -1,7 +1,7 @@
 from assert_llm_tools.core import evaluate_summary
 from assert_llm_tools.llm.config import LLMConfig
 
-metrics = ["comet_score", "comet_qe_score"]
+metrics = ["faithfulness"]
 
 
 # Select one of Bedrock or OpenAI

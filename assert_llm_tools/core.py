@@ -153,7 +153,7 @@ def evaluate_summary(
                 source=full_text, candidate=summary, model_name=comet_model
             )["comet_qe_score"]
 
-            return results
+    return results
 
 
 def evaluate_rag(
