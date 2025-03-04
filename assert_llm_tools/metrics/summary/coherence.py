@@ -1,37 +1,44 @@
 from typing import Dict, List, Optional
 from ...llm.config import LLMConfig
-from ...llm.bedrock import BedrockLLM
-from ...llm.openai import OpenAILLM
+from ..base import SummaryMetricCalculator
 import numpy as np
 from nltk.tokenize import sent_tokenize
 from sentence_transformers import SentenceTransformer
 from scipy.spatial.distance import cosine
 
 
-class CoherenceCalculator:
-    def __init__(self, llm_config: Optional[LLMConfig] = None):
+class CoherenceCalculator(SummaryMetricCalculator):
+    """
+    Calculator for evaluating coherence of text.
+
+    Measures logical flow, transitions, and overall text cohesion.
+    """
+
+    def __init__(
+        self,
+        llm_config: Optional[LLMConfig] = None,
+        embedding_model: str = "all-MiniLM-L6-v2",
+    ):
+        """
+        Initialize coherence calculator.
+
+        Args:
+            llm_config: Configuration for LLM
+            embedding_model: Name of sentence transformer model for embeddings
+        """
+        super().__init__(llm_config)
         # Initialize embedding model for semantic analysis
-        self.embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-
-        if llm_config is None:
-            # Default to Bedrock with Claude 3
-            llm_config = LLMConfig(
-                provider="bedrock",
-                model_id="anthropic.claude-3-sonnet-20240229-v1:0",
-                region="us-east-1",
-            )
-
-        if llm_config.provider == "bedrock":
-            self.llm = BedrockLLM(llm_config)
-        elif llm_config.provider == "openai":
-            self.llm = OpenAILLM(llm_config)
-        else:
-            raise ValueError(f"Unsupported LLM provider: {llm_config.provider}")
+        self.embedding_model = SentenceTransformer(embedding_model)
 
     def _calculate_sentence_similarity(self, sentences: List[str]) -> float:
         """
-        Calculate average cosine similarity between consecutive sentences
-        using sentence embeddings.
+        Calculate average cosine similarity between consecutive sentences.
+
+        Args:
+            sentences: List of sentences to analyze
+
+        Returns:
+            Average similarity score between consecutive sentences
         """
         if len(sentences) <= 1:
             return 1.0  # If only one sentence, it's coherent by default
@@ -51,11 +58,13 @@ class CoherenceCalculator:
 
     def _evaluate_discourse_coherence(self, text: str) -> float:
         """
-        Use LLM to evaluate discourse-level coherence including:
-        - Proper use of transition words
-        - Logical flow of ideas
-        - Consistent referencing (pronouns, etc.)
-        - Topic progression
+        Use LLM to evaluate discourse-level coherence.
+
+        Args:
+            text: Text to evaluate
+
+        Returns:
+            Discourse coherence score between 0.0 and 1.0
         """
         prompt = f"""Evaluate the coherence of the following text. Focus on:
 1. Logical flow between sentences and paragraphs
@@ -75,22 +84,19 @@ Rate the coherence on a scale of 0 to 1, where:
 Important: Your response must be only a numerical score between 0.0 and 1.0.
 """
 
-        # Get response from LLM
+        # Get response from LLM and extract score
         response = self.llm.generate(prompt).strip()
+        return self._extract_float_from_response(response)
 
-        # Extract float from response
-        try:
-            score = float(response)
-            # Ensure score is within bounds
-            return max(0.0, min(1.0, score))
-        except ValueError:
-            # Default to middle score if parsing fails
-            return 0.5
-
-    def calculate_coherence(self, text: str) -> float:
+    def calculate_score(self, text: str) -> float:
         """
-        Calculate overall coherence score using both embedding-based
-        and LLM-based approaches.
+        Calculate overall coherence score.
+
+        Args:
+            text: Text to evaluate
+
+        Returns:
+            Coherence score between 0.0 and 1.0
         """
         # Split text into sentences
         sentences = sent_tokenize(text)
@@ -124,6 +130,6 @@ def calculate_coherence(
         Dict[str, float]: Dictionary containing the coherence score
     """
     calculator = CoherenceCalculator(llm_config)
-    score = calculator.calculate_coherence(summary)
+    score = calculator.calculate_score(summary)
 
     return {"coherence": score}

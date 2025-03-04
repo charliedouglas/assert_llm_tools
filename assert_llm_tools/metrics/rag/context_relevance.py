@@ -1,30 +1,28 @@
 from typing import Dict, Optional, Union, List
 from ...llm.config import LLMConfig
-from ...llm.bedrock import BedrockLLM
-from ...llm.openai import OpenAILLM
+from ..base import RAGMetricCalculator
 
 
-class ContextRelevanceCalculator:
-    def __init__(self, llm_config: Optional[LLMConfig] = None):
-        if llm_config is None:
-            # Default to Bedrock with Claude
-            llm_config = LLMConfig(
-                provider="bedrock", model_id="anthropic.claude-v2", region="us-east-1"
-            )
+class ContextRelevanceCalculator(RAGMetricCalculator):
+    """
+    Calculator for evaluating relevance of retrieved context to a question.
 
-        if llm_config.provider == "bedrock":
-            self.llm = BedrockLLM(llm_config)
-        elif llm_config.provider == "openai":
-            self.llm = OpenAILLM(llm_config)
-        else:
-            raise ValueError(f"Unsupported LLM provider: {llm_config.provider}")
+    Measures how well retrieved context relates to the original question.
+    """
 
     def calculate_score(self, question: str, context: Union[str, List[str]]) -> float:
-        # If context is a list, join with newlines
-        if isinstance(context, list):
-            context_text = "\n\n".join(context)
-        else:
-            context_text = context
+        """
+        Calculate relevance score for retrieved context.
+
+        Args:
+            question: The original question
+            context: Retrieved context as string or list of strings
+
+        Returns:
+            Relevance score between 0.0 and 1.0
+        """
+        # Normalize context if it's a list
+        context_text = self._normalize_context(context)
 
         prompt = f"""You are an expert evaluator. Assess how relevant the retrieved context is to the given question.
 
@@ -40,18 +38,9 @@ Important: Your response must start with just the numerical score between 0.00 t
 
 Score:"""
 
-        # Get response from LLM
+        # Get response from LLM and extract score
         response = self.llm.generate(prompt).strip()
-
-        # Extract the first line and convert to float
-        try:
-            score = float(response.split("\n")[0].strip())
-        except (ValueError, IndexError):
-            # If parsing fails, default to 0
-            score = 0.0
-
-        # Ensure score is within bounds
-        return max(0.0, min(1.0, score))
+        return self._extract_float_from_response(response)
 
 
 def calculate_context_relevance(

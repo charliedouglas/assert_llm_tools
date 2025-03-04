@@ -1,40 +1,27 @@
 from typing import Dict, List, Optional
-from assert_llm_tools.llm.config import LLMConfig
-from assert_llm_tools.llm.bedrock import BedrockLLM
-from assert_llm_tools.llm.openai import OpenAILLM
+from ...llm.config import LLMConfig
+from ..base import SummaryMetricCalculator
 
 
-class FaithfulnessCalculator:
-    def __init__(self, llm_config: Optional[LLMConfig] = None):
-        if llm_config is None:
-            # Default to Bedrock with Claude
-            llm_config = LLMConfig(
-                provider="bedrock", model_id="anthropic.claude-v2", region="us-east-1"
-            )
+class FaithfulnessCalculator(SummaryMetricCalculator):
+    """
+    Calculator for evaluating faithfulness of summaries.
 
-        if llm_config.provider == "bedrock":
-            self.llm = BedrockLLM(llm_config)
-        elif llm_config.provider == "openai":
-            self.llm = OpenAILLM(llm_config)
-        else:
-            raise ValueError(f"Unsupported LLM provider: {llm_config.provider}")
-
-    def _extract_claims(self, text: str) -> List[str]:
-        prompt = f"""
-        System: You are a helpful assistant that extracts factual claims from text. Extract all factual claims from the given text. Output each claim on a new line. Only include objective, verifiable claims. Do not include opinions or subjective statements.
-
-        Human: Here is the text to analyze:
-        {text}
-
-        Please list all factual claims, one per line.
-
-        Assistant: Here are the factual claims:"""
-
-        response = self.llm.generate(prompt, max_tokens=500)
-        claims = response.strip().split("\n")
-        return [claim.strip() for claim in claims if claim.strip()]
+    Measures how factually consistent a summary is with the reference text
+    by extracting claims from the summary and verifying them against the reference.
+    """
 
     def _verify_claims_batch(self, claims: List[str], context: str) -> List[bool]:
+        """
+        Verify if claims can be inferred from the reference text.
+
+        Args:
+            claims: List of claims to verify
+            context: Reference text to check against
+
+        Returns:
+            List of boolean values indicating if each claim is supported
+        """
         claims_text = "\n".join(
             f"Claim {i+1}: {claim}" for i, claim in enumerate(claims)
         )
@@ -55,6 +42,45 @@ class FaithfulnessCalculator:
         results = response.strip().split("\n")
         return [result.strip().lower() == "true" for result in results]
 
+    def calculate_score(self, reference: str, candidate: str) -> Dict[str, float]:
+        """
+        Calculate faithfulness score for a summary.
+
+        Args:
+            reference: Original reference text
+            candidate: Summary to evaluate
+
+        Returns:
+            Dictionary with faithfulness score and claim statistics
+        """
+        # Extract claims from both texts
+        reference_claims = self._extract_claims(reference)
+        summary_claims = self._extract_claims(candidate)
+
+        if not summary_claims:  # avoid division by zero
+            return {
+                "faithfulness": 1.0,  # No claims means no unfaithful claims
+                "reference_claims_count": len(reference_claims),
+                "summary_claims_count": 0,
+                "verified_claims_count": 0,
+            }
+
+        # Verify all claims in a single batch
+        verification_results = self._verify_claims_batch(summary_claims, reference)
+        verified_claims_count = sum(verification_results)
+
+        # Calculate faithfulness score
+        faithfulness_score = (
+            verified_claims_count / len(summary_claims) if summary_claims else 1.0
+        )
+
+        return {
+            "faithfulness": faithfulness_score,
+            "reference_claims_count": len(reference_claims),
+            "summary_claims_count": len(summary_claims),
+            "verified_claims_count": verified_claims_count,
+        }
+
 
 def calculate_faithfulness(
     reference: str, candidate: str, llm_config: Optional[LLMConfig] = None
@@ -71,29 +97,4 @@ def calculate_faithfulness(
         Dict[str, float]: Dictionary containing faithfulness score and claim counts
     """
     calculator = FaithfulnessCalculator(llm_config)
-
-    # Extract claims from both texts
-    reference_claims = calculator._extract_claims(reference)
-    summary_claims = calculator._extract_claims(candidate)
-
-    if not reference_claims:  # avoid division by zero
-        return {
-            "faithfulness": 0.0,
-            "reference_claims_count": 0,
-            "summary_claims_count": len(summary_claims),
-            "verified_claims_count": 0,
-        }
-
-    # Verify all claims in a single batch
-    verification_results = calculator._verify_claims_batch(summary_claims, reference)
-    verified_claims_count = sum(verification_results)
-
-    # Calculate faithfulness score based on reference claims
-    faithfulness_score = verified_claims_count / len(reference_claims)
-
-    return {
-        "faithfulness": faithfulness_score,
-        "reference_claims_count": len(reference_claims),
-        "summary_claims_count": len(summary_claims),
-        "verified_claims_count": verified_claims_count,
-    }
+    return calculator.calculate_score(reference, candidate)

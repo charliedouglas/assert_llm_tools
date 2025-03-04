@@ -1,25 +1,26 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Union, List
 from ...llm.config import LLMConfig
-from ...llm.bedrock import BedrockLLM
-from ...llm.openai import OpenAILLM
+from ..base import RAGMetricCalculator
 
 
-class AnswerRelevanceCalculator:
-    def __init__(self, llm_config: Optional[LLMConfig] = None):
-        if llm_config is None:
-            # Default to Bedrock with Claude
-            llm_config = LLMConfig(
-                provider="bedrock", model_id="anthropic.claude-v2", region="us-east-1"
-            )
+class AnswerRelevanceCalculator(RAGMetricCalculator):
+    """
+    Calculator for evaluating relevance of an answer to a question.
 
-        if llm_config.provider == "bedrock":
-            self.llm = BedrockLLM(llm_config)
-        elif llm_config.provider == "openai":
-            self.llm = OpenAILLM(llm_config)
-        else:
-            raise ValueError(f"Unsupported LLM provider: {llm_config.provider}")
+    Measures how well an answer addresses the original question.
+    """
 
     def calculate_score(self, question: str, answer: str) -> float:
+        """
+        Calculate relevance score for an answer.
+
+        Args:
+            question: The original question
+            answer: The generated answer to evaluate
+
+        Returns:
+            Relevance score between 0.0 and 1.0
+        """
         prompt = f"""You are an expert evaluator. Assess how relevant the following answer is to the given question.
     
 Question: {question}
@@ -35,20 +36,12 @@ You may provide explanation after the score on a new line.
 
 Score:"""
 
-        # Get response from LLM
+        # Get response from LLM and extract score
         response = self.llm.generate(prompt).strip()
-
-        # Extract the first line and convert to float
-        try:
-            score = float(response.split("\n")[0].strip())
-        except (ValueError, IndexError):
-            # If parsing fails, default to 0
-            score = 0.0
-
-        # Ensure score is within bounds
-        return max(0.0, min(1.0, score))
+        return self._extract_float_from_response(response)
 
 
+# Wrapper functions to maintain the existing API
 def calculate_answer_relevance(
     question: str,
     answer: str,
