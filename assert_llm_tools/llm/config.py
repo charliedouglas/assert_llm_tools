@@ -4,6 +4,22 @@ from typing import Optional, Dict, Any
 
 @dataclass
 class LLMConfig:
+    """
+    Configuration class for LLM services.
+
+    This class holds all necessary configuration parameters for connecting to
+    and using various LLM providers (Bedrock, OpenAI, etc.).
+
+    Attributes:
+        provider (str): The LLM provider name ('bedrock', 'openai').
+        model_id (str): The specific model identifier to use.
+        region (str, optional): AWS region for Bedrock models.
+        api_key (str, optional): API key for authentication.
+        api_secret (str, optional): API secret for authentication.
+        aws_session_token (str, optional): AWS session token for temporary credentials.
+        additional_params (Dict[str, Any], optional): Additional provider-specific parameters.
+    """
+
     provider: str  # 'bedrock', 'openai'
     model_id: str
     region: Optional[str] = None
@@ -13,7 +29,15 @@ class LLMConfig:
     additional_params: Optional[Dict[str, Any]] = None
 
     def validate(self) -> None:
-        """Validate the configuration"""
+        """
+        Validate the configuration parameters.
+
+        Ensures all required fields are set for the specified provider
+        and that values meet provider-specific requirements.
+
+        Raises:
+            ValueError: If configuration is invalid for the specified provider.
+        """
         if self.provider not in ["bedrock", "openai"]:
             raise ValueError(f"Unsupported provider: {self.provider}")
 

@@ -16,7 +16,28 @@ def _check_dependencies():
 
 
 class BedrockLLM(BaseLLM):
+    """
+    Implementation of BaseLLM for AWS Bedrock service.
+
+    This class handles communication with AWS Bedrock API to run inference
+    using various foundation models including Anthropic Claude and Amazon Titan models.
+
+    Attributes:
+        client: Boto3 client for Bedrock Runtime service.
+        config (LLMConfig): Configuration for the Bedrock LLM.
+    """
+
     def _initialize(self) -> None:
+        """
+        Initialize the AWS Bedrock client.
+
+        Sets up the Boto3 client with appropriate authentication and configuration
+        including region, API credentials, and proxy settings if specified.
+
+        Raises:
+            ImportError: If boto3 dependency is not installed.
+            ValueError: If configuration is invalid.
+        """
         _check_dependencies()
         session_kwargs = {}
         if self.config.api_key and self.config.api_secret:
@@ -56,6 +77,23 @@ class BedrockLLM(BaseLLM):
         self.client = session.client("bedrock-runtime", **client_kwargs)
 
     def generate(self, prompt: str, **kwargs) -> str:
+        """
+        Generate text using AWS Bedrock models.
+
+        Formats the request appropriately based on the model type (Nova vs other models),
+        sends the request to Bedrock, and parses the response.
+
+        Args:
+            prompt (str): The input prompt to send to the model.
+            **kwargs: Additional parameters for text generation:
+                - max_tokens (int): Maximum number of tokens to generate.
+                - temperature (float): Controls randomness (0-1).
+                - top_p (float): Controls diversity via nucleus sampling.
+                - top_k (int): Controls diversity via top-k sampling.
+
+        Returns:
+            str: The generated text response from the model.
+        """
         # Determine if it's a Nova model
         is_nova = "nova" in self.config.model_id.lower()
 
