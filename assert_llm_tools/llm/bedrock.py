@@ -29,8 +29,31 @@ class BedrockLLM(BaseLLM):
             if self.config.aws_session_token:
                 session_kwargs["aws_session_token"] = self.config.aws_session_token
 
-        session = boto3.Session(region_name=self.config.region, **)
-        self.client = session.client("bedrock-runtime")
+        # Add proxy configuration if provided
+        proxies = {}
+        # Using a single proxy_url for both protocols if specified
+        if hasattr(self.config, "proxy_url") and self.config.proxy_url:
+            proxies["http"] = self.config.proxy_url
+            proxies["https"] = self.config.proxy_url
+
+        # Using protocol-specific proxies if specified
+        if hasattr(self.config, "http_proxy") and self.config.http_proxy:
+            proxies["http"] = self.config.http_proxy
+        if hasattr(self.config, "https_proxy") and self.config.https_proxy:
+            proxies["https"] = self.config.https_proxy
+
+        # Apply proxies if any are defined
+        if proxies:
+            session_kwargs["proxies"] = proxies
+
+        session = boto3.Session(region_name=self.config.region, **session_kwargs)
+
+        # Configure client with proxy if needed
+        client_kwargs = {}
+        if proxies:
+            client_kwargs["config"] = boto3.config.Config(proxies=proxies)
+
+        self.client = session.client("bedrock-runtime", **client_kwargs)
 
     def generate(self, prompt: str, **kwargs) -> str:
         # Determine if it's a Nova model
