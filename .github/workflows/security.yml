@@ -24,6 +24,6 @@ jobs:
     - name: Run bandit
       run: |
         bandit -r assert_llm_tools/ -c pyproject.toml
-    - name: Run safety check
+    - name: Run safety scan
       run: |
-        safety check
+        safety scan
