@@ -9,6 +9,12 @@ This repository contains tools for evaluating the quality of summaries generated
 View a live demo of the library [here](https://www.getassert.io/demo)
 
 
+## Documentation
+
+Documentation is available [here](https://docs.getassert.io/)
+
+
+
 ## Metrics
 
 ### Summary Evaluation Metrics
@@ -31,9 +37,11 @@ View a live demo of the library [here](https://www.getassert.io/demo)
 
 #### Currently Supported Metrics
 
-- **Context Relevance**: Evaluates how well the retrieved context matches the query
-- **Answer Accuracy**: Measures the factual correctness of the generated answer based on the provided context
-- **Context Utilization**: Assesses how effectively the model uses the provided context in generating the answer
+- **Answer Attribution**: Evaluates if the answer's claims are properly supported by the provided context
+- **Answer Relevance**: Measures how well the answer addresses the specific query intent
+- **Completeness**: Evaluates whether the answer addresses all aspects of the query comprehensively
+- **Context Relevance**: Assesses how well the retrieved context aligns with and is applicable to the query
+- **Faithfulness**: Measures how accurately the answer reflects the information contained in the context without introducing external or contradictory information
 
 
 ### Planned Features
@@ -54,10 +62,16 @@ View a live demo of the library [here](https://www.getassert.io/demo)
   - Usage: from assert_llm_tools.utils import add_custom_stopwords
   - Example: add_custom_stopwords(["your", "custom", "stopwords", "here"])
   - remove_stopwords=True must be enabled 
-- **Select Metrics**: Allows for selecting which metrics to calculate
+- **Select Summary Metrics**: Allows for selecting which summary evaluation metrics to calculate
   - Usage: evaluate_summary(full_text, summary, metrics=["rouge", "bleu"])
   - Defaults to all metrics if not included
   - Available metrics: ["rouge", "bleu", "bert_score", "bart_score", "faithfulness", "topic_preservation", "redundancy", "conciseness"]
+  - Faithfulness, topic preservation, redundancy, and conciseness require an LLM provider via llm_config parameter
+- **Select RAG Metrics**: Allows for selecting which RAG evaluation metrics to calculate
+  - Usage: evaluate_rag(query, context, answer, metrics=["context_relevance", "answer_accuracy"])
+  - Defaults to all metrics if not included
+  - Available metrics: ["context_relevance", "answer_accuracy", "context_utilization", "completeness", "faithfulness"]
+  - All metrics require an LLM provider via llm_config parameter
 - **LLM Provider**: Allows for specifying the LLM provider and model to use for the faithfulness metric
   - Usage: evaluate_summary(full_text, summary, llm_config=LLMConfig(provider="bedrock", model_id="anthropic.claude-v2", region="us-east-1", api_key="your-api-key", api_secret="your-api-secret"))
   - Available providers: ["bedrock", "openai"]
@@ -91,10 +105,11 @@ All metrics are normalized to return scores between 0 and 1, where higher scores
 
 All RAG metrics return scores between 0 and 1:
 
+- Answer Attribution: Higher means better support from context for answer claims
+- Answer Relevance: Higher means better alignment with query intent
+- Completeness: Higher means the answer addresses all aspects of the query comprehensively
 - Context Relevance: Higher means better match between query and retrieved context
-- Answer Accuracy: Higher means better factual correctness based on context
-- Context Utilization: Higher means better use of provided context
-- Citation Accuracy: Higher means better support for claims from context
+- Faithfulness: Higher means better alignment between the answer and the provided context
 
 ## Installation
 
@@ -130,7 +145,6 @@ from assert_llm_tools.llm.config import LLMConfig
 # Add custom stopwords
 add_custom_stopwords(["this", "artificial", "intelligence"])
 
-metrics = ["rouge", "bleu", "bert_score"]
 
 # Example text from an article
 full_text = """
@@ -156,21 +170,20 @@ config = LLMConfig(
 
 # Summary Evaluation Example
 metrics = evaluate_summary(full_text, summary, 
-                         remove_stopwords=False, 
-                         metrics=["rouge", "bleu", "bert_score"], 
+                         remove_stopwords=True, 
+                         metrics=["rouge", "bleu", "bert_score", "bart_score", "faithfulness", "topic_preservation", "redundancy", "conciseness"], 
                          llm_config=config)
 
 # RAG Evaluation Example
 rag_metrics = evaluate_rag(query="What is the capital of France?",
                           context="Paris is the capital and largest city of France.",
                           answer="The capital of France is Paris.",
-                          metrics=["context_relevance", "answer_accuracy"],
+                          metrics=["context_relevance", "answer_accuracy", "completeness", "faithfulness","answer_attribution"],
                           llm_config=config)
 
 # Print results
-print("\nEvaluation Metrics:")
-for metric, score in metrics.items():
-    print(f"{metric}: {score:.4f}")
+print(metrics)
+print(rag_metrics)
 
 
 ```

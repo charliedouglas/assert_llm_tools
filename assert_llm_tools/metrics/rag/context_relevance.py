@@ -36,8 +36,7 @@ Rate the relevance on a scale of 0 to 1, where:
 0.5: Partially relevant - The context contains some relevant information but includes unnecessary content or misses key aspects
 1.0: Highly relevant - The context contains precisely the information needed to answer the question
 
-Important: Your response must start with just the numerical score (0.00 to 1.00). 
-You may provide explanation after the score on a new line.
+Important: Your response must start with just the numerical score between 0.00 to 1.00. 
 
 Score:"""
 

@@ -26,17 +26,35 @@ class BedrockLLM(BaseLLM):
                     "aws_secret_access_key": self.config.api_secret,
                 }
             )
+            if self.config.aws_session_token:
+                session_kwargs["aws_session_token"] = self.config.aws_session_token
 
-        session = boto3.Session(region_name=self.config.region, **session_kwargs)
+        session = boto3.Session(region_name=self.config.region, **)
         self.client = session.client("bedrock-runtime")
 
     def generate(self, prompt: str, **kwargs) -> str:
-        default_params = {
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": kwargs.get("max_tokens", 500),
-            "temperature": kwargs.get("temperature", 0),
-            "messages": [{"role": "user", "content": prompt}],
-        }
+        # Determine if it's a Nova model
+        is_nova = "nova" in self.config.model_id.lower()
+
+        if is_nova:
+            default_params = {
+                "messages": [{"role": "user", "content": [{"text": prompt}]}],
+                "system": [{"text": "You should respond to all messages in english"}],
+                "inferenceConfig": {
+                    "max_new_tokens": kwargs.get("max_tokens", 500),
+                    "temperature": kwargs.get("temperature", 0),
+                    "top_p": kwargs.get("top_p", 0.9),
+                    "top_k": kwargs.get("top_k", 20),
+                },
+            }
+        else:
+            # Anthropic model format
+            default_params = {
+                "anthropic_version": "bedrock-2023-05-31",
+                "max_tokens": kwargs.get("max_tokens", 500),
+                "temperature": kwargs.get("temperature", 0),
+                "messages": [{"role": "user", "content": prompt}],
+            }
 
         # Merge with additional parameters from config
         if self.config.additional_params:
@@ -47,4 +65,9 @@ class BedrockLLM(BaseLLM):
         )
 
         response_body = json.loads(response["body"].read())
-        return response_body["content"][0]["text"]
+
+        # Parse response based on model type
+        if is_nova:
+            return response_body["output"]["message"]["content"][0]["text"]
+        else:
+            return response_body["content"][0]["text"]
