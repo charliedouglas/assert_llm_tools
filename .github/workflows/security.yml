@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-    - cron: '0 0 * * 0'  # Run weekly   as
+    - cron: '0 0 * * 0'  # Run weekly   asasda
 
 jobs:
   security:
@@ -16,4 +16,4 @@ jobs:
       - name: Run Safety CLI to check for vulnerabilities
         uses: pyupio/safety-action@v1
         with:
-          api-key: ${{ secrets.SAFETY_API_KEY }}
+          api-key: ${{ secrets.SAFETY_API_KEY }} 
