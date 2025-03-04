@@ -2,7 +2,7 @@ name: Python Tests
 
 on:
   push:
-    branches: [ main, add_tests ]
+    branches: [ main, add-tests ]
   pull_request:
     branches: [ main ]
 
