@@ -32,7 +32,7 @@ dependencies = [
     "rouge-score>=0.1.2",
     "huggingface_hub>=0.20.0",
     "tqdm>=4.66.6",
-    "protobuf>=5.28.3",
+    "protobuf==4.24.4",
     "tiktoken>=0.8.0",
     "sentence-transformers>=3.2.1",
     "unbabel-comet>=2.2.4",
@@ -40,14 +40,26 @@ dependencies = [
 requires-python = ">=3.8"
 
 [project.optional-dependencies]
-dev = [
-    "pytest>=7.0",
-    "black>=23.0.0",
-    "isort>=5.0.0",
-    "flake8>=4.0.0",
-    "build>=0.10.0",
-    "twine>=4.0.0",
+
+# Testing dependencies
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "pydantic>=2.0.0",  # Ensure pydantic v2+ for model_validator
 ]
+
+# Development dependencies (includes testing + additional tools)
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0", 
+    "pytest-mock>=3.10.0",
+    "black>=23.1.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+]
+
 bedrock = [
     "boto3>=1.28.0",
 ]
@@ -69,4 +81,16 @@ packages = [
     "assert_llm_tools.metrics.summary",
     "assert_llm_tools.metrics.rag",
     "assert_llm_tools.llm" 
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "functional: Functional/end-to-end tests",
+    "slow: Slow running tests that may be skipped during quick runs",
 ]
