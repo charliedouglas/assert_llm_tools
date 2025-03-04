@@ -9,6 +9,7 @@ class LLMConfig:
     region: Optional[str] = None
     api_key: Optional[str] = None
     api_secret: Optional[str] = None
+    aws_session_token: Optional[str] = None
     additional_params: Optional[Dict[str, Any]] = None
 
     def validate(self) -> None:

@@ -23,15 +23,15 @@ class TopicPreservationCalculator:
 
     def _extract_topics(self, text: str) -> List[str]:
         prompt = f"""
-        System: You are a helpful assistant that extracts main topics from text. Your task is to identify only the high-level, key topics from the given text. Focus on broad themes and main subjects rather than specific details.
+       System: You are a topic extraction assistant. Your task is to identify the main topics from the text.
 
         Guidelines:
-        - Extract only major, overarching topics
-        - Avoid specific details or subtopics
-        - Aim for 3-5 main topics
-        - Use broad, general terms
-        - Each topic should be a few words at most
-        - Similar topics should be merged
+        - Extract 3-5 primary topics
+        - Topics should be at the same level of abstraction
+        - Merge related concepts into single topics
+        - Exclude action items, recommendations, and time-specific references
+        - Keep topics to 2-3 words maximum
+
 
         Human: Here is the text to analyze:
         {text}
@@ -47,21 +47,25 @@ class TopicPreservationCalculator:
     def _check_topics_in_summary(self, topics: List[str], summary: str) -> List[bool]:
         topics_str = "\n".join([f"- {topic}" for topic in topics])
         prompt = f"""
-        System: You are a helpful assistant that analyzes whether specific topics are covered in a given text. Your task is to determine if each topic is present in the summary, even if not explicitly mentioned.
+        System: You are a topic coverage analysis assistant. Your task is to check if specific topics are present in a summary.
 
-        Human: Here is a summary text:
-        {summary}
+        For each topic listed below, respond with ONLY "yes" or "no" to indicate if the topic is covered in the summary.
+        Respond with one answer per line, nothing else.
 
-        Please analyze if each of the following topics from the original text is covered in the summary. 
-        Respond with only "yes" or "no" for each topic, one per line:
+        Summary: {summary}
 
+        Topics to check:
         {topics_str}
 
-        Assistant:"""
+        Answer with yes/no for each topic:"""
 
         response = self.llm.generate(prompt, max_tokens=500)
-        results = response.strip().split("\n")
-        return [r.strip().lower() == "yes" for r in results]
+        results = [
+            line.strip().lower()
+            for line in response.strip().split("\n")
+            if line.strip()
+        ]
+        return ["yes" in result for result in results]
 
     def compute_score(self, reference: str, candidate: str) -> Dict[str, any]:
         # First, extract topics from reference text

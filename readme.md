@@ -11,7 +11,7 @@ View a live demo of the library [here](https://www.getassert.io/demo)
 
 ## Documentation
 
-Documentation is avalablie [here](https://docs.getassert.io/)
+Documentation is available [here](https://docs.getassert.io/)
 
 
 
