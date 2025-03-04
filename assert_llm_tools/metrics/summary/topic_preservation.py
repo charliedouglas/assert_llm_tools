@@ -1,50 +1,26 @@
 from typing import Dict, List, Optional
 from ...llm.config import LLMConfig
-from ...llm.bedrock import BedrockLLM
-from ...llm.openai import OpenAILLM
+from ..base import SummaryMetricCalculator
 
 
-class TopicPreservationCalculator:
-    def __init__(self, llm_config: Optional[LLMConfig] = None):
-        if llm_config is None:
-            # Default to Bedrock with Claude
-            llm_config = LLMConfig(
-                provider="bedrock",
-                model_id="anthropic.claude-3-5-sonnet-20240620-v1:0",
-                region="us-east-1",
-            )
+class TopicPreservationCalculator(SummaryMetricCalculator):
+    """
+    Calculator for evaluating topic preservation in summaries.
 
-        if llm_config.provider == "bedrock":
-            self.llm = BedrockLLM(llm_config)
-        elif llm_config.provider == "openai":
-            self.llm = OpenAILLM(llm_config)
-        else:
-            raise ValueError(f"Unsupported LLM provider: {llm_config.provider}")
-
-    def _extract_topics(self, text: str) -> List[str]:
-        prompt = f"""
-       System: You are a topic extraction assistant. Your task is to identify the main topics from the text.
-
-        Guidelines:
-        - Extract 3-5 primary topics
-        - Topics should be at the same level of abstraction
-        - Merge related concepts into single topics
-        - Exclude action items, recommendations, and time-specific references
-        - Keep topics to 2-3 words maximum
-
-
-        Human: Here is the text to analyze:
-        {text}
-
-        Please list only the main, high-level topics, one per line.
-
-        Assistant: Here are the main topics:"""
-
-        response = self.llm.generate(prompt, max_tokens=500)
-        topics = response.strip().split("\n")
-        return [topic.strip() for topic in topics if topic.strip()]
+    Measures how well a summary preserves the main topics from the original text.
+    """
 
     def _check_topics_in_summary(self, topics: List[str], summary: str) -> List[bool]:
+        """
+        Check if topics from the original text are present in the summary.
+
+        Args:
+            topics: List of topics to check
+            summary: Summary text to analyze
+
+        Returns:
+            List of boolean values indicating if each topic is present
+        """
         topics_str = "\n".join([f"- {topic}" for topic in topics])
         prompt = f"""
         System: You are a topic coverage analysis assistant. Your task is to check if specific topics are present in a summary.
@@ -67,7 +43,17 @@ class TopicPreservationCalculator:
         ]
         return ["yes" in result for result in results]
 
-    def compute_score(self, reference: str, candidate: str) -> Dict[str, any]:
+    def calculate_score(self, reference: str, candidate: str) -> Dict[str, any]:
+        """
+        Calculate topic preservation score.
+
+        Args:
+            reference: Original reference text
+            candidate: Summary to evaluate
+
+        Returns:
+            Dictionary with topic preservation score and analysis
+        """
         # First, extract topics from reference text
         reference_topics = self._extract_topics(reference)
 
@@ -97,12 +83,19 @@ class TopicPreservationCalculator:
         }
 
 
-# Add this wrapper function at the module level (outside the class)
 def calculate_topic_preservation(
     reference: str, candidate: str, llm_config: Optional[LLMConfig] = None
 ) -> Dict[str, any]:
     """
-    Wrapper function to calculate topic preservation score.
+    Evaluate how well a summary preserves the main topics from the original text.
+
+    Args:
+        reference (str): The original full text
+        candidate (str): The summary to evaluate
+        llm_config (Optional[LLMConfig]): Configuration for the LLM to use
+
+    Returns:
+        Dict[str, any]: Dictionary containing topic preservation score and analysis
     """
     calculator = TopicPreservationCalculator(llm_config)
-    return calculator.compute_score(reference, candidate)
+    return calculator.calculate_score(reference, candidate)

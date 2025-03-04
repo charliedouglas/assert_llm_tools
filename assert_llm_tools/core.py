@@ -1,4 +1,9 @@
 from typing import Dict, Union, List, Optional
+
+# Import base calculator classes
+from .metrics.base import BaseCalculator, SummaryMetricCalculator, RAGMetricCalculator
+
+# Import summary metrics
 from .metrics.summary.rouge import calculate_rouge
 from .metrics.summary.bleu import calculate_bleu
 from .metrics.summary.bert_score import calculate_bert_score, ModelType
@@ -7,16 +12,18 @@ from .metrics.summary.topic_preservation import calculate_topic_preservation
 from .metrics.summary.redundancy import calculate_redundancy
 from .metrics.summary.conciseness import calculate_conciseness_score
 from .metrics.summary.bart_score import calculate_bart_score
+from .metrics.summary.coherence import calculate_coherence
+from .metrics.summary.comet_score import calculate_comet_score, calculate_comet_qe_score
 
-from .llm.config import LLMConfig
-from typing import Dict, Union, List, Optional
-from tqdm import tqdm
+# Import RAG metrics
 from .metrics.rag.answer_relevance import calculate_answer_relevance
 from .metrics.rag.context_relevance import calculate_context_relevance
 from .metrics.rag.answer_attribution import calculate_answer_attribution
-from .metrics.rag.faithfulness import calculate_faithfulness
+from .metrics.rag.faithfulness import calculate_rag_faithfulness
 from .metrics.rag.completeness import calculate_completeness
-from .metrics.summary.comet_score import calculate_comet_score, calculate_comet_qe_score
+
+from .llm.config import LLMConfig
+from tqdm import tqdm
 
 
 # Define available metrics
@@ -65,7 +72,7 @@ def evaluate_summary(
     llm_config: Optional[LLMConfig] = None,
     bert_model: Optional[ModelType] = "microsoft/deberta-base-mnli",
     show_progress: bool = True,
-    **kwargs,  # Add this line to accept additional kwargs
+    **kwargs,  # Accept additional kwargs
 ) -> Dict[str, float]:
     """
     Evaluate a summary using specified metrics.
@@ -136,6 +143,9 @@ def evaluate_summary(
         elif metric == "bart_score":
             results.update(calculate_bart_score(full_text, summary))
 
+        elif metric == "coherence":
+            results.update(calculate_coherence(summary, llm_config))
+
         elif metric == "comet_score":
             # Get the comet model name from kwargs or use default
             comet_model = kwargs.get("comet_model", "wmt20-comet-da")
@@ -203,9 +213,9 @@ def evaluate_rag(
         elif metric == "answer_attribution":
             results.update(calculate_answer_attribution(answer, context, llm_config))
         elif metric == "faithfulness":
-            results.update(calculate_faithfulness(answer, context, llm_config))
+            results.update(calculate_rag_faithfulness(answer, context, llm_config))
         elif metric == "completeness":
             results.update(calculate_completeness(question, answer, llm_config))
-        # ... other metrics to be implemented ...
+        # Note: RAG coherence not yet implemented but could be added here
 
     return results

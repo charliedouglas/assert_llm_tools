@@ -1,20 +1,26 @@
 from typing import Dict, List, Union
 import re
-from assert_llm_tools.llm.config import LLMConfig
-from assert_llm_tools.llm.bedrock import BedrockLLM
-from assert_llm_tools.llm.openai import OpenAILLM
+from ...llm.config import LLMConfig
+from ..base import RAGMetricCalculator
 
 
-class RAGCompletenessCalculator:
-    def __init__(self, llm_config: LLMConfig):
-        if llm_config.provider == "bedrock":
-            self.llm = BedrockLLM(llm_config)
-        elif llm_config.provider == "openai":
-            self.llm = OpenAILLM(llm_config)
-        else:
-            raise ValueError(f"Unsupported LLM provider: {llm_config.provider}")
+class CompletenessCalculator(RAGMetricCalculator):
+    """
+    Calculator for evaluating completeness of RAG answers.
+
+    Measures how well an answer addresses all aspects of a question.
+    """
 
     def _extract_required_points(self, question: str) -> List[str]:
+        """
+        Extract key points that a complete answer should address.
+
+        Args:
+            question: The original question
+
+        Returns:
+            List of required points for a complete answer
+        """
         prompt = f"""
         System: You are a helpful assistant that analyzes questions to determine what points need to be addressed for a complete answer. List only the key points, one per line, without any preamble or numbering.
 
@@ -37,6 +43,16 @@ class RAGCompletenessCalculator:
         return points
 
     def _verify_points_coverage(self, points: List[str], answer: str) -> List[bool]:
+        """
+        Verify which required points are addressed in the answer.
+
+        Args:
+            points: List of required points
+            answer: The generated answer
+
+        Returns:
+            List of boolean values indicating if each point is covered
+        """
         points_text = "\n".join(points)
         prompt = f"""
         System: You are a helpful assistant that verifies if an answer addresses required points. Respond ONLY with 'true' or 'false' for each point, one per line.
@@ -66,6 +82,44 @@ class RAGCompletenessCalculator:
 
         return results[: len(points)]
 
+    def calculate_score(
+        self, question: str, answer: str
+    ) -> Dict[str, Union[float, List[str], int]]:
+        """
+        Calculate completeness score for a RAG answer.
+
+        Args:
+            question: The original question
+            answer: The generated answer
+
+        Returns:
+            Dictionary with completeness score and point analysis
+        """
+        # Extract required points and verify coverage
+        required_points = self._extract_required_points(question)
+        points_coverage = self._verify_points_coverage(required_points, answer)
+        covered_points_count = sum(points_coverage)
+
+        # Identify missing points
+        points_not_covered = [
+            point
+            for point, is_covered in zip(required_points, points_coverage)
+            if not is_covered
+        ]
+
+        # Calculate completeness score
+        completeness_score = (
+            (covered_points_count / len(required_points)) if required_points else 1.0
+        )
+
+        return {
+            "completeness": completeness_score,
+            "required_points_count": len(required_points),
+            "covered_points_count": covered_points_count,
+            "required_points": required_points,
+            "points_not_covered": points_not_covered,
+        }
+
 
 def calculate_completeness(
     question: str, answer: str, llm_config: LLMConfig
@@ -81,29 +135,5 @@ def calculate_completeness(
     Returns:
         Dict containing completeness scores and point analysis
     """
-    calculator = RAGCompletenessCalculator(llm_config)
-
-    # Extract required points and verify coverage
-    required_points = calculator._extract_required_points(question)
-    points_coverage = calculator._verify_points_coverage(required_points, answer)
-    covered_points_count = sum(points_coverage)
-
-    # Identify missing points
-    points_not_covered = [
-        point
-        for point, is_covered in zip(required_points, points_coverage)
-        if not is_covered
-    ]
-
-    # Calculate completeness score
-    completeness_score = (
-        (covered_points_count / len(required_points)) if required_points else 1.0
-    )
-
-    return {
-        "completeness": completeness_score,
-        "required_points_count": len(required_points),
-        "covered_points_count": covered_points_count,
-        "required_points": required_points,
-        "points_not_covered": points_not_covered,
-    }
+    calculator = CompletenessCalculator(llm_config)
+    return calculator.calculate_score(question, answer)

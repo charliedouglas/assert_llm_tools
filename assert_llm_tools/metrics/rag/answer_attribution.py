@@ -1,29 +1,44 @@
 from typing import Dict, Optional, Union, List
 from ...llm.config import LLMConfig
-from ...llm.bedrock import BedrockLLM
-from ...llm.openai import OpenAILLM
+from ..base import RAGMetricCalculator
 from sentence_transformers import SentenceTransformer
 import numpy as np
 
 
-class AnswerAttributionCalculator:
-    def __init__(self, llm_config: Optional[LLMConfig] = None):
-        if llm_config is None:
-            llm_config = LLMConfig(
-                provider="bedrock", model_id="anthropic.claude-v2", region="us-east-1"
-            )
+class AnswerAttributionCalculator(RAGMetricCalculator):
+    """
+    Calculator for evaluating how much of an answer is derived from context.
 
-        if llm_config.provider == "bedrock":
-            self.llm = BedrockLLM(llm_config)
-        elif llm_config.provider == "openai":
-            self.llm = OpenAILLM(llm_config)
-        else:
-            raise ValueError(f"Unsupported LLM provider: {llm_config.provider}")
+    Uses embedding similarity, n-gram overlap, and LLM evaluation.
+    """
 
+    def __init__(
+        self,
+        llm_config: Optional[LLMConfig] = None,
+        embedding_model: str = "all-MiniLM-L6-v2",
+    ):
+        """
+        Initialize answer attribution calculator.
+
+        Args:
+            llm_config: Configuration for LLM
+            embedding_model: Name of sentence transformer model for embeddings
+        """
+        super().__init__(llm_config)
         # Initialize embedding model
-        self.embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+        self.embedding_model = SentenceTransformer(embedding_model)
 
     def _calculate_embedding_similarity(self, answer: str, context: str) -> float:
+        """
+        Calculate cosine similarity between answer and context embeddings.
+
+        Args:
+            answer: Generated answer
+            context: Retrieved context
+
+        Returns:
+            Similarity score between 0.0 and 1.0
+        """
         # Get embeddings
         answer_embedding = self.embedding_model.encode(answer)
         context_embedding = self.embedding_model.encode(context)
@@ -36,6 +51,17 @@ class AnswerAttributionCalculator:
         return float(similarity)
 
     def _calculate_ngram_overlap(self, answer: str, context: str, n: int = 3) -> float:
+        """
+        Calculate n-gram overlap between answer and context.
+
+        Args:
+            answer: Generated answer
+            context: Retrieved context
+            n: Size of n-grams
+
+        Returns:
+            Overlap score between 0.0 and 1.0
+        """
         answer_words = answer.lower().split()
         context_words = context.lower().split()
 
@@ -57,6 +83,16 @@ class AnswerAttributionCalculator:
         return overlap
 
     def _calculate_llm_score(self, answer: str, context: str) -> float:
+        """
+        Use LLM to evaluate if the answer is derived from context.
+
+        Args:
+            answer: Generated answer
+            context: Retrieved context
+
+        Returns:
+            Attribution score between 0.0 and 1.0
+        """
         prompt = f"""You are an expert evaluator. Assess whether the given answer appears to be derived from the provided context.
 
 Context: {context}
@@ -73,20 +109,21 @@ You may provide explanation after the score on a new line.
 Score:"""
 
         response = self.llm.generate(prompt).strip()
-
-        try:
-            score = float(response.split("\n")[0].strip())
-        except (ValueError, IndexError):
-            score = 0.0
-
-        return max(0.0, min(1.0, score))
+        return self._extract_float_from_response(response)
 
     def calculate_score(self, answer: str, context: Union[str, List[str]]) -> float:
-        # If context is a list, join with newlines
-        if isinstance(context, list):
-            context_text = "\n\n".join(context)
-        else:
-            context_text = context
+        """
+        Calculate overall answer attribution score.
+
+        Args:
+            answer: Generated answer
+            context: Retrieved context(s)
+
+        Returns:
+            Attribution score between 0.0 and 1.0
+        """
+        # Normalize context if it's a list
+        context_text = self._normalize_context(context)
 
         # Calculate individual scores
         embedding_score = self._calculate_embedding_similarity(answer, context_text)

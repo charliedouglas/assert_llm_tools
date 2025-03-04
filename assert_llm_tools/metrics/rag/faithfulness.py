@@ -1,40 +1,27 @@
 from typing import Dict, List, Optional, Union
-from assert_llm_tools.llm.config import LLMConfig
-from assert_llm_tools.llm.bedrock import BedrockLLM
-from assert_llm_tools.llm.openai import OpenAILLM
+from ...llm.config import LLMConfig
+from ..base import RAGMetricCalculator
 
 
-class RAGFaithfulnessCalculator:
-    def __init__(self, llm_config: LLMConfig):
-        if llm_config.provider == "bedrock":
-            self.llm = BedrockLLM(llm_config)
-        elif llm_config.provider == "openai":
-            self.llm = OpenAILLM(llm_config)
-        else:
-            raise ValueError(f"Unsupported LLM provider: {llm_config.provider}")
+class RAGFaithfulnessCalculator(RAGMetricCalculator):
+    """
+    Calculator for evaluating faithfulness of RAG answers.
 
-    def _extract_claims(self, text: str) -> List[str]:
-        prompt = f"""
-        System: You are a helpful assistant that extracts factual claims from text. Extract all factual claims from the given text. Output each claim on a new line. Only include objective, verifiable claims. Do not include opinions or subjective statements.
+    Measures how factually consistent an answer is with the retrieved context
+    by analyzing both claims and topics.
+    """
 
-        Human: Here is the text to analyze:
-        {text}
+    def _verify_claims_batch(self, claims: List[str], context: str) -> List[bool]:
+        """
+        Verify if claims can be inferred from the provided context.
 
-        Please list all factual claims, one per line.
+        Args:
+            claims: List of claims to verify
+            context: Context to check against
 
-        Assistant: Here are the factual claims:"""
-
-        response = self.llm.generate(prompt, max_tokens=500)
-        claims = response.strip().split("\n")
-        return [claim.strip() for claim in claims if claim.strip()]
-
-    def _verify_claims_batch(
-        self, claims: List[str], context: Union[str, List[str]]
-    ) -> List[bool]:
-        # If context is a list, join with newlines
-        if isinstance(context, list):
-            context = "\n\n".join(context)
-
+        Returns:
+            List of boolean values indicating if each claim is supported
+        """
         claims_text = "\n".join(
             f"Claim {i+1}: {claim}" for i, claim in enumerate(claims)
         )
@@ -55,27 +42,17 @@ class RAGFaithfulnessCalculator:
         results = response.strip().split("\n")
         return [result.strip().lower() == "true" for result in results]
 
-    def _extract_topics(self, text: str) -> List[str]:
-        prompt = f"""
-        System: You are a helpful assistant that extracts main topics from text. Extract all key topics or subjects mentioned. Output each topic on a new line. Be specific but concise.
+    def _verify_topics_batch(self, topics: List[str], context: str) -> List[bool]:
+        """
+        Verify if topics are substantively discussed in the context.
 
-        Human: Here is the text to analyze:
-        {text}
+        Args:
+            topics: List of topics to verify
+            context: Context to check against
 
-        Please list all key topics, one per line.
-
-        Assistant: Here are the key topics:"""
-
-        response = self.llm.generate(prompt, max_tokens=500)
-        topics = response.strip().split("\n")
-        return [topic.strip() for topic in topics if topic.strip()]
-
-    def _verify_topics_batch(
-        self, topics: List[str], context: Union[str, List[str]]
-    ) -> List[bool]:
-        if isinstance(context, list):
-            context = "\n\n".join(context)
-
+        Returns:
+            List of boolean values indicating if each topic is present
+        """
         topics_text = "\n".join(
             f"Topic {i+1}: {topic}" for i, topic in enumerate(topics)
         )
@@ -104,8 +81,71 @@ class RAGFaithfulnessCalculator:
 
         return [result.strip().lower() == "true" for result in results[: len(topics)]]
 
+    def calculate_score(
+        self, answer: str, context: Union[str, List[str]]
+    ) -> Dict[str, Union[float, List[str], int]]:
+        """
+        Calculate faithfulness score for a RAG answer.
 
-def calculate_faithfulness(
+        Args:
+            answer: The generated answer to evaluate
+            context: The context(s) used to generate the answer
+
+        Returns:
+            Dictionary with faithfulness scores and analysis
+        """
+        # Normalize context if it's a list
+        context_text = self._normalize_context(context)
+
+        # Extract and verify claims
+        answer_claims = self._extract_claims(answer)
+        claims_verification = (
+            self._verify_claims_batch(answer_claims, context_text)
+            if answer_claims
+            else []
+        )
+        verified_claims_count = sum(claims_verification)
+
+        # Extract and verify topics
+        answer_topics = self._extract_topics(answer)
+        topics_verification = (
+            self._verify_topics_batch(answer_topics, context_text)
+            if answer_topics
+            else []
+        )
+
+        # Identify missing topics
+        topics_not_found = [
+            topic
+            for topic, is_present in zip(answer_topics, topics_verification)
+            if not is_present
+        ]
+
+        # Calculate scores
+        claims_score = (
+            verified_claims_count / len(answer_claims) if answer_claims else 1.0
+        )
+        topics_score = (
+            sum(topics_verification) / len(answer_topics) if answer_topics else 1.0
+        )
+
+        # Combined faithfulness score (average of claims and topics scores)
+        faithfulness_score = (claims_score + topics_score) / 2
+
+        return {
+            "faithfulness": faithfulness_score,
+            "claims_score": claims_score,
+            "topics_score": topics_score,
+            "claims_count": len(answer_claims),
+            "verified_claims_count": verified_claims_count,
+            "topics_count": len(answer_topics),
+            "verified_topics_count": sum(topics_verification),
+            "topics_found": answer_topics,
+            "topics_not_found_in_context": topics_not_found,
+        }
+
+
+def calculate_rag_faithfulness(
     answer: str, context: Union[str, List[str]], llm_config: LLMConfig
 ) -> Dict[str, Union[float, List[str], int]]:
     """
@@ -120,46 +160,4 @@ def calculate_faithfulness(
         Dict containing faithfulness scores, claim counts, and topic analysis
     """
     calculator = RAGFaithfulnessCalculator(llm_config)
-
-    # Extract and verify claims
-    answer_claims = calculator._extract_claims(answer)
-    claims_verification = (
-        calculator._verify_claims_batch(answer_claims, context) if answer_claims else []
-    )
-    verified_claims_count = sum(claims_verification)
-
-    # Extract and verify topics
-    answer_topics = calculator._extract_topics(answer)
-    topics_verification = (
-        calculator._verify_topics_batch(answer_topics, context) if answer_topics else []
-    )
-
-    # Identify missing topics
-    topics_not_found = [
-        topic
-        for topic, is_present in zip(answer_topics, topics_verification)
-        if not is_present
-    ]
-
-    # Calculate scores
-    claims_score = (
-        (verified_claims_count / len(answer_claims)) if answer_claims else 1.0
-    )
-    topics_score = (
-        (sum(topics_verification) / len(answer_topics)) if answer_topics else 1.0
-    )
-
-    # Combined faithfulness score (average of claims and topics scores)
-    faithfulness_score = (claims_score + topics_score) / 2
-
-    return {
-        "faithfulness": faithfulness_score,
-        "claims_score": claims_score,
-        "topics_score": topics_score,
-        "claims_count": len(answer_claims),
-        "verified_claims_count": verified_claims_count,
-        "topics_count": len(answer_topics),
-        "verified_topics_count": sum(topics_verification),
-        "topics_found": answer_topics,
-        "topics_not_found_in_context": topics_not_found,
-    }
+    return calculator.calculate_score(answer, context)
