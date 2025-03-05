@@ -5,6 +5,7 @@ from typing import Dict, Any, Optional
 from urllib.parse import urlparse
 from .base import BaseLLM
 from .config import LLMConfig
+from botocore.config import Config
 
 
 def _check_dependencies():
@@ -60,22 +61,16 @@ class BedrockLLM(BaseLLM):
         proxies = self._get_proxy_config()
         
         if proxies:
-            # Convert to boto3 proxy format
-            proxy_config = self._format_boto3_proxies(proxies)
-            client_config = boto3.config.Config(proxies=proxy_config)
-            
-            # Log that we're using a proxy
-            print(f"Using proxy configuration: {proxy_config}")
-            
-            # Test proxy connectivity before proceeding
+            client_config = Config(proxies=proxies)  # Use proxies directly
+            print(f"Using proxy configuration: {proxies}")
             self._test_proxy_connectivity(proxies)
         
         # Create the client with proxy config if available
-        client_kwargs = {}
-        if client_config:
-            client_kwargs["config"] = client_config
-            
-        self.client = session.client("bedrock-runtime", **client_kwargs)
+            client_kwargs = {}
+            if client_config:
+                client_kwargs["config"] = client_config  # Use the already created client_config
+                        
+            self.client = session.client("bedrock-runtime", **client_kwargs)
 
     def _get_proxy_config(self) -> Dict[str, str]:
         """
@@ -105,44 +100,7 @@ class BedrockLLM(BaseLLM):
                 proxies["https"] = os.environ["HTTPS_PROXY"]
                 
         return proxies
-    
-    def _format_boto3_proxies(self, proxies: Dict[str, str]) -> Dict[str, Dict[str, str]]:
-        """
-        Convert standard proxy dict to boto3 proxy format.
-        
-        Args:
-            proxies: Dict with 'http' and 'https' keys
-            
-        Returns:
-            Dict formatted for boto3 Config
-        """
-        boto3_proxies = {}
-        
-        for protocol, url in proxies.items():
-            if not url:
-                continue
-                
-            # Parse the URL to extract components
-            parsed = urlparse(url)
-            
-            # Check for authentication in the URL
-            auth = None
-            if parsed.username and parsed.password:
-                auth = f"{parsed.username}:{parsed.password}"
-                
-            # Format for boto3
-            proxy_info = {
-                "host": parsed.hostname,
-                "port": parsed.port or (443 if protocol == "https" else 80)
-            }
-            
-            if auth:
-                proxy_info["username"] = parsed.username
-                proxy_info["password"] = parsed.password
-                
-            boto3_proxies[protocol] = proxy_info
-            
-        return boto3_proxies
+
     
     def _test_proxy_connectivity(self, proxies: Dict[str, str]) -> None:
         """
