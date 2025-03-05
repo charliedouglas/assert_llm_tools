@@ -17,6 +17,9 @@ class LLMConfig:
         api_key (str, optional): API key for authentication.
         api_secret (str, optional): API secret for authentication.
         aws_session_token (str, optional): AWS session token for temporary credentials.
+        proxy_url (str, optional): General proxy URL for both HTTP and HTTPS.
+        http_proxy (str, optional): HTTP-specific proxy URL.
+        https_proxy (str, optional): HTTPS-specific proxy URL.
         additional_params (Dict[str, Any], optional): Additional provider-specific parameters.
     """
 
@@ -26,6 +29,9 @@ class LLMConfig:
     api_key: Optional[str] = None
     api_secret: Optional[str] = None
     aws_session_token: Optional[str] = None
+    proxy_url: Optional[str] = None
+    http_proxy: Optional[str] = None
+    https_proxy: Optional[str] = None
     additional_params: Optional[Dict[str, Any]] = None
 
     def validate(self) -> None:

@@ -1,4 +1,6 @@
 from openai import OpenAI
+import os
+from typing import Dict, Optional
 from .base import BaseLLM
 from .config import LLMConfig
 
@@ -26,8 +28,92 @@ class OpenAILLM(BaseLLM):
     """
 
     def _initialize(self) -> None:
+        """
+        Initialize the OpenAI client with API key and proxy configuration.
+        
+        Raises:
+            ImportError: If OpenAI dependency is not installed.
+            ValueError: If configuration is invalid.
+        """
         _check_dependencies()
-        self.client = OpenAI(api_key=self.config.api_key)
+        
+        # Basic client configuration
+        client_args = {"api_key": self.config.api_key}
+        
+        # Get proxy configuration
+        proxies = self._get_proxy_config()
+        
+        if proxies:
+            # OpenAI client uses a http_client parameter for proxy configuration
+            from httpx import HTTPTransport
+            client_args["http_client"] = HTTPTransport(proxy=proxies)
+            print(f"Using proxy configuration for OpenAI client: {proxies}")
+            
+            # Test proxy connectivity
+            self._test_proxy_connectivity(proxies)
+        
+        # Initialize the client
+        self.client = OpenAI(**client_args)
+
+    def _get_proxy_config(self) -> Optional[Dict[str, str]]:
+        """
+        Get proxy configuration from config object or environment variables.
+        
+        Returns:
+            Dict containing proxy URLs or None if no proxy is configured
+        """
+        proxies = {}
+        
+        # First check for proxy settings in the config object
+        if hasattr(self.config, "proxy_url") and self.config.proxy_url:
+            proxies["http://"] = self.config.proxy_url
+            proxies["https://"] = self.config.proxy_url
+            
+        if hasattr(self.config, "http_proxy") and self.config.http_proxy:
+            proxies["http://"] = self.config.http_proxy
+            
+        if hasattr(self.config, "https_proxy") and self.config.https_proxy:
+            proxies["https://"] = self.config.https_proxy
+            
+        # If no proxies in config, check environment variables
+        if not proxies:
+            if "HTTP_PROXY" in os.environ:
+                proxies["http://"] = os.environ["HTTP_PROXY"]
+            if "HTTPS_PROXY" in os.environ:
+                proxies["https://"] = os.environ["HTTPS_PROXY"]
+                
+        return proxies if proxies else None
+    
+    def _test_proxy_connectivity(self, proxies: Dict[str, str]) -> None:
+        """
+        Test connectivity through the proxy before making API calls.
+        
+        Args:
+            proxies: Dict with proxy URLs
+            
+        Raises:
+            Warning: If proxy connectivity test fails (just a warning, not an exception)
+        """
+        import socket
+        from urllib.parse import urlparse
+        
+        # Only test if we have HTTPS proxy (most common for API calls)
+        https_proxy = proxies.get("https://") or proxies.get("https://")
+        
+        if https_proxy:
+            parsed = urlparse(https_proxy)
+            
+            try:
+                # Try to connect to the proxy host/port
+                with socket.create_connection(
+                    (parsed.hostname, parsed.port or 443), 
+                    timeout=5
+                ):
+                    print(f"Successfully connected to proxy at {parsed.hostname}:{parsed.port or 443}")
+            except (socket.timeout, socket.error) as e:
+                print(f"Warning: Could not connect to proxy: {e}")
+                # Don't raise here as the proxy might still work
+                # Just warn the user
 
     def generate(self, prompt: str, **kwargs) -> str:
         """
@@ -56,5 +142,15 @@ class OpenAILLM(BaseLLM):
         if self.config.additional_params:
             default_params.update(self.config.additional_params)
 
-        response = self.client.chat.completions.create(**default_params)
-        return response.choices[0].message.content
+        try:
+            response = self.client.chat.completions.create(**default_params)
+            return response.choices[0].message.content
+        except Exception as e:
+            # Provide more helpful error message for proxy issues
+            error_message = str(e)
+            if "proxy" in error_message.lower() or "connect" in error_message.lower():
+                raise ConnectionError(
+                    f"Error connecting through proxy: {error_message}. "
+                    "Please check your proxy configuration and connectivity."
+                )
+            raise

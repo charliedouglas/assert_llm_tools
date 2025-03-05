@@ -1,6 +1,8 @@
 import boto3
 import json
-from typing import Dict, Any
+import os
+from typing import Dict, Any, Optional
+from urllib.parse import urlparse
 from .base import BaseLLM
 from .config import LLMConfig
 
@@ -39,42 +41,139 @@ class BedrockLLM(BaseLLM):
             ValueError: If configuration is invalid.
         """
         _check_dependencies()
+        
+        # Setup session kwargs (credentials)
         session_kwargs = {}
         if self.config.api_key and self.config.api_secret:
-            session_kwargs.update(
-                {
-                    "aws_access_key_id": self.config.api_key,
-                    "aws_secret_access_key": self.config.api_secret,
-                }
-            )
+            session_kwargs.update({
+                "aws_access_key_id": self.config.api_key,
+                "aws_secret_access_key": self.config.api_secret,
+            })
             if self.config.aws_session_token:
                 session_kwargs["aws_session_token"] = self.config.aws_session_token
 
-        # Add proxy configuration if provided
+        # Create the session
+        session = boto3.Session(region_name=self.config.region, **session_kwargs)
+        
+        # Setup proxy configuration for the client
+        client_config = None
+        proxies = self._get_proxy_config()
+        
+        if proxies:
+            # Convert to boto3 proxy format
+            proxy_config = self._format_boto3_proxies(proxies)
+            client_config = boto3.config.Config(proxies=proxy_config)
+            
+            # Log that we're using a proxy
+            print(f"Using proxy configuration: {proxy_config}")
+            
+            # Test proxy connectivity before proceeding
+            self._test_proxy_connectivity(proxies)
+        
+        # Create the client with proxy config if available
+        client_kwargs = {}
+        if client_config:
+            client_kwargs["config"] = client_config
+            
+        self.client = session.client("bedrock-runtime", **client_kwargs)
+
+    def _get_proxy_config(self) -> Dict[str, str]:
+        """
+        Get proxy configuration from config object or environment variables.
+        
+        Returns:
+            Dict containing proxy URLs for http and https
+        """
         proxies = {}
-        # Using a single proxy_url for both protocols if specified
+        
+        # First check for proxy settings in the config object
         if hasattr(self.config, "proxy_url") and self.config.proxy_url:
             proxies["http"] = self.config.proxy_url
             proxies["https"] = self.config.proxy_url
-
-        # Using protocol-specific proxies if specified
+            
         if hasattr(self.config, "http_proxy") and self.config.http_proxy:
             proxies["http"] = self.config.http_proxy
+            
         if hasattr(self.config, "https_proxy") and self.config.https_proxy:
             proxies["https"] = self.config.https_proxy
-
-        # Apply proxies if any are defined
-        if proxies:
-            session_kwargs["proxies"] = proxies
-
-        session = boto3.Session(region_name=self.config.region, **session_kwargs)
-
-        # Configure client with proxy if needed
-        client_kwargs = {}
-        if proxies:
-            client_kwargs["config"] = boto3.config.Config(proxies=proxies)
-
-        self.client = session.client("bedrock-runtime", **client_kwargs)
+            
+        # If no proxies in config, check environment variables
+        if not proxies:
+            if "HTTP_PROXY" in os.environ:
+                proxies["http"] = os.environ["HTTP_PROXY"]
+            if "HTTPS_PROXY" in os.environ:
+                proxies["https"] = os.environ["HTTPS_PROXY"]
+                
+        return proxies
+    
+    def _format_boto3_proxies(self, proxies: Dict[str, str]) -> Dict[str, Dict[str, str]]:
+        """
+        Convert standard proxy dict to boto3 proxy format.
+        
+        Args:
+            proxies: Dict with 'http' and 'https' keys
+            
+        Returns:
+            Dict formatted for boto3 Config
+        """
+        boto3_proxies = {}
+        
+        for protocol, url in proxies.items():
+            if not url:
+                continue
+                
+            # Parse the URL to extract components
+            parsed = urlparse(url)
+            
+            # Check for authentication in the URL
+            auth = None
+            if parsed.username and parsed.password:
+                auth = f"{parsed.username}:{parsed.password}"
+                
+            # Format for boto3
+            proxy_info = {
+                "host": parsed.hostname,
+                "port": parsed.port or (443 if protocol == "https" else 80)
+            }
+            
+            if auth:
+                proxy_info["username"] = parsed.username
+                proxy_info["password"] = parsed.password
+                
+            boto3_proxies[protocol] = proxy_info
+            
+        return boto3_proxies
+    
+    def _test_proxy_connectivity(self, proxies: Dict[str, str]) -> None:
+        """
+        Test connectivity through the proxy before making API calls.
+        
+        Args:
+            proxies: Dict with 'http' and 'https' keys
+            
+        Raises:
+            ConnectionError: If proxy connectivity test fails
+        """
+        import socket
+        import urllib.error
+        import urllib.request
+        
+        # Only test if we have HTTPS proxy (most common for API calls)
+        if "https" in proxies and proxies["https"]:
+            proxy_url = proxies["https"]
+            parsed = urlparse(proxy_url)
+            
+            try:
+                # Try to connect to the proxy host/port
+                with socket.create_connection(
+                    (parsed.hostname, parsed.port or 80), 
+                    timeout=5
+                ):
+                    print(f"Successfully connected to proxy at {parsed.hostname}:{parsed.port or 80}")
+            except (socket.timeout, socket.error) as e:
+                print(f"Warning: Could not connect to proxy: {e}")
+                # Don't raise here as the proxy might still work with boto3
+                # Just warn the user
 
     def generate(self, prompt: str, **kwargs) -> str:
         """
@@ -121,14 +220,25 @@ class BedrockLLM(BaseLLM):
         if self.config.additional_params:
             default_params.update(self.config.additional_params)
 
-        response = self.client.invoke_model(
-            modelId=self.config.model_id, body=json.dumps(default_params)
-        )
+        try:
+            response = self.client.invoke_model(
+                modelId=self.config.model_id, body=json.dumps(default_params)
+            )
 
-        response_body = json.loads(response["body"].read())
+            response_body = json.loads(response["body"].read())
 
-        # Parse response based on model type
-        if is_nova:
-            return response_body["output"]["message"]["content"][0]["text"]
-        else:
-            return response_body["content"][0]["text"]
+            # Parse response based on model type
+            if is_nova:
+                return response_body["output"]["message"]["content"][0]["text"]
+            else:
+                return response_body["content"][0]["text"]
+                
+        except Exception as e:
+            # Provide more helpful error message for proxy issues
+            error_message = str(e)
+            if "proxy" in error_message.lower() or "connect" in error_message.lower():
+                raise ConnectionError(
+                    f"Error connecting through proxy: {error_message}. "
+                    "Please check your proxy configuration and connectivity."
+                )
+            raise
