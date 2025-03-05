@@ -18,6 +18,7 @@ summary = "The James Webb Space Telescope, launched in 2021, is revolutionizing 
 metrics = evaluate_summary(
     full_text,
     summary,
+    metrics=metrics,
     llm_config=llm_config,
 )
 
