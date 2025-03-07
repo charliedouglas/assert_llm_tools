@@ -14,6 +14,7 @@ from .metrics.summary.conciseness import calculate_conciseness_score
 from .metrics.summary.bart_score import calculate_bart_score
 from .metrics.summary.coherence import calculate_coherence
 from .metrics.summary.comet_score import calculate_comet_score, calculate_comet_qe_score
+from .metrics.summary.hallucination import calculate_hallucination
 
 # Import RAG metrics
 from .metrics.rag.answer_relevance import calculate_answer_relevance
@@ -39,6 +40,7 @@ AVAILABLE_SUMMARY_METRICS = [
     "comet_score",
     "comet_qe_score",
     "coherence",
+    "hallucination",
 ]
 
 # Define which metrics require LLM
@@ -48,6 +50,7 @@ LLM_REQUIRED_SUMMARY_METRICS = [
     "redundancy",
     "conciseness",
     "coherence",
+    "hallucination",
 ]
 
 # Define available metrics for RAG evaluation
@@ -162,6 +165,9 @@ def evaluate_summary(
             results["comet_qe_score"] = calculate_comet_qe_score(
                 source=full_text, candidate=summary, model_name=comet_model
             )["comet_qe_score"]
+            
+        elif metric == "hallucination":
+            results.update(calculate_hallucination(full_text, summary, llm_config))
 
     return results
 
