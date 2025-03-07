@@ -165,8 +165,6 @@ config = LLMConfig(
 - `redundancy`: Measures repetitive content
 - `conciseness`: Evaluates information density and brevity
 - `coherence`: Measures logical flow and readability
-- `comet_score`: Neural metric for summarization evaluation
-- `comet_qe_score`: COMET Quality Estimation score (no reference needed)
 
 ### RAG Metrics
 

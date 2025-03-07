@@ -13,7 +13,6 @@ from .metrics.summary.redundancy import calculate_redundancy
 from .metrics.summary.conciseness import calculate_conciseness_score
 from .metrics.summary.bart_score import calculate_bart_score
 from .metrics.summary.coherence import calculate_coherence
-from .metrics.summary.comet_score import calculate_comet_score, calculate_comet_qe_score
 from .metrics.summary.hallucination import calculate_hallucination
 
 # Import RAG metrics
@@ -37,8 +36,6 @@ AVAILABLE_SUMMARY_METRICS = [
     "topic_preservation",
     "redundancy",
     "conciseness",
-    "comet_score",
-    "comet_qe_score",
     "coherence",
     "hallucination",
 ]
@@ -148,23 +145,6 @@ def evaluate_summary(
 
         elif metric == "coherence":
             results.update(calculate_coherence(summary, llm_config))
-
-        elif metric == "comet_score":
-            # Get the comet model name from kwargs or use default
-            comet_model = kwargs.get("comet_model", "wmt20-comet-da")
-            results["comet_score"] = calculate_comet_score(
-                source=full_text,
-                reference=full_text,  # Using full_text as reference
-                candidate=summary,
-                model_name=comet_model,
-            )["comet_score"]
-
-        elif metric == "comet_qe_score":
-            # QE version doesn't need a reference summary
-            comet_model = kwargs.get("comet_model", "wmt20-comet-qe-da")
-            results["comet_qe_score"] = calculate_comet_qe_score(
-                source=full_text, candidate=summary, model_name=comet_model
-            )["comet_qe_score"]
             
         elif metric == "hallucination":
             results.update(calculate_hallucination(full_text, summary, llm_config))
