@@ -9,7 +9,7 @@ llm_config = LLMConfig(
     provider="bedrock",
     model_id="us.amazon.nova-pro-v1:0",
     region="us-east-1",
-    http_proxy="http://localhost:8080"
+    http_proxy="http://username:password@localhost:8080"
 )
 
 
