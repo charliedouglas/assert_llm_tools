@@ -20,11 +20,14 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
+        cache: 'pip'
         
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install pytest pytest-cov
+        # Install torch separately with pip's timeout extension to handle large download
+        pip install --timeout=600 torch>=2.0.1,<2.1.0
         pip install -e ".[dev]"
         
     - name: Run tests
