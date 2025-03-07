@@ -29,23 +29,32 @@ jobs:
         # Install torch separately with pip's timeout extension to handle large download
         pip install --timeout=600 "torch>=2.0.1,<2.1.0"
         # Install critical dependencies explicitly 
-        pip install "tiktoken==0.8.0" regex requests
-        # Install the package without dependencies (since we installed critical ones already)
-        pip install -e ".[dev]" --no-deps
-        # Now install remaining dependencies
-        pip install -e ".[dev]"
+        pip install "tiktoken==0.7.0" regex requests boto3
+        # Install the package with all dependencies including boto3
+        pip install -e ".[all,dev]"
         
     - name: List installed packages
       run: |
         pip list
         
     - name: Run tests
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID || 'dummy_access_key' }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY || 'dummy_secret_key' }}
+        AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-dummy-openai-key' }}
       run: |
-        pytest --cov=assert_llm_tools
+        # Use pytest_addopts to skip tests that require actual API access
+        PYTEST_ADDOPTS="-k 'not bedrock and not openai and not connect'" pytest --cov=assert_llm_tools
         
     - name: Generate coverage report
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID || 'dummy_access_key' }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY || 'dummy_secret_key' }}
+        AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-dummy-openai-key' }}
       run: |
-        pytest --cov=assert_llm_tools --cov-report=xml
+        PYTEST_ADDOPTS="-k 'not bedrock and not openai and not connect'" pytest --cov=assert_llm_tools --cov-report=xml
         
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
