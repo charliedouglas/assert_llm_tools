@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.9, '3.10']
+        python-version: ['3.10', '3.11']
 
     steps:
     - uses: actions/checkout@v3
@@ -28,7 +28,16 @@ jobs:
         pip install pytest pytest-cov
         # Install torch separately with pip's timeout extension to handle large download
         pip install --timeout=600 "torch>=2.0.1,<2.1.0"
+        # Install critical dependencies explicitly 
+        pip install "tiktoken==0.8.0" regex requests
+        # Install the package without dependencies (since we installed critical ones already)
+        pip install -e ".[dev]" --no-deps
+        # Now install remaining dependencies
         pip install -e ".[dev]"
+        
+    - name: List installed packages
+      run: |
+        pip list
         
     - name: Run tests
       run: |
