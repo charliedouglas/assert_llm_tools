@@ -51,7 +51,7 @@ config = LLMConfig(
 results = evaluate_summary(
     full_text="Original long text goes here...",
     summary="Summary to evaluate goes here...",
-    metrics=["rouge", "faithfulness", "coherence"],
+    metrics=["rouge", "faithfulness", "hallucination", "coherence"],
     llm_config=config
 )
 
@@ -160,6 +160,7 @@ config = LLMConfig(
 - `bert_score`: BERTScore precision, recall, and F1
 - `bart_score`: BARTScore
 - `faithfulness`: Measures factual consistency with the source text
+- `hallucination`: Detects claims in the summary not supported by the source text (returns hallucination_score)
 - `topic_preservation`: How well the summary preserves main topics
 - `redundancy`: Measures repetitive content
 - `conciseness`: Evaluates information density and brevity
