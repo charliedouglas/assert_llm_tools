@@ -62,7 +62,9 @@ class BedrockLLM(BaseLLM):
         
         if proxies:
             client_config = Config(proxies=proxies)  # Use proxies directly
-            print(f"Using proxy configuration: {proxies}")
+            # Create a copy of proxies with masked passwords for printing
+            masked_proxies = self._mask_proxy_passwords(proxies.copy())
+            print(f"Using proxy configuration: {masked_proxies}")
             self._test_proxy_connectivity(proxies)
         
         # Create the client with proxy config if available
@@ -100,6 +102,32 @@ class BedrockLLM(BaseLLM):
                 proxies["https"] = os.environ["HTTPS_PROXY"]
                 
         return proxies
+        
+    def _mask_proxy_passwords(self, proxies: Dict[str, str]) -> Dict[str, str]:
+        """
+        Mask passwords in proxy URLs for secure logging.
+        
+        Args:
+            proxies: Dict with 'http' and 'https' keys containing proxy URLs
+            
+        Returns:
+            Dict with the same keys but passwords replaced with '*****'
+        """
+        for protocol in proxies:
+            proxy_url = proxies[protocol]
+            if proxy_url and '@' in proxy_url:
+                # URL format: protocol://user:pass@host:port
+                parts = proxy_url.split('@', 1)
+                auth_part = parts[0]
+                host_part = parts[1]
+                
+                if ':' in auth_part:
+                    # Extract username and mask password
+                    protocol_and_user, _ = auth_part.rsplit(':', 1)
+                    # Replace with masked password
+                    proxies[protocol] = f"{protocol_and_user}:*****@{host_part}"
+                
+        return proxies
 
     
     def _test_proxy_connectivity(self, proxies: Dict[str, str]) -> None:
@@ -127,6 +155,7 @@ class BedrockLLM(BaseLLM):
                     (parsed.hostname, parsed.port or 80), 
                     timeout=5
                 ):
+                    # Use masked host for secure logging
                     print(f"Successfully connected to proxy at {parsed.hostname}:{parsed.port or 80}")
             except (socket.timeout, socket.error) as e:
                 print(f"Warning: Could not connect to proxy: {e}")
