@@ -9,6 +9,7 @@ ASSERT LLM Tools is a Python library for evaluating summaries and RAG (Retrieval
 - **Summary Evaluation**: Measure summary quality with metrics like faithfulness, topic preservation, coherence, and more
 - **RAG Evaluation**: Evaluate RAG systems with metrics for answer relevance, context relevance, and faithfulness
 - **Multiple LLM Providers**: Support for OpenAI and AWS Bedrock APIs
+- **PII Detection & Masking**: Automatically detect and mask personally identifiable information before evaluation
 - **Proxy Support**: Comprehensive proxy configuration for corporate environments
 - **Extensible Architecture**: Easy to add new metrics or LLM providers
 
@@ -175,6 +176,51 @@ config = LLMConfig(
 - `completeness`: Whether the answer addresses all aspects of the question
 
 ## Advanced Configuration
+
+### PII Detection and Masking
+
+For privacy-sensitive applications, you can automatically detect and mask personally identifiable information (PII) before evaluation:
+
+```python
+# Basic PII masking
+results = evaluate_summary(
+    full_text="John Smith (john.smith@example.com) lives in New York.",
+    summary="John's contact is john.smith@example.com.",
+    metrics=["rouge", "faithfulness"],
+    llm_config=config,
+    mask_pii=True  # Enable PII masking
+)
+
+# Advanced PII masking with more options
+results, pii_info = evaluate_summary(
+    full_text=text_with_pii,
+    summary=summary_with_pii,
+    metrics=["rouge", "faithfulness"],
+    llm_config=config,
+    mask_pii=True,
+    mask_pii_char="#",  # Custom masking character
+    mask_pii_preserve_partial=True,  # Preserve parts of emails, phone numbers, etc.
+    mask_pii_entity_types=["PERSON", "EMAIL_ADDRESS", "LOCATION"],  # Only mask specific entities
+    return_pii_info=True  # Return information about detected PII
+)
+
+# Access PII detection results
+print(f"PII in original text: {pii_info['full_text_pii']}")
+print(f"PII in summary: {pii_info['summary_pii']}")
+```
+
+The same PII masking options are available for RAG evaluation:
+
+```python
+results = evaluate_rag(
+    question="Who is John Smith and what is his email?",
+    answer="John Smith's email is john.smith@example.com.",
+    context="John Smith (john.smith@example.com) is our company's CEO.",
+    llm_config=config,
+    metrics=["answer_relevance", "faithfulness"],
+    mask_pii=True
+)
+```
 
 ### Custom Model Selection
 
