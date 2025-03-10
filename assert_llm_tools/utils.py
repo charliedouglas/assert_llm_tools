@@ -168,9 +168,16 @@ def detect_and_mask_pii(
         
         # Simple operator configuration
         if preserve_partial:
-            # Use the built-in partial masking operator
+            # For partial masking, use entity-specific replacements
             operators = {
-                "DEFAULT": OperatorConfig("mask", {"masking_char": mask_char, "chars_to_mask": 0.7})
+                "EMAIL_ADDRESS": OperatorConfig("replace", {"new_value": f"****@example.com"}),
+                "PHONE_NUMBER": OperatorConfig("replace", {"new_value": f"555-***-****"}),
+                "CREDIT_CARD": OperatorConfig("replace", {"new_value": f"****-****-****-1234"}),
+                "PERSON": OperatorConfig("replace", {"new_value": f"[Person]"}),
+                "LOCATION": OperatorConfig("replace", {"new_value": f"[Location]"}),
+                "DATE_TIME": OperatorConfig("replace", {"new_value": f"[Date]"}),
+                # Default is to use a generic replacement
+                "DEFAULT": OperatorConfig("replace", {"new_value": f"[Partial {mask_char}{mask_char}{mask_char}]"})
             }
         else:
             # Use the built-in full masking operator

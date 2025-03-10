@@ -5,9 +5,13 @@ from assert_llm_tools.core import evaluate_summary
 from assert_llm_tools.llm.config import LLMConfig
 from assert_llm_tools.utils import detect_and_mask_pii
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging - set higher level to reduce output verbosity
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Silence verbose loggers from Presidio
+logging.getLogger("presidio-analyzer").setLevel(logging.WARNING)
 
 # Sample text with PII
 full_text = """
