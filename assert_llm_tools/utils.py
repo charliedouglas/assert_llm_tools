@@ -103,37 +103,43 @@ def initialize_pii_engines():
         registry = RecognizerRegistry()
         
         # Add custom patterns for better recognition of common PII patterns
-        # Credit Card pattern (handles various formats)
-        cc_recognizer = PatternRecognizer(
-            "credit_card_custom", 
-            ["CREDIT_CARD"],
-            [r"\b(?:\d{4}[-\s]?){3}\d{4}\b"]
-        )
-        registry.add_recognizer(cc_recognizer)
-        
-        # SSN pattern
-        ssn_recognizer = PatternRecognizer(
-            "ssn_custom", 
-            ["US_SSN"],
-            [r"\b\d{3}-\d{2}-\d{4}\b"]
-        )
-        registry.add_recognizer(ssn_recognizer)
-        
-        # Email pattern
-        email_recognizer = PatternRecognizer(
-            "email_custom", 
-            ["EMAIL_ADDRESS"],
-            [r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"]
-        )
-        registry.add_recognizer(email_recognizer)
-        
-        # Phone number pattern
-        phone_recognizer = PatternRecognizer(
-            "phone_custom", 
-            ["PHONE_NUMBER"],
-            [r"\b\d{3}[-\.\s]?\d{3}[-\.\s]?\d{4}\b"]
-        )
-        registry.add_recognizer(phone_recognizer)
+        try:
+            # Credit Card pattern (handles various formats)
+            cc_pattern = PatternRecognizer(
+                name="credit_card_custom", 
+                supported_entity="CREDIT_CARD",
+                patterns=[{"name": "credit card pattern", "regex": r"\b(?:\d{4}[-\s]?){3}\d{4}\b", "score": 0.5}]
+            )
+            registry.add_recognizer(cc_pattern)
+            
+            # SSN pattern
+            ssn_pattern = PatternRecognizer(
+                name="ssn_custom", 
+                supported_entity="US_SSN",
+                patterns=[{"name": "ssn pattern", "regex": r"\b\d{3}-\d{2}-\d{4}\b", "score": 0.5}]
+            )
+            registry.add_recognizer(ssn_pattern)
+            
+            # Email pattern
+            email_pattern = PatternRecognizer(
+                name="email_custom", 
+                supported_entity="EMAIL_ADDRESS",
+                patterns=[{"name": "email pattern", "regex": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "score": 0.5}]
+            )
+            registry.add_recognizer(email_pattern)
+            
+            # Phone number pattern
+            phone_pattern = PatternRecognizer(
+                name="phone_custom", 
+                supported_entity="PHONE_NUMBER",
+                patterns=[{"name": "phone pattern", "regex": r"\b\d{3}[-\.\s]?\d{3}[-\.\s]?\d{4}\b", "score": 0.5}]
+            )
+            registry.add_recognizer(phone_pattern)
+            
+            logger.info("Added custom pattern recognizers")
+        except Exception as e:
+            logger.warning(f"Error adding custom patterns: {e}")
+            logger.warning("Using default recognizers only")
         
         # Let Presidio handle the model loading directly - this is more reliable
         try:
