@@ -1,4 +1,4 @@
-from typing import Dict, Union, List, Optional
+from typing import Dict, Union, List, Optional, Tuple, Any
 
 # Import base calculator classes
 from .metrics.base import BaseCalculator, SummaryMetricCalculator, RAGMetricCalculator
@@ -23,7 +23,12 @@ from .metrics.rag.faithfulness import calculate_rag_faithfulness
 from .metrics.rag.completeness import calculate_completeness
 
 from .llm.config import LLMConfig
+from .utils import detect_and_mask_pii, remove_stopwords
 from tqdm import tqdm
+import logging
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 # Define available metrics
@@ -72,8 +77,13 @@ def evaluate_summary(
     llm_config: Optional[LLMConfig] = None,
     bert_model: Optional[ModelType] = "microsoft/deberta-base-mnli",
     show_progress: bool = True,
+    mask_pii: bool = False,
+    mask_pii_char: str = "*",
+    mask_pii_preserve_partial: bool = False,
+    mask_pii_entity_types: Optional[List[str]] = None,
+    return_pii_info: bool = False,
     **kwargs,  # Accept additional kwargs
-) -> Dict[str, float]:
+) -> Union[Dict[str, float], Tuple[Dict[str, float], Dict[str, Any]]]:
     """
     Evaluate a summary using specified metrics.
 
@@ -87,10 +97,20 @@ def evaluate_summary(
             - "microsoft/deberta-base-mnli" (~86M parameters)
             - "microsoft/deberta-xlarge-mnli" (~750M parameters) (default)
         show_progress: Whether to show progress bar (default: True)
+        mask_pii: Whether to mask personally identifiable information (PII) before evaluation (default: False)
+        mask_pii_char: Character to use for masking PII (default: "*")
+        mask_pii_preserve_partial: Whether to preserve part of the PII (e.g., for phone numbers: 123-***-***) (default: False)
+        mask_pii_entity_types: List of PII entity types to detect and mask. If None, all supported types are used.
+        return_pii_info: Whether to return information about detected PII (default: False)
         **kwargs: Additional keyword arguments for specific metrics
 
     Returns:
-        Dictionary containing scores for each metric
+        If return_pii_info is False:
+            Dictionary containing scores for each metric
+        If return_pii_info is True:
+            Tuple containing:
+                - Dictionary containing scores for each metric
+                - Dictionary containing PII detection information
     """
     # Default to all metrics if none specified
     if metrics is None:
@@ -101,6 +121,44 @@ def evaluate_summary(
     invalid_metrics = set(metrics) - valid_metrics
     if invalid_metrics:
         raise ValueError(f"Invalid metrics: {invalid_metrics}")
+    
+    # Handle PII masking if enabled
+    pii_info = {}
+    if mask_pii:
+        logger.info("Masking PII in text and summary...")
+        try:
+            masked_full_text, full_text_pii = detect_and_mask_pii(
+                full_text,
+                entity_types=mask_pii_entity_types,
+                mask_char=mask_pii_char,
+                preserve_partial=mask_pii_preserve_partial
+            )
+            
+            masked_summary, summary_pii = detect_and_mask_pii(
+                summary,
+                entity_types=mask_pii_entity_types,
+                mask_char=mask_pii_char,
+                preserve_partial=mask_pii_preserve_partial
+            )
+            
+            # Store PII information if requested
+            if return_pii_info:
+                pii_info = {
+                    "full_text_pii": full_text_pii,
+                    "summary_pii": summary_pii,
+                    "full_text_masked": masked_full_text != full_text,
+                    "summary_masked": masked_summary != summary
+                }
+            
+            # Update the texts with masked versions
+            full_text = masked_full_text
+            summary = masked_summary
+            
+            logger.info("PII masking complete.")
+            
+        except Exception as e:
+            logger.error(f"Error during PII masking: {e}. Continuing with original text.")
+            # Continue with original text in case of errors
 
     # Validate LLM config for metrics that require it
     llm_metrics = set(metrics) & set(LLM_REQUIRED_SUMMARY_METRICS)
@@ -149,7 +207,11 @@ def evaluate_summary(
         elif metric == "hallucination":
             results.update(calculate_hallucination(full_text, summary, llm_config))
 
-    return results
+    # Return results with or without PII info
+    if return_pii_info and mask_pii:
+        return results, pii_info
+    else:
+        return results
 
 
 def evaluate_rag(
@@ -159,7 +221,12 @@ def evaluate_rag(
     llm_config: LLMConfig,
     metrics: Optional[List[str]] = None,
     show_progress: bool = True,
-) -> Dict[str, float]:
+    mask_pii: bool = False,
+    mask_pii_char: str = "*",
+    mask_pii_preserve_partial: bool = False,
+    mask_pii_entity_types: Optional[List[str]] = None,
+    return_pii_info: bool = False,
+) -> Union[Dict[str, float], Tuple[Dict[str, float], Dict[str, Any]]]:
     """
     Evaluate a RAG (Retrieval-Augmented Generation) system's output using specified metrics.
 
@@ -170,9 +237,19 @@ def evaluate_rag(
         llm_config: Configuration for LLM-based metrics
         metrics: List of metrics to calculate. Defaults to all available metrics.
         show_progress: Whether to show progress bar (default: True)
+        mask_pii: Whether to mask personally identifiable information (PII) before evaluation (default: False)
+        mask_pii_char: Character to use for masking PII (default: "*")
+        mask_pii_preserve_partial: Whether to preserve part of the PII (e.g., for phone numbers: 123-***-***) (default: False)
+        mask_pii_entity_types: List of PII entity types to detect and mask. If None, all supported types are used.
+        return_pii_info: Whether to return information about detected PII (default: False)
 
     Returns:
-        Dictionary containing scores for each metric
+        If return_pii_info is False:
+            Dictionary containing scores for each metric
+        If return_pii_info is True:
+            Tuple containing:
+                - Dictionary containing scores for each metric
+                - Dictionary containing PII detection information
     """
     # Default to all metrics if none specified
     if metrics is None:
@@ -186,6 +263,71 @@ def evaluate_rag(
 
     # Initialize results dictionary
     results = {}
+    
+    # Handle PII masking if enabled
+    pii_info = {}
+    if mask_pii:
+        logger.info("Masking PII in question, answer, and context...")
+        try:
+            # Mask question
+            masked_question, question_pii = detect_and_mask_pii(
+                question,
+                entity_types=mask_pii_entity_types,
+                mask_char=mask_pii_char,
+                preserve_partial=mask_pii_preserve_partial
+            )
+            
+            # Mask answer
+            masked_answer, answer_pii = detect_and_mask_pii(
+                answer,
+                entity_types=mask_pii_entity_types,
+                mask_char=mask_pii_char,
+                preserve_partial=mask_pii_preserve_partial
+            )
+            
+            # Mask context (could be string or list of strings)
+            context_pii = {}
+            if isinstance(context, str):
+                masked_context, context_pii = detect_and_mask_pii(
+                    context,
+                    entity_types=mask_pii_entity_types,
+                    mask_char=mask_pii_char,
+                    preserve_partial=mask_pii_preserve_partial
+                )
+            else:  # List of strings
+                masked_context = []
+                context_pii = {"contexts": []}
+                for i, ctx in enumerate(context):
+                    masked_ctx, ctx_pii = detect_and_mask_pii(
+                        ctx,
+                        entity_types=mask_pii_entity_types,
+                        mask_char=mask_pii_char,
+                        preserve_partial=mask_pii_preserve_partial
+                    )
+                    masked_context.append(masked_ctx)
+                    context_pii["contexts"].append({"index": i, "pii": ctx_pii})
+            
+            # Store PII information if requested
+            if return_pii_info:
+                pii_info = {
+                    "question_pii": question_pii,
+                    "answer_pii": answer_pii,
+                    "context_pii": context_pii,
+                    "question_masked": masked_question != question,
+                    "answer_masked": masked_answer != answer,
+                    "context_masked": masked_context != context
+                }
+            
+            # Update with masked versions
+            question = masked_question
+            answer = masked_answer
+            context = masked_context
+            
+            logger.info("PII masking complete.")
+            
+        except Exception as e:
+            logger.error(f"Error during PII masking: {e}. Continuing with original text.")
+            # Continue with original text in case of errors
 
     # Calculate requested metrics
     metric_iterator = tqdm(
@@ -204,4 +346,8 @@ def evaluate_rag(
             results.update(calculate_completeness(question, answer, llm_config))
         # Note: RAG coherence not yet implemented but could be added here
 
-    return results
+    # Return results with or without PII info
+    if return_pii_info and mask_pii:
+        return results, pii_info
+    else:
+        return results

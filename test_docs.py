@@ -21,6 +21,9 @@ metrics = evaluate_summary(
     summary,
     metrics=metrics,
     llm_config=llm_config,
+    mask_pii=True,
+    mask_pii_char="*",
+    return_pii_info=True
 )
 
 print(metrics)
