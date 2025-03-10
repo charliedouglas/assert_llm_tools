@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Silence verbose loggers from Presidio
-logging.getLogger("presidio-analyzer").setLevel(logging.WARNING)
+logging.getLogger("presidio-analyzer").setLevel(logging.ERROR)
 
 # Sample text with PII
 full_text = """

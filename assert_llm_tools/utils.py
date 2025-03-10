@@ -9,6 +9,9 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Silence noisy third-party loggers
+logging.getLogger("presidio-analyzer").setLevel(logging.ERROR)
+
 _custom_stopwords: Set[str] = set()
 
 
