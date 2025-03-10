@@ -86,32 +86,18 @@ def initialize_pii_engines():
         from presidio_analyzer import AnalyzerEngine, RecognizerRegistry, PatternRecognizer
         from presidio_anonymizer import AnonymizerEngine
         
-        # Register spaCy language model
+        # Import spacy - Presidio will handle the model loading
         import spacy
-        # Default to the small model in case both download attempts fail
-        engine_model = "en_core_web_sm"
         
-        # Try to use the large model first if available
-        if spacy.util.is_package("en_core_web_lg"):
-            engine_model = "en_core_web_lg"
-            logger.info("Using installed spaCy model en_core_web_lg")
-        else:
+        # Make sure at least one spaCy model is installed
+        if not spacy.util.is_package("en_core_web_sm"):
             try:
-                logger.info("Downloading spaCy model en_core_web_lg...")
-                spacy.cli.download("en_core_web_lg")
+                logger.info("Downloading spaCy model en_core_web_sm...")
+                spacy.cli.download("en_core_web_sm")
                 logger.info("Download complete.")
-                engine_model = "en_core_web_lg"
             except Exception as e:
-                logger.warning(f"Failed to download spaCy model en_core_web_lg: {e}")
-                # Fall back to using a smaller model
-                if not spacy.util.is_package("en_core_web_sm"):
-                    try:
-                        logger.info("Downloading fallback spaCy model en_core_web_sm...")
-                        spacy.cli.download("en_core_web_sm")
-                        logger.info("Download complete.")
-                    except Exception as e:
-                        logger.error(f"Failed to download spaCy model en_core_web_sm: {e}")
-                        # Will try to use it anyway, may fail later if not installed
+                logger.warning(f"Failed to download spaCy model: {e}")
+                logger.warning("PII detection may not work properly without a spaCy model.")
         
         # Initialize the analyzer with the spaCy model
         registry = RecognizerRegistry()
@@ -122,23 +108,14 @@ def initialize_pii_engines():
         #                                       [r"pattern-regex-here"])
         # registry.add_recognizer(custom_recognizer)
         
+        # Let Presidio handle the model loading directly - this is more reliable
         try:
-            # Try to load the model explicitly first to ensure it's properly installed
-            nlp = spacy.load(engine_model)
-            analyzer = AnalyzerEngine(registry=registry, nlp_engine=nlp)
+            analyzer = AnalyzerEngine(registry=registry)
             anonymizer = AnonymizerEngine()
-            
             return analyzer, anonymizer
         except Exception as e:
-            logger.error(f"Error initializing PII engine with model {engine_model}: {e}")
-            # Try with a different approach, letting Presidio handle the loading
-            try:
-                analyzer = AnalyzerEngine(registry=registry)
-                anonymizer = AnonymizerEngine()
-                return analyzer, anonymizer
-            except Exception as e:
-                logger.error(f"Failed to initialize Presidio engines: {e}")
-                return None, None
+            logger.error(f"Failed to initialize Presidio engines: {e}")
+            return None, None
     
     except ImportError as e:
         logger.error(f"Failed to initialize PII engines: {e}")
@@ -202,9 +179,13 @@ def detect_and_mask_pii(
         
         if preserve_partial:
             # For partial masking, configure specific operator settings
+            # Note: Different entities need different masking approaches
             operators = {
+                # Mask all but the last 4 digits
                 "PHONE_NUMBER": OperatorConfig("mask", {"chars_to_mask": -4, "masking_char": mask_char}),
-                "EMAIL_ADDRESS": OperatorConfig("mask", {"chars_to_mask": -5, "from_end": True, "masking_char": mask_char}),
+                # Mask username part of email but keep domain
+                "EMAIL_ADDRESS": OperatorConfig("replace", {"new_value": f"****@example.com"}),
+                # Default is to mask everything
                 "DEFAULT": OperatorConfig("mask", {"chars_to_mask": 100, "masking_char": mask_char})
             }
         
