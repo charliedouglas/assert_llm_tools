@@ -63,8 +63,8 @@ def test_pii_masking():
     
     try:
         # Custom masking character
-        masked_text, pii_info = detect_and_mask_pii(full_text, mask_char="X")
-        print("\nCustom mask character:")
+        masked_text, pii_info = detect_and_mask_pii(full_text, mask_char="#")
+        print("\nCustom mask character (using #):")
         print(f"Masked text: {masked_text}")
     except Exception as e:
         logger.error(f"Error during custom character PII masking: {e}")

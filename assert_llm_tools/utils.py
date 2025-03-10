@@ -183,9 +183,9 @@ def detect_and_mask_pii(
                 "DEFAULT": OperatorConfig("replace", {"new_value": f"[Partial {mask_char}{mask_char}{mask_char}]"})
             }
         else:
-            # Use the built-in full masking operator
+            # Use the built-in full masking operator with custom character
             operators = {
-                "DEFAULT": OperatorConfig("replace", {"new_value": f"[{mask_char}REDACTED{mask_char}]"})
+                "DEFAULT": OperatorConfig("replace", {"new_value": f"[{mask_char}{mask_char}{mask_char}{mask_char}{mask_char}]"})
             }
         
         # Anonymize text
