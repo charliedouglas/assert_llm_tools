@@ -102,11 +102,38 @@ def initialize_pii_engines():
         # Initialize the analyzer with the spaCy model
         registry = RecognizerRegistry()
         
-        # Additional custom patterns can be added here
-        # For example, to recognize project-specific patterns
-        # custom_recognizer = PatternRecognizer("custom_pattern", ["CUSTOM"], 
-        #                                       [r"pattern-regex-here"])
-        # registry.add_recognizer(custom_recognizer)
+        # Add custom patterns for better recognition of common PII patterns
+        # Credit Card pattern (handles various formats)
+        cc_recognizer = PatternRecognizer(
+            "credit_card_custom", 
+            ["CREDIT_CARD"],
+            [r"\b(?:\d{4}[-\s]?){3}\d{4}\b"]
+        )
+        registry.add_recognizer(cc_recognizer)
+        
+        # SSN pattern
+        ssn_recognizer = PatternRecognizer(
+            "ssn_custom", 
+            ["US_SSN"],
+            [r"\b\d{3}-\d{2}-\d{4}\b"]
+        )
+        registry.add_recognizer(ssn_recognizer)
+        
+        # Email pattern
+        email_recognizer = PatternRecognizer(
+            "email_custom", 
+            ["EMAIL_ADDRESS"],
+            [r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"]
+        )
+        registry.add_recognizer(email_recognizer)
+        
+        # Phone number pattern
+        phone_recognizer = PatternRecognizer(
+            "phone_custom", 
+            ["PHONE_NUMBER"],
+            [r"\b\d{3}[-\.\s]?\d{3}[-\.\s]?\d{4}\b"]
+        )
+        registry.add_recognizer(phone_recognizer)
         
         # Let Presidio handle the model loading directly - this is more reliable
         try:
@@ -174,19 +201,37 @@ def detect_and_mask_pii(
         if not results:
             return text, detected_entities
         
-        # Configure anonymizer
-        operators = {"DEFAULT": OperatorConfig("mask", {"chars_to_mask": 100, "masking_char": mask_char})}
-        
+        # Configure anonymizer using simple replacement strategy for all entities
         if preserve_partial:
-            # For partial masking, configure specific operator settings
-            # Note: Different entities need different masking approaches
+            # For partial masking, use different replacement patterns for different entity types
             operators = {
-                # Mask all but the last 4 digits
-                "PHONE_NUMBER": OperatorConfig("mask", {"chars_to_mask": -4, "masking_char": mask_char}),
-                # Mask username part of email but keep domain
-                "EMAIL_ADDRESS": OperatorConfig("replace", {"new_value": f"****@example.com"}),
-                # Default is to mask everything
-                "DEFAULT": OperatorConfig("mask", {"chars_to_mask": 100, "masking_char": mask_char})
+                "PHONE_NUMBER": OperatorConfig("replace", {"new_value": "xxx-xxx-1234"}),
+                "EMAIL_ADDRESS": OperatorConfig("replace", {"new_value": "****@example.com"}),
+                "PERSON": OperatorConfig("replace", {"new_value": "[PERSON]"}),
+                "LOCATION": OperatorConfig("replace", {"new_value": "[LOCATION]"}),
+                "US_SSN": OperatorConfig("replace", {"new_value": "xxx-xx-1234"}),
+                "CREDIT_CARD": OperatorConfig("replace", {"new_value": "xxxx-xxxx-xxxx-1234"}),
+                "US_DRIVER_LICENSE": OperatorConfig("replace", {"new_value": "xxxxx1234"}),
+                "IP_ADDRESS": OperatorConfig("replace", {"new_value": "xxx.xxx.xxx.xxx"}),
+                "DATE_TIME": OperatorConfig("replace", {"new_value": "[DATE]"}),
+                # Default is to replace with a generic placeholder
+                "DEFAULT": OperatorConfig("replace", {"new_value": f"[REDACTED]"})
+            }
+        else:
+            # For full masking, use simple replacement for all entities
+            operators = {
+                "PERSON": OperatorConfig("replace", {"new_value": "[PERSON]"}),
+                "PHONE_NUMBER": OperatorConfig("replace", {"new_value": "[PHONE]"}),
+                "EMAIL_ADDRESS": OperatorConfig("replace", {"new_value": "[EMAIL]"}),
+                "CREDIT_CARD": OperatorConfig("replace", {"new_value": "[CREDIT_CARD]"}),
+                "US_SSN": OperatorConfig("replace", {"new_value": "[SSN]"}),
+                "US_BANK_NUMBER": OperatorConfig("replace", {"new_value": "[BANK_NUMBER]"}),
+                "US_DRIVER_LICENSE": OperatorConfig("replace", {"new_value": "[LICENSE]"}),
+                "LOCATION": OperatorConfig("replace", {"new_value": "[LOCATION]"}),
+                "US_PASSPORT": OperatorConfig("replace", {"new_value": "[PASSPORT]"}),
+                "IP_ADDRESS": OperatorConfig("replace", {"new_value": "[IP]"}),
+                "DATE_TIME": OperatorConfig("replace", {"new_value": "[DATE]"}),
+                "DEFAULT": OperatorConfig("replace", {"new_value": f"[REDACTED]"})
             }
         
         # Anonymize text
