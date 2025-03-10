@@ -1,6 +1,13 @@
+import sys
+import logging
+
 from assert_llm_tools.core import evaluate_summary
 from assert_llm_tools.llm.config import LLMConfig
 from assert_llm_tools.utils import detect_and_mask_pii
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Sample text with PII
 full_text = """
@@ -14,26 +21,49 @@ John Smith, who lives in New York and can be reached at john.smith@example.com,
 has a credit card and SSN on file.
 """
 
+# Test if requirements are installed
+def check_requirements():
+    try:
+        import presidio_analyzer
+        import presidio_anonymizer
+        import spacy
+        return True
+    except ImportError as e:
+        logger.error(f"Missing required dependencies: {e}")
+        logger.error("Please install the required packages with:")
+        logger.error("pip install presidio-analyzer presidio-anonymizer spacy")
+        return False
+
 # Test standalone PII masking
 def test_pii_masking():
     print("Testing standalone PII masking...")
     
-    # Full masking
-    masked_text, pii_info = detect_and_mask_pii(full_text)
-    print("\nFull masking:")
-    print(f"Original text: {full_text}")
-    print(f"Masked text: {masked_text}")
-    print(f"Detected PII types: {list(pii_info.keys())}")
+    try:
+        # Full masking
+        masked_text, pii_info = detect_and_mask_pii(full_text)
+        print("\nFull masking:")
+        print(f"Original text: {full_text}")
+        print(f"Masked text: {masked_text}")
+        print(f"Detected PII types: {list(pii_info.keys())}")
+    except Exception as e:
+        logger.error(f"Error during PII masking: {e}")
+        return False
     
-    # Partial masking
-    masked_text, pii_info = detect_and_mask_pii(full_text, preserve_partial=True)
-    print("\nPartial masking:")
-    print(f"Masked text: {masked_text}")
+    try:
+        # Partial masking
+        masked_text, pii_info = detect_and_mask_pii(full_text, preserve_partial=True)
+        print("\nPartial masking:")
+        print(f"Masked text: {masked_text}")
+    except Exception as e:
+        logger.error(f"Error during partial PII masking: {e}")
     
-    # Custom masking character
-    masked_text, pii_info = detect_and_mask_pii(full_text, mask_char="X")
-    print("\nCustom mask character:")
-    print(f"Masked text: {masked_text}")
+    try:
+        # Custom masking character
+        masked_text, pii_info = detect_and_mask_pii(full_text, mask_char="X")
+        print("\nCustom mask character:")
+        print(f"Masked text: {masked_text}")
+    except Exception as e:
+        logger.error(f"Error during custom character PII masking: {e}")
     
     return True
 
@@ -48,24 +78,39 @@ def test_evaluate_with_pii_masking():
         api_key="mock-key-for-testing"
     )
     
-    # Process and evaluate WITH masking and return PII info
-    metrics, pii_info = evaluate_summary(
-        full_text=full_text,
-        summary=summary,
-        metrics=["rouge"],  # Using ROUGE since it doesn't require a real LLM connection
-        llm_config=config,
-        mask_pii=True,
-        mask_pii_char="*",
-        return_pii_info=True
-    )
-    
-    print("\nEvaluation results with PII masking:")
-    print(f"Metrics: {metrics}")
-    print(f"PII detected in full text: {list(pii_info.get('full_text_pii', {}).keys())}")
-    print(f"PII detected in summary: {list(pii_info.get('summary_pii', {}).keys())}")
+    try:
+        # Process and evaluate WITH masking and return PII info
+        metrics, pii_info = evaluate_summary(
+            full_text=full_text,
+            summary=summary,
+            metrics=["rouge"],  # Using ROUGE since it doesn't require a real LLM connection
+            llm_config=config,
+            mask_pii=True,
+            mask_pii_char="*",
+            return_pii_info=True
+        )
+        
+        print("\nEvaluation results with PII masking:")
+        print(f"Metrics: {metrics}")
+        print(f"PII detected in full text: {list(pii_info.get('full_text_pii', {}).keys())}")
+        print(f"PII detected in summary: {list(pii_info.get('summary_pii', {}).keys())}")
+    except Exception as e:
+        logger.error(f"Error during PII masking with evaluation: {e}")
+        return False
     
     return True
 
 if __name__ == "__main__":
-    test_pii_masking()
-    test_evaluate_with_pii_masking()
+    # Check if required packages are installed
+    if not check_requirements():
+        print("Missing required dependencies for PII masking. Please install them first.")
+        sys.exit(1)
+        
+    # Run tests
+    try:
+        test_pii_masking()
+        test_evaluate_with_pii_masking()
+        print("\nAll PII masking tests completed successfully.")
+    except Exception as e:
+        print(f"Error during PII masking tests: {e}")
+        sys.exit(1)

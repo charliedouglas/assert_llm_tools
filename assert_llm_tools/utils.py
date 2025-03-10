@@ -88,21 +88,30 @@ def initialize_pii_engines():
         
         # Register spaCy language model
         import spacy
-        if not spacy.util.is_package("en_core_web_lg"):
+        # Default to the small model in case both download attempts fail
+        engine_model = "en_core_web_sm"
+        
+        # Try to use the large model first if available
+        if spacy.util.is_package("en_core_web_lg"):
+            engine_model = "en_core_web_lg"
+            logger.info("Using installed spaCy model en_core_web_lg")
+        else:
             try:
                 logger.info("Downloading spaCy model en_core_web_lg...")
                 spacy.cli.download("en_core_web_lg")
                 logger.info("Download complete.")
+                engine_model = "en_core_web_lg"
             except Exception as e:
                 logger.warning(f"Failed to download spaCy model en_core_web_lg: {e}")
                 # Fall back to using a smaller model
                 if not spacy.util.is_package("en_core_web_sm"):
-                    logger.info("Downloading fallback spaCy model en_core_web_sm...")
-                    spacy.cli.download("en_core_web_sm")
-                    logger.info("Download complete.")
-                engine_model = "en_core_web_sm"
-        else:
-            engine_model = "en_core_web_lg"
+                    try:
+                        logger.info("Downloading fallback spaCy model en_core_web_sm...")
+                        spacy.cli.download("en_core_web_sm")
+                        logger.info("Download complete.")
+                    except Exception as e:
+                        logger.error(f"Failed to download spaCy model en_core_web_sm: {e}")
+                        # Will try to use it anyway, may fail later if not installed
         
         # Initialize the analyzer with the spaCy model
         registry = RecognizerRegistry()
@@ -113,10 +122,23 @@ def initialize_pii_engines():
         #                                       [r"pattern-regex-here"])
         # registry.add_recognizer(custom_recognizer)
         
-        analyzer = AnalyzerEngine(registry=registry, nlp_engine=engine_model)
-        anonymizer = AnonymizerEngine()
-        
-        return analyzer, anonymizer
+        try:
+            # Try to load the model explicitly first to ensure it's properly installed
+            nlp = spacy.load(engine_model)
+            analyzer = AnalyzerEngine(registry=registry, nlp_engine=nlp)
+            anonymizer = AnonymizerEngine()
+            
+            return analyzer, anonymizer
+        except Exception as e:
+            logger.error(f"Error initializing PII engine with model {engine_model}: {e}")
+            # Try with a different approach, letting Presidio handle the loading
+            try:
+                analyzer = AnalyzerEngine(registry=registry)
+                anonymizer = AnonymizerEngine()
+                return analyzer, anonymizer
+            except Exception as e:
+                logger.error(f"Failed to initialize Presidio engines: {e}")
+                return None, None
     
     except ImportError as e:
         logger.error(f"Failed to initialize PII engines: {e}")
