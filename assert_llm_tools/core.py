@@ -23,7 +23,7 @@ from .metrics.rag.faithfulness import calculate_rag_faithfulness
 from .metrics.rag.completeness import calculate_completeness
 
 from .llm.config import LLMConfig
-from .utils import detect_and_mask_pii, remove_stopwords
+from .utils import detect_and_mask_pii, remove_stopwords, initialize_nltk
 from tqdm import tqdm
 import logging
 
@@ -172,6 +172,11 @@ def evaluate_summary(
     metric_iterator = tqdm(
         metrics, disable=not show_progress, desc="Calculating metrics"
     )
+    
+    # Initialize NLTK only if BLEU metric is requested
+    if "bleu" in metrics:
+        initialize_nltk()
+        
     for metric in metric_iterator:
         if metric == "rouge":
             results.update(calculate_rouge(full_text, summary))

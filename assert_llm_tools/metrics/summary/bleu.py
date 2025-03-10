@@ -1,6 +1,5 @@
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 from nltk.tokenize import word_tokenize
-from ... import initialize_nltk
 
 
 def calculate_bleu(reference: str, candidate: str) -> float:
@@ -12,9 +11,6 @@ def calculate_bleu(reference: str, candidate: str) -> float:
     Returns:
         float: BLEU score between 0 and 1
     """
-    # Ensure NLTK is initialized before calculating scores
-    initialize_nltk()
-
     # Initialize smoothing function
     smoothie = SmoothingFunction().method1
 
