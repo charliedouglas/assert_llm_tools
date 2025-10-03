@@ -18,6 +18,7 @@ class CoherenceCalculator(SummaryMetricCalculator):
         self,
         llm_config: Optional[LLMConfig] = None,
         embedding_model: str = "all-MiniLM-L6-v2",
+        custom_instruction: Optional[str] = None,
     ):
         """
         Initialize coherence calculator.
@@ -25,10 +26,12 @@ class CoherenceCalculator(SummaryMetricCalculator):
         Args:
             llm_config: Configuration for LLM
             embedding_model: Name of sentence transformer model for embeddings
+            custom_instruction: Optional custom instruction to add to the LLM prompt
         """
         super().__init__(llm_config)
         # Initialize embedding model for semantic analysis
         self.embedding_model = SentenceTransformer(embedding_model)
+        self.custom_instruction = custom_instruction
 
     def _calculate_sentence_similarity(self, sentences: List[str]) -> float:
         """
@@ -81,8 +84,10 @@ Rate the coherence on a scale of 0 to 1, where:
 0.5: Partially coherent - some logical connections but with gaps or inconsistencies
 1.0: Highly coherent - smooth and logical progression throughout
 
-Important: Your response must be only a numerical score between 0.0 and 1.0.
-"""
+Important: Your response must be only a numerical score between 0.0 and 1.0."""
+
+        if self.custom_instruction:
+            prompt += f"\n\nAdditional Instructions:\n{self.custom_instruction}"
 
         # Get response from LLM and extract score
         response = self.llm.generate(prompt).strip()
@@ -117,7 +122,7 @@ Important: Your response must be only a numerical score between 0.0 and 1.0.
 
 
 def calculate_coherence(
-    summary: str, llm_config: Optional[LLMConfig] = None
+    summary: str, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None
 ) -> Dict[str, float]:
     """
     Evaluate coherence of a summary.
@@ -125,11 +130,12 @@ def calculate_coherence(
     Args:
         summary (str): The summary to evaluate
         llm_config (Optional[LLMConfig]): Configuration for LLM-based evaluation
+        custom_instruction (Optional[str]): Custom instruction to add to the LLM prompt for evaluation
 
     Returns:
         Dict[str, float]: Dictionary containing the coherence score
     """
-    calculator = CoherenceCalculator(llm_config)
+    calculator = CoherenceCalculator(llm_config, custom_instruction=custom_instruction)
     score = calculator.calculate_score(summary)
 
     return {"coherence": score}

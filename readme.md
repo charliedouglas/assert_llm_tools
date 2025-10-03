@@ -262,6 +262,61 @@ config = LLMConfig(
 )
 ```
 
+### Custom Prompt Instructions for LLM-Based Metrics
+
+For LLM-based metrics (faithfulness, hallucination, topic_preservation, redundancy, conciseness, coherence), you can provide custom instructions to tailor the evaluation to your specific use case:
+
+```python
+# Basic usage with custom instructions
+results = evaluate_summary(
+    full_text=text,
+    summary=summary,
+    metrics=["faithfulness", "coherence", "hallucination"],
+    llm_config=config,
+    custom_prompt_instructions={
+        "faithfulness": "Apply strict scientific standards. Only mark claims as true if explicitly stated.",
+        "coherence": "Focus on whether the text flows naturally for a technical audience.",
+        "hallucination": "Be extremely strict. Flag any claim that adds details not in the original."
+    }
+)
+```
+
+This is particularly useful for:
+- **Domain-specific evaluation**: Apply industry standards (scientific, legal, medical)
+- **Content type adaptation**: Different criteria for technical docs vs. creative writing
+- **Strictness levels**: Control how lenient or strict the evaluation should be
+
+#### Example: Scientific Content
+
+```python
+results = evaluate_summary(
+    full_text=research_paper,
+    summary=paper_summary,
+    metrics=["faithfulness", "hallucination"],
+    llm_config=config,
+    custom_prompt_instructions={
+        "faithfulness": "Apply strict scientific standards. Verify statistical claims and methodology accurately.",
+        "hallucination": "Flag any claims that go beyond what's explicitly stated in the research."
+    }
+)
+```
+
+#### Example: Creative Writing
+
+```python
+results = evaluate_summary(
+    full_text=story,
+    summary=story_summary,
+    metrics=["coherence", "topic_preservation", "conciseness"],
+    llm_config=config,
+    custom_prompt_instructions={
+        "coherence": "Evaluate for creative writing style. Look for natural narrative flow.",
+        "topic_preservation": "Consider emotional atmosphere and sensory details as important topics.",
+        "conciseness": "For creative writing, some descriptive language is valuable. Don't overly penalize evocative phrasing."
+    }
+)
+```
+
 ## License
 
 MIT
