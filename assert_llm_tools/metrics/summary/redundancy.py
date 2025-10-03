@@ -10,6 +10,17 @@ class RedundancyCalculator(SummaryMetricCalculator):
     Identifies redundant information and calculates a redundancy score.
     """
 
+    def __init__(self, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None):
+        """
+        Initialize redundancy calculator.
+
+        Args:
+            llm_config: Configuration for LLM
+            custom_instruction: Optional custom instruction to add to the LLM prompt
+        """
+        super().__init__(llm_config)
+        self.custom_instruction = custom_instruction
+
     def _identify_redundant_segments(self, text: str) -> List[Dict[str, str]]:
         """
         Identify redundant segments in the text using LLM.
@@ -21,7 +32,7 @@ class RedundancyCalculator(SummaryMetricCalculator):
             List of dictionaries containing original and repeated text
         """
         prompt = f"""
-        System: You are a helpful assistant that identifies redundant information in text. 
+        System: You are a helpful assistant that identifies redundant information in text.
         Find segments of text that express the same information in different ways or repeat information unnecessarily.
         For each redundant segment, provide the original text and its repetition.
 
@@ -32,9 +43,12 @@ class RedundancyCalculator(SummaryMetricCalculator):
         Original: [first occurrence of information]
         Repeated: [where the information is repeated]
         ---
-        (Use --- to separate multiple instances)
+        (Use --- to separate multiple instances)"""
 
-        Assistant:"""
+        if self.custom_instruction:
+            prompt += f"\n\nAdditional Instructions:\n{self.custom_instruction}"
+
+        prompt += "\n\nAssistant:"
 
         response = self.llm.generate(prompt, max_tokens=500)
         segments = []
@@ -80,7 +94,7 @@ class RedundancyCalculator(SummaryMetricCalculator):
 
 
 def calculate_redundancy(
-    text: str, llm_config: Optional[LLMConfig] = None
+    text: str, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None
 ) -> Dict[str, any]:
     """
     Calculate redundancy score and identify redundant segments in the text.
@@ -88,6 +102,7 @@ def calculate_redundancy(
     Args:
         text (str): The text to analyze for redundancy
         llm_config (Optional[LLMConfig]): Configuration for the LLM to use
+        custom_instruction (Optional[str]): Custom instruction to add to the LLM prompt for evaluation
 
     Returns:
         Dict[str, any]: Dictionary containing:
@@ -96,5 +111,5 @@ def calculate_redundancy(
             - redundant_segments: List of dictionaries containing original and repeated text
             - segment_count: Number of redundant segments found
     """
-    calculator = RedundancyCalculator(llm_config)
+    calculator = RedundancyCalculator(llm_config, custom_instruction=custom_instruction)
     return calculator.calculate_score(text)

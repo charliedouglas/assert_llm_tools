@@ -10,6 +10,17 @@ class TopicPreservationCalculator(SummaryMetricCalculator):
     Measures how well a summary preserves the main topics from the original text.
     """
 
+    def __init__(self, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None):
+        """
+        Initialize topic preservation calculator.
+
+        Args:
+            llm_config: Configuration for LLM
+            custom_instruction: Optional custom instruction to add to the LLM prompt
+        """
+        super().__init__(llm_config)
+        self.custom_instruction = custom_instruction
+
     def _check_topics_in_summary(self, topics: List[str], summary: str) -> List[bool]:
         """
         Check if topics from the original text are present in the summary.
@@ -34,6 +45,9 @@ class TopicPreservationCalculator(SummaryMetricCalculator):
         {topics_str}
 
         Answer with yes/no for each topic:"""
+
+        if self.custom_instruction:
+            prompt += f"\n\nAdditional Instructions:\n{self.custom_instruction}"
 
         response = self.llm.generate(prompt, max_tokens=500)
         results = [
@@ -84,7 +98,7 @@ class TopicPreservationCalculator(SummaryMetricCalculator):
 
 
 def calculate_topic_preservation(
-    reference: str, candidate: str, llm_config: Optional[LLMConfig] = None
+    reference: str, candidate: str, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None
 ) -> Dict[str, any]:
     """
     Evaluate how well a summary preserves the main topics from the original text.
@@ -93,9 +107,10 @@ def calculate_topic_preservation(
         reference (str): The original full text
         candidate (str): The summary to evaluate
         llm_config (Optional[LLMConfig]): Configuration for the LLM to use
+        custom_instruction (Optional[str]): Custom instruction to add to the LLM prompt for evaluation
 
     Returns:
         Dict[str, any]: Dictionary containing topic preservation score and analysis
     """
-    calculator = TopicPreservationCalculator(llm_config)
+    calculator = TopicPreservationCalculator(llm_config, custom_instruction=custom_instruction)
     return calculator.calculate_score(reference, candidate)

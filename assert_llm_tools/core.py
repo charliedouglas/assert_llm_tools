@@ -82,6 +82,7 @@ def evaluate_summary(
     mask_pii_preserve_partial: bool = False,
     mask_pii_entity_types: Optional[List[str]] = None,
     return_pii_info: bool = False,
+    custom_prompt_instructions: Optional[Dict[str, str]] = None,
     **kwargs,  # Accept additional kwargs
 ) -> Union[Dict[str, float], Tuple[Dict[str, float], Dict[str, Any]]]:
     """
@@ -102,6 +103,10 @@ def evaluate_summary(
         mask_pii_preserve_partial: Whether to preserve part of the PII (e.g., for phone numbers: 123-***-***) (default: False)
         mask_pii_entity_types: List of PII entity types to detect and mask. If None, all supported types are used.
         return_pii_info: Whether to return information about detected PII (default: False)
+        custom_prompt_instructions: Optional dictionary mapping metric names to custom prompt instructions.
+            For LLM-based metrics (faithfulness, hallucination, topic_preservation, redundancy, conciseness, coherence),
+            you can provide additional instructions to customize the evaluation criteria.
+            Example: {"faithfulness": "Apply strict scientific standards", "coherence": "Focus on narrative flow"}
         **kwargs: Additional keyword arguments for specific metrics
 
     Returns:
@@ -190,27 +195,33 @@ def evaluate_summary(
             )
 
         elif metric == "faithfulness":
-            results.update(calculate_faithfulness(full_text, summary, llm_config))
+            custom_instruction = custom_prompt_instructions.get("faithfulness") if custom_prompt_instructions else None
+            results.update(calculate_faithfulness(full_text, summary, llm_config, custom_instruction))
 
         elif metric == "topic_preservation":
-            results.update(calculate_topic_preservation(full_text, summary, llm_config))
+            custom_instruction = custom_prompt_instructions.get("topic_preservation") if custom_prompt_instructions else None
+            results.update(calculate_topic_preservation(full_text, summary, llm_config, custom_instruction))
 
         elif metric == "redundancy":
-            results.update(calculate_redundancy(summary, llm_config))
+            custom_instruction = custom_prompt_instructions.get("redundancy") if custom_prompt_instructions else None
+            results.update(calculate_redundancy(summary, llm_config, custom_instruction))
 
         elif metric == "conciseness":
+            custom_instruction = custom_prompt_instructions.get("conciseness") if custom_prompt_instructions else None
             results["conciseness"] = calculate_conciseness_score(
-                full_text, summary, llm_config
+                full_text, summary, llm_config, custom_instruction
             )
 
         elif metric == "bart_score":
             results.update(calculate_bart_score(full_text, summary))
 
         elif metric == "coherence":
-            results.update(calculate_coherence(summary, llm_config))
-            
+            custom_instruction = custom_prompt_instructions.get("coherence") if custom_prompt_instructions else None
+            results.update(calculate_coherence(summary, llm_config, custom_instruction))
+
         elif metric == "hallucination":
-            results.update(calculate_hallucination(full_text, summary, llm_config))
+            custom_instruction = custom_prompt_instructions.get("hallucination") if custom_prompt_instructions else None
+            results.update(calculate_hallucination(full_text, summary, llm_config, custom_instruction))
 
     # Return results with or without PII info
     if return_pii_info and mask_pii:

@@ -11,6 +11,17 @@ class ConcisenessCalculator(SummaryMetricCalculator):
     Measures information density and brevity of expression.
     """
 
+    def __init__(self, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None):
+        """
+        Initialize conciseness calculator.
+
+        Args:
+            llm_config: Configuration for LLM
+            custom_instruction: Optional custom instruction to add to the LLM prompt
+        """
+        super().__init__(llm_config)
+        self.custom_instruction = custom_instruction
+
     def _get_llm_conciseness_evaluation(self, summary: str) -> float:
         """
         Use LLM to evaluate the conciseness of the summary.
@@ -26,15 +37,17 @@ class ConcisenessCalculator(SummaryMetricCalculator):
         1. Are there unnecessary words or phrases?
         2. Could the same information be expressed more briefly?
         3. Is there any redundant information?
-        
+
         Summary: {summary}
-        
+
         Return a single float score between 0 and 1, where:
         - 1.0 means perfectly concise with no unnecessary words
         - 0.0 means extremely verbose with significant redundancy
-        
-        Just return the number, nothing else.
-        """
+
+        Just return the number, nothing else."""
+
+        if self.custom_instruction:
+            prompt += f"\n\nAdditional Instructions:\n{self.custom_instruction}"
 
         response = self.llm.generate(prompt)
         return self._extract_float_from_response(response)
@@ -90,7 +103,7 @@ class ConcisenessCalculator(SummaryMetricCalculator):
 
 
 def calculate_conciseness_score(
-    source_text: str, summary: str, llm_config: Optional[LLMConfig] = None
+    source_text: str, summary: str, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None
 ) -> float:
     """
     Calculate a conciseness score based on multiple factors:
@@ -102,9 +115,10 @@ def calculate_conciseness_score(
         source_text (str): The original full text
         summary (str): The summary to evaluate
         llm_config (Optional[LLMConfig]): Configuration for LLM-based evaluation
+        custom_instruction (Optional[str]): Custom instruction to add to the LLM prompt for evaluation
 
     Returns:
         float: Conciseness score between 0 and 1, where 1 indicates optimal conciseness
     """
-    calculator = ConcisenessCalculator(llm_config)
+    calculator = ConcisenessCalculator(llm_config, custom_instruction=custom_instruction)
     return calculator.calculate_score(source_text, summary)

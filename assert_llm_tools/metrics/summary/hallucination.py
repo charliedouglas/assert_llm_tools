@@ -6,10 +6,21 @@ from ..base import SummaryMetricCalculator
 class HallucinationCalculator(SummaryMetricCalculator):
     """
     Calculator for detecting hallucinations in summaries.
-    
+
     Identifies claims in the summary that cannot be supported by the reference text,
     specifically targeting content that appears to be fabricated or hallucinated.
     """
+
+    def __init__(self, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None):
+        """
+        Initialize hallucination calculator.
+
+        Args:
+            llm_config: Configuration for LLM
+            custom_instruction: Optional custom instruction to add to the LLM prompt
+        """
+        super().__init__(llm_config)
+        self.custom_instruction = custom_instruction
 
     def _detect_hallucinations_batch(self, claims: List[str], context: str) -> List[bool]:
         """
@@ -30,25 +41,27 @@ class HallucinationCalculator(SummaryMetricCalculator):
         )
         prompt = f"""
         You are a hallucination detection assistant that verifies if claims in a summary are supported by the original text.
-        
+
         For each claim below, determine if it contains ANY information NOT present in or directly inferable from the original text.
-        
+
         Original text:
         ```
         {context}
         ```
-        
+
         Claims to verify:
         {claims_text}
-        
+
         Respond with EXACTLY one line per claim, containing ONLY the word 'hallucination' or 'supported'.
         Do not include any explanation, reasoning, or numbering in your response.
-        
+
         For example, if there are 3 claims, your response should look exactly like:
         supported
         hallucination
-        supported
-        """
+        supported"""
+
+        if self.custom_instruction:
+            prompt += f"\n\nAdditional Instructions:\n{self.custom_instruction}"
 
         response = self.llm.generate(prompt, max_tokens=300)
         
@@ -159,7 +172,7 @@ class HallucinationCalculator(SummaryMetricCalculator):
 
 
 def calculate_hallucination(
-    reference: str, candidate: str, llm_config: Optional[LLMConfig] = None
+    reference: str, candidate: str, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None
 ) -> Dict[str, float]:
     """
     Calculate hallucination score by identifying claims in the summary not supported by the reference text.
@@ -168,9 +181,10 @@ def calculate_hallucination(
         reference (str): The original full text
         candidate (str): The summary to evaluate
         llm_config (Optional[LLMConfig]): Configuration for the LLM to use
+        custom_instruction (Optional[str]): Custom instruction to add to the LLM prompt for evaluation
 
     Returns:
         Dict[str, float]: Dictionary containing hallucination score and claim counts
     """
-    calculator = HallucinationCalculator(llm_config)
+    calculator = HallucinationCalculator(llm_config, custom_instruction=custom_instruction)
     return calculator.calculate_score(reference, candidate)

@@ -59,20 +59,20 @@ class BedrockLLM(BaseLLM):
         # Setup proxy configuration for the client
         client_config = None
         proxies = self._get_proxy_config()
-        
+
         if proxies:
             client_config = Config(proxies=proxies)  # Use proxies directly
             # Create a copy of proxies with masked passwords for printing
             masked_proxies = self._mask_proxy_passwords(proxies.copy())
             print(f"Using proxy configuration: {masked_proxies}")
             self._test_proxy_connectivity(proxies)
-        
+
         # Create the client with proxy config if available
-            client_kwargs = {}
-            if client_config:
-                client_kwargs["config"] = client_config  # Use the already created client_config
-                        
-            self.client = session.client("bedrock-runtime", **client_kwargs)
+        client_kwargs = {}
+        if client_config:
+            client_kwargs["config"] = client_config  # Use the already created client_config
+
+        self.client = session.client("bedrock-runtime", **client_kwargs)
 
     def _get_proxy_config(self) -> Dict[str, str]:
         """
