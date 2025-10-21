@@ -160,7 +160,7 @@ config = LLMConfig(
 - `bleu`: BLEU score
 - `bert_score`: BERTScore precision, recall, and F1
 - `bart_score`: BARTScore
-- `faithfulness`: Measures factual consistency with the source text
+- `faithfulness`: Measures how well the summary covers claims from the source text (completeness/recall)
 - `hallucination`: Detects claims in the summary not supported by the source text (returns hallucination_score)
 - `topic_preservation`: How well the summary preserves main topics
 - `redundancy`: Measures repetitive content
@@ -274,7 +274,7 @@ results = evaluate_summary(
     metrics=["faithfulness", "coherence", "hallucination"],
     llm_config=config,
     custom_prompt_instructions={
-        "faithfulness": "Apply strict scientific standards. Only mark claims as true if explicitly stated.",
+        "faithfulness": "Apply strict scientific standards. Only mark source claims as present if clearly represented in the summary.",
         "coherence": "Focus on whether the text flows naturally for a technical audience.",
         "hallucination": "Be extremely strict. Flag any claim that adds details not in the original."
     }
@@ -295,7 +295,7 @@ results = evaluate_summary(
     metrics=["faithfulness", "hallucination"],
     llm_config=config,
     custom_prompt_instructions={
-        "faithfulness": "Apply strict scientific standards. Verify statistical claims and methodology accurately.",
+        "faithfulness": "Apply strict scientific standards. Ensure important statistical claims and methodology from the source are represented in the summary.",
         "hallucination": "Flag any claims that go beyond what's explicitly stated in the research."
     }
 )
