@@ -7,8 +7,9 @@ class FaithfulnessCalculator(SummaryMetricCalculator):
     """
     Calculator for evaluating faithfulness of summaries.
 
-    Measures how factually consistent a summary is with the reference text
-    by extracting claims from the summary and verifying them against the reference.
+    Measures how well a summary covers the claims from the reference text
+    by extracting claims from the reference and checking if they appear in the summary.
+    This provides a measure of completeness/recall.
     """
 
     def __init__(self, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None):
@@ -22,27 +23,28 @@ class FaithfulnessCalculator(SummaryMetricCalculator):
         super().__init__(llm_config)
         self.custom_instruction = custom_instruction
 
-    def _verify_claims_batch(self, claims: List[str], context: str) -> List[bool]:
+    def _check_claims_in_summary_batch(self, claims: List[str], summary: str) -> List[bool]:
         """
-        Verify if claims can be inferred from the reference text.
+        Check if claims from the reference text are present in the summary.
 
         Args:
-            claims: List of claims to verify
-            context: Reference text to check against
+            claims: List of claims from reference text to check
+            summary: Summary text to check against
 
         Returns:
-            List of boolean values indicating if each claim is supported
+            List of boolean values indicating if each claim is present in the summary
         """
         claims_text = "\n".join(
             f"Claim {i+1}: {claim}" for i, claim in enumerate(claims)
         )
         prompt = f"""
-        System: You are a helpful assistant that verifies if claims can be directly inferred from given context.
-        For each claim, answer with only 'true' or 'false'.
+        System: You are a helpful assistant that determines if claims from a source document are present in a summary.
+        For each claim, determine if the information from that claim appears in the summary (even if worded differently).
+        Answer with only 'true' if the claim's information is present in the summary, or 'false' if it is missing.
 
-        Context: {context}
+        Summary: {summary}
 
-        Claims to verify:
+        Claims from source document to check:
         {claims_text}
 
         For each claim, answer with only 'true' or 'false', one per line."""
@@ -58,7 +60,10 @@ class FaithfulnessCalculator(SummaryMetricCalculator):
 
     def calculate_score(self, reference: str, candidate: str) -> Dict[str, float]:
         """
-        Calculate faithfulness score for a summary.
+        Calculate faithfulness score for a summary based on coverage of source claims.
+
+        This metric measures how many claims from the reference text are present in the summary,
+        providing a measure of completeness/recall rather than accuracy.
 
         Args:
             reference: Original reference text
@@ -67,32 +72,27 @@ class FaithfulnessCalculator(SummaryMetricCalculator):
         Returns:
             Dictionary with faithfulness score and claim statistics
         """
-        # Extract claims from both texts
+        # Extract claims from the reference (source material)
         reference_claims = self._extract_claims(reference)
-        summary_claims = self._extract_claims(candidate)
 
-        if not summary_claims:  # avoid division by zero
+        if not reference_claims:  # avoid division by zero
             return {
-                "faithfulness": 1.0,  # No claims means no unfaithful claims
-                "reference_claims_count": len(reference_claims),
-                "summary_claims_count": 0,
-                "verified_claims_count": 0,
+                "faithfulness": 1.0,  # No claims in reference means perfect coverage
+                "reference_claims_count": 0,
+                "claims_in_summary_count": 0,
             }
 
-        # Verify all claims in a single batch
-        verification_results = self._verify_claims_batch(summary_claims, reference)
-        verified_claims_count = sum(verification_results)
+        # Check which reference claims appear in the summary
+        claims_present_results = self._check_claims_in_summary_batch(reference_claims, candidate)
+        claims_in_summary_count = sum(claims_present_results)
 
-        # Calculate faithfulness score
-        faithfulness_score = (
-            verified_claims_count / len(summary_claims) if summary_claims else 1.0
-        )
+        # Calculate faithfulness score as coverage/recall
+        faithfulness_score = claims_in_summary_count / len(reference_claims)
 
         return {
             "faithfulness": faithfulness_score,
             "reference_claims_count": len(reference_claims),
-            "summary_claims_count": len(summary_claims),
-            "verified_claims_count": verified_claims_count,
+            "claims_in_summary_count": claims_in_summary_count,
         }
 
 
@@ -100,7 +100,10 @@ def calculate_faithfulness(
     reference: str, candidate: str, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None
 ) -> Dict[str, float]:
     """
-    Calculate faithfulness score by comparing claims in the summary against the reference text.
+    Calculate faithfulness score by measuring how many claims from the reference appear in the summary.
+
+    This metric measures completeness/recall: it extracts all claims from the reference text
+    and checks how many of them are present in the summary, providing a score between 0-1.
 
     Args:
         reference (str): The original full text
@@ -109,7 +112,10 @@ def calculate_faithfulness(
         custom_instruction (Optional[str]): Custom instruction to add to the LLM prompt for evaluation
 
     Returns:
-        Dict[str, float]: Dictionary containing faithfulness score and claim counts
+        Dict[str, float]: Dictionary containing:
+            - faithfulness: Score from 0-1 (claims_in_summary / total_reference_claims)
+            - reference_claims_count: Total claims extracted from reference
+            - claims_in_summary_count: Number of reference claims present in summary
     """
     calculator = FaithfulnessCalculator(llm_config, custom_instruction=custom_instruction)
     return calculator.calculate_score(reference, candidate)
