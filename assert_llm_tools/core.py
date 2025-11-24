@@ -7,12 +7,16 @@ from .metrics.base import BaseCalculator, SummaryMetricCalculator, RAGMetricCalc
 from .metrics.summary.rouge import calculate_rouge
 from .metrics.summary.bleu import calculate_bleu
 from .metrics.summary.bert_score import calculate_bert_score, ModelType
-from .metrics.summary.faithfulness import calculate_faithfulness
+from .metrics.summary.coverage import calculate_coverage
+from .metrics.summary.factual_consistency import calculate_factual_consistency
+from .metrics.summary.factual_alignment import calculate_factual_alignment
 from .metrics.summary.topic_preservation import calculate_topic_preservation
 from .metrics.summary.redundancy import calculate_redundancy
 from .metrics.summary.conciseness import calculate_conciseness_score
 from .metrics.summary.bart_score import calculate_bart_score
 from .metrics.summary.coherence import calculate_coherence
+# Old metric names (deprecated) - kept for backwards compatibility
+from .metrics.summary.faithfulness import calculate_faithfulness
 from .metrics.summary.hallucination import calculate_hallucination
 
 # Import RAG metrics
@@ -37,21 +41,28 @@ AVAILABLE_SUMMARY_METRICS = [
     "bleu",
     "bert_score",
     "bart_score",
-    "faithfulness",
+    "coverage",
+    "factual_consistency",
+    "factual_alignment",
     "topic_preservation",
     "redundancy",
     "conciseness",
     "coherence",
-    "hallucination",
+    # Deprecated metric names (kept for backwards compatibility)
+    "faithfulness",  # Use 'coverage' instead
+    "hallucination",  # Use 'factual_consistency' instead
 ]
 
 # Define which metrics require LLM
 LLM_REQUIRED_SUMMARY_METRICS = [
-    "faithfulness",
+    "coverage",
+    "factual_consistency",
+    "factual_alignment",
     "topic_preservation",
-    "redundancy",
     "conciseness",
     "coherence",
+    # Deprecated metric names
+    "faithfulness",
     "hallucination",
 ]
 
@@ -104,9 +115,11 @@ def evaluate_summary(
         mask_pii_entity_types: List of PII entity types to detect and mask. If None, all supported types are used.
         return_pii_info: Whether to return information about detected PII (default: False)
         custom_prompt_instructions: Optional dictionary mapping metric names to custom prompt instructions.
-            For LLM-based metrics (faithfulness, hallucination, topic_preservation, redundancy, conciseness, coherence),
-            you can provide additional instructions to customize the evaluation criteria.
-            Example: {"faithfulness": "Apply strict scientific standards", "coherence": "Focus on narrative flow"}
+            For LLM-based metrics (coverage, factual_consistency, factual_alignment, topic_preservation,
+            redundancy, conciseness, coherence), you can provide additional instructions to customize the
+            evaluation criteria.
+            Example: {"coverage": "Apply strict scientific standards", "coherence": "Focus on narrative flow"}
+            Note: Old metric names (faithfulness, hallucination) are deprecated but still supported.
         **kwargs: Additional keyword arguments for specific metrics
 
     Returns:
@@ -126,7 +139,22 @@ def evaluate_summary(
     invalid_metrics = set(metrics) - valid_metrics
     if invalid_metrics:
         raise ValueError(f"Invalid metrics: {invalid_metrics}")
-    
+
+    # Check for deprecated metric names and issue warnings
+    deprecated_metrics = {
+        "faithfulness": "coverage",
+        "hallucination": "factual_consistency"
+    }
+    for metric in metrics:
+        if metric in deprecated_metrics:
+            import warnings
+            warnings.warn(
+                f"Metric '{metric}' is deprecated and will be removed in a future version. "
+                f"Use '{deprecated_metrics[metric]}' instead.",
+                DeprecationWarning,
+                stacklevel=2
+            )
+
     # Handle PII masking if enabled
     pii_info = {}
     if mask_pii:
@@ -194,9 +222,17 @@ def evaluate_summary(
                 calculate_bert_score(full_text, summary, model_type=bert_model)
             )
 
-        elif metric == "faithfulness":
-            custom_instruction = custom_prompt_instructions.get("faithfulness") if custom_prompt_instructions else None
-            results.update(calculate_faithfulness(full_text, summary, llm_config, custom_instruction))
+        elif metric == "coverage":
+            custom_instruction = custom_prompt_instructions.get("coverage") if custom_prompt_instructions else None
+            results.update(calculate_coverage(full_text, summary, llm_config, custom_instruction))
+
+        elif metric == "factual_consistency":
+            custom_instruction = custom_prompt_instructions.get("factual_consistency") if custom_prompt_instructions else None
+            results.update(calculate_factual_consistency(full_text, summary, llm_config, custom_instruction))
+
+        elif metric == "factual_alignment":
+            custom_instruction = custom_prompt_instructions.get("factual_alignment") if custom_prompt_instructions else None
+            results.update(calculate_factual_alignment(full_text, summary, llm_config, custom_instruction))
 
         elif metric == "topic_preservation":
             custom_instruction = custom_prompt_instructions.get("topic_preservation") if custom_prompt_instructions else None
@@ -218,6 +254,11 @@ def evaluate_summary(
         elif metric == "coherence":
             custom_instruction = custom_prompt_instructions.get("coherence") if custom_prompt_instructions else None
             results.update(calculate_coherence(summary, llm_config, custom_instruction))
+
+        # Deprecated metrics (backwards compatibility)
+        elif metric == "faithfulness":
+            custom_instruction = custom_prompt_instructions.get("faithfulness") if custom_prompt_instructions else None
+            results.update(calculate_faithfulness(full_text, summary, llm_config, custom_instruction))
 
         elif metric == "hallucination":
             custom_instruction = custom_prompt_instructions.get("hallucination") if custom_prompt_instructions else None
