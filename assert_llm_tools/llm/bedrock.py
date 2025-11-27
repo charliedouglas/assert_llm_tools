@@ -23,12 +23,28 @@ class BedrockLLM(BaseLLM):
     Implementation of BaseLLM for AWS Bedrock service.
 
     This class handles communication with AWS Bedrock API to run inference
-    using various foundation models including Anthropic Claude and Amazon Titan models.
+    using various foundation models including:
+    - Amazon Nova (amazon.nova-*, us.amazon.nova-*)
+    - Anthropic Claude (anthropic.claude-*)
+    - Meta Llama (meta.llama*, us.meta.llama*)
+    - Mistral AI (mistral.mistral-*)
+    - Cohere Command (cohere.command-*)
+    - AI21 Labs Jamba (ai21.jamba-*)
 
     Attributes:
         client: Boto3 client for Bedrock Runtime service.
         config (LLMConfig): Configuration for the Bedrock LLM.
     """
+
+    # Model family identifiers for request/response format detection
+    MODEL_FAMILIES = {
+        "nova": ["amazon.nova", "us.amazon.nova"],
+        "anthropic": ["anthropic.claude"],
+        "llama": ["meta.llama", "us.meta.llama"],
+        "mistral": ["mistral.mistral"],
+        "cohere": ["cohere.command"],
+        "ai21": ["ai21.jamba", "ai21.j2"],
+    }
 
     def _initialize(self) -> None:
         """
@@ -73,6 +89,21 @@ class BedrockLLM(BaseLLM):
             client_kwargs["config"] = client_config  # Use the already created client_config
 
         self.client = session.client("bedrock-runtime", **client_kwargs)
+
+    def _detect_model_family(self) -> str:
+        """
+        Detect the model family based on model_id.
+
+        Returns:
+            str: The model family name (nova, anthropic, llama, mistral, cohere, ai21)
+                 or 'unknown' if not recognized.
+        """
+        model_id_lower = self.config.model_id.lower()
+        for family, prefixes in self.MODEL_FAMILIES.items():
+            for prefix in prefixes:
+                if model_id_lower.startswith(prefix):
+                    return family
+        return "unknown"
 
     def _get_proxy_config(self) -> Dict[str, str]:
         """
@@ -162,46 +193,180 @@ class BedrockLLM(BaseLLM):
                 # Don't raise here as the proxy might still work with boto3
                 # Just warn the user
 
+    def _build_request_params(self, prompt: str, model_family: str, **kwargs) -> Dict[str, Any]:
+        """
+        Build request parameters based on model family.
+
+        Args:
+            prompt: The input prompt
+            model_family: The detected model family
+            **kwargs: Additional generation parameters
+
+        Returns:
+            Dict containing the request parameters for the specific model family
+        """
+        max_tokens = kwargs.get("max_tokens", 500)
+        temperature = kwargs.get("temperature", 0)
+        top_p = kwargs.get("top_p", 0.9)
+        top_k = kwargs.get("top_k", 20)
+
+        if model_family == "nova":
+            return {
+                "messages": [{"role": "user", "content": [{"text": prompt}]}],
+                "system": [{"text": "You should respond to all messages in english"}],
+                "inferenceConfig": {
+                    "max_new_tokens": max_tokens,
+                    "temperature": temperature,
+                    "top_p": top_p,
+                    "top_k": top_k,
+                },
+            }
+
+        elif model_family == "anthropic":
+            return {
+                "anthropic_version": "bedrock-2023-05-31",
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "messages": [{"role": "user", "content": prompt}],
+            }
+
+        elif model_family == "llama":
+            # Meta Llama models use a simpler prompt-based format
+            return {
+                "prompt": prompt,
+                "max_gen_len": max_tokens,
+                "temperature": temperature,
+                "top_p": top_p,
+            }
+
+        elif model_family == "mistral":
+            # Mistral uses a messages-based format
+            return {
+                "prompt": f"<s>[INST] {prompt} [/INST]",
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "top_p": top_p,
+                "top_k": top_k,
+            }
+
+        elif model_family == "cohere":
+            # Cohere Command models
+            return {
+                "message": prompt,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "p": top_p,
+                "k": top_k,
+            }
+
+        elif model_family == "ai21":
+            # AI21 Jamba models use messages format
+            return {
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "top_p": top_p,
+            }
+
+        else:
+            # Default/unknown models - try generic messages format
+            # This provides a fallback for new models not yet explicitly supported
+            return {
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+            }
+
+    def _parse_response(self, response_body: Dict[str, Any], model_family: str) -> str:
+        """
+        Parse the response based on model family.
+
+        Args:
+            response_body: The parsed JSON response from Bedrock
+            model_family: The detected model family
+
+        Returns:
+            str: The extracted text response
+        """
+        if model_family == "nova":
+            return response_body["output"]["message"]["content"][0]["text"]
+
+        elif model_family == "anthropic":
+            return response_body["content"][0]["text"]
+
+        elif model_family == "llama":
+            return response_body["generation"]
+
+        elif model_family == "mistral":
+            return response_body["outputs"][0]["text"]
+
+        elif model_family == "cohere":
+            return response_body["text"]
+
+        elif model_family == "ai21":
+            return response_body["choices"][0]["message"]["content"]
+
+        else:
+            # Try common response formats for unknown models
+            if "content" in response_body:
+                content = response_body["content"]
+                if isinstance(content, list) and len(content) > 0:
+                    if isinstance(content[0], dict) and "text" in content[0]:
+                        return content[0]["text"]
+                    return str(content[0])
+                return str(content)
+            elif "generation" in response_body:
+                return response_body["generation"]
+            elif "text" in response_body:
+                return response_body["text"]
+            elif "outputs" in response_body:
+                return response_body["outputs"][0]["text"]
+            elif "choices" in response_body:
+                choice = response_body["choices"][0]
+                if "message" in choice:
+                    return choice["message"]["content"]
+                elif "text" in choice:
+                    return choice["text"]
+            # Last resort - return the whole response as string
+            raise ValueError(
+                f"Unable to parse response from unknown model family. "
+                f"Response structure: {list(response_body.keys())}"
+            )
+
     def generate(self, prompt: str, **kwargs) -> str:
         """
         Generate text using AWS Bedrock models.
 
-        Formats the request appropriately based on the model type (Nova vs other models),
+        Formats the request appropriately based on the model family,
         sends the request to Bedrock, and parses the response.
+
+        Supported model families:
+        - Amazon Nova (amazon.nova-*, us.amazon.nova-*)
+        - Anthropic Claude (anthropic.claude-*)
+        - Meta Llama (meta.llama*, us.meta.llama*)
+        - Mistral AI (mistral.mistral-*)
+        - Cohere Command (cohere.command-*)
+        - AI21 Labs Jamba (ai21.jamba-*)
 
         Args:
             prompt (str): The input prompt to send to the model.
             **kwargs: Additional parameters for text generation:
-                - max_tokens (int): Maximum number of tokens to generate.
-                - temperature (float): Controls randomness (0-1).
-                - top_p (float): Controls diversity via nucleus sampling.
-                - top_k (int): Controls diversity via top-k sampling.
+                - max_tokens (int): Maximum number of tokens to generate (default: 500).
+                - temperature (float): Controls randomness, 0-1 (default: 0).
+                - top_p (float): Controls diversity via nucleus sampling (default: 0.9).
+                - top_k (int): Controls diversity via top-k sampling (default: 20).
 
         Returns:
             str: The generated text response from the model.
-        """
-        # Determine if it's a Nova model
-        is_nova = "nova" in self.config.model_id.lower()
 
-        if is_nova:
-            default_params = {
-                "messages": [{"role": "user", "content": [{"text": prompt}]}],
-                "system": [{"text": "You should respond to all messages in english"}],
-                "inferenceConfig": {
-                    "max_new_tokens": kwargs.get("max_tokens", 500),
-                    "temperature": kwargs.get("temperature", 0),
-                    "top_p": kwargs.get("top_p", 0.9),
-                    "top_k": kwargs.get("top_k", 20),
-                },
-            }
-        else:
-            # Anthropic model format
-            default_params = {
-                "anthropic_version": "bedrock-2023-05-31",
-                "max_tokens": kwargs.get("max_tokens", 500),
-                "temperature": kwargs.get("temperature", 0),
-                "messages": [{"role": "user", "content": prompt}],
-            }
+        Raises:
+            ConnectionError: If there are proxy connectivity issues.
+            ValueError: If response parsing fails for unknown model types.
+        """
+        model_family = self._detect_model_family()
+
+        # Build request parameters for the specific model family
+        default_params = self._build_request_params(prompt, model_family, **kwargs)
 
         # Merge with additional parameters from config
         if self.config.additional_params:
@@ -214,12 +379,9 @@ class BedrockLLM(BaseLLM):
 
             response_body = json.loads(response["body"].read())
 
-            # Parse response based on model type
-            if is_nova:
-                return response_body["output"]["message"]["content"][0]["text"]
-            else:
-                return response_body["content"][0]["text"]
-                
+            # Parse response based on model family
+            return self._parse_response(response_body, model_family)
+
         except Exception as e:
             # Provide more helpful error message for proxy issues
             error_message = str(e)
