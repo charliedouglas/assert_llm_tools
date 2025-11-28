@@ -248,6 +248,44 @@ config = LLMConfig(
 )
 ```
 
+### Supported Bedrock Model Families
+
+AWS Bedrock supports multiple model providers. The library automatically detects and handles the correct request/response format for each:
+
+| Model Family | Model ID Prefixes | Example Model IDs |
+|-------------|-------------------|-------------------|
+| **Amazon Nova** | `amazon.nova-*`, `us.amazon.nova-*` | `us.amazon.nova-pro-v1:0`, `amazon.nova-lite-v1:0` |
+| **Anthropic Claude** | `anthropic.claude-*` | `anthropic.claude-3-sonnet-20240229-v1:0`, `anthropic.claude-v2` |
+| **Meta Llama** | `meta.llama*`, `us.meta.llama*` | `meta.llama3-70b-instruct-v1:0`, `us.meta.llama3-2-1b-instruct-v1:0` |
+| **Mistral AI** | `mistral.mistral-*` | `mistral.mistral-large-2402-v1:0`, `mistral.mistral-7b-instruct-v0:2` |
+| **Cohere Command** | `cohere.command-*` | `cohere.command-r-plus-v1:0`, `cohere.command-text-v14` |
+| **AI21 Labs** | `ai21.jamba-*`, `ai21.j2-*` | `ai21.jamba-1-5-large-v1:0`, `ai21.j2-ultra-v1` |
+
+Example using different model providers:
+
+```python
+# Using Meta Llama
+config = LLMConfig(
+    provider="bedrock",
+    model_id="meta.llama3-70b-instruct-v1:0",
+    region="us-east-1"
+)
+
+# Using Mistral
+config = LLMConfig(
+    provider="bedrock",
+    model_id="mistral.mistral-large-2402-v1:0",
+    region="us-east-1"
+)
+
+# Using Cohere
+config = LLMConfig(
+    provider="bedrock",
+    model_id="cohere.command-r-plus-v1:0",
+    region="us-east-1"
+)
+```
+
 ### Additional Model Parameters
 
 ```python
