@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ASSERT LLM Tools is a Python library for evaluating summaries and RAG (Retrieval-Augmented Generation) outputs using various metrics. The library supports both traditional metrics (ROUGE, BLEU, BERTScore) and LLM-based metrics (faithfulness, hallucination detection, topic preservation).
+ASSERT LLM Tools is a Python library for evaluating summaries and RAG (Retrieval-Augmented Generation) outputs using various metrics. The library supports both traditional metrics (ROUGE, BLEU, BERTScore) and LLM-based metrics (coverage, factual consistency, factual alignment, topic preservation).
 
 ## Development Commands
 
@@ -76,7 +76,8 @@ flake8 assert_llm_tools/
 
 - **Summary Metrics** ([metrics/summary/](assert_llm_tools/metrics/summary/)):
   - Traditional: ROUGE, BLEU, BERTScore, BARTScore
-  - LLM-based: faithfulness, hallucination, topic_preservation, redundancy, conciseness, coherence
+  - LLM-based: coverage, factual_consistency, factual_alignment, topic_preservation, redundancy, conciseness, coherence
+  - Deprecated (backwards compatible): faithfulness (use coverage), hallucination (use factual_consistency)
 
 - **RAG Metrics** ([metrics/rag/](assert_llm_tools/metrics/rag/)):
   - All LLM-based: answer_relevance, context_relevance, faithfulness, answer_attribution, completeness
@@ -95,9 +96,22 @@ flake8 assert_llm_tools/
 
 ### Metric Categories
 
-- **LLM-required summary metrics**: faithfulness, topic_preservation, redundancy, conciseness, coherence, hallucination
+- **LLM-required summary metrics**: coverage, factual_consistency, factual_alignment, topic_preservation, redundancy, conciseness, coherence
 - **Traditional summary metrics**: rouge, bleu, bert_score, bart_score
 - **All RAG metrics require LLM**: answer_relevance, context_relevance, faithfulness, answer_attribution, completeness
+
+### Metric Definitions
+
+**Summary Metrics:**
+- **coverage**: Measures what % of source document claims appear in the summary (recall/completeness). Higher = more complete.
+- **factual_consistency**: Measures what % of summary claims are supported by source (precision/accuracy). Higher = more accurate.
+- **factual_alignment**: F1 score combining coverage and factual_consistency. Balanced measure of completeness and accuracy.
+- **topic_preservation**: Measures how well main topics from source are preserved in summary.
+- **redundancy**: Detects semantically similar/redundant sentences using embedding similarity (0.85 threshold). Higher = less redundant.
+- **conciseness**: Evaluates information density and brevity. Combination of statistical and LLM-based scoring.
+- **coherence**: Measures logical flow using sentence similarity and LLM discourse analysis.
+- **faithfulness** (DEPRECATED): Use `coverage` instead. Kept for backwards compatibility.
+- **hallucination** (DEPRECATED): Use `factual_consistency` instead. Kept for backwards compatibility.
 
 ## Common Patterns
 

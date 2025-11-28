@@ -16,6 +16,7 @@ class AnswerAttributionCalculator(RAGMetricCalculator):
         self,
         llm_config: Optional[LLMConfig] = None,
         embedding_model: str = "all-MiniLM-L6-v2",
+        verbose: bool = False,
     ):
         """
         Initialize answer attribution calculator.
@@ -23,10 +24,12 @@ class AnswerAttributionCalculator(RAGMetricCalculator):
         Args:
             llm_config: Configuration for LLM
             embedding_model: Name of sentence transformer model for embeddings
+            verbose: Whether to include detailed score breakdown in the output
         """
         super().__init__(llm_config)
         # Initialize embedding model
         self.embedding_model = SentenceTransformer(embedding_model)
+        self.verbose = verbose
 
     def _calculate_embedding_similarity(self, answer: str, context: str) -> float:
         """
@@ -111,7 +114,7 @@ Score:"""
         response = self.llm.generate(prompt).strip()
         return self._extract_float_from_response(response)
 
-    def calculate_score(self, answer: str, context: Union[str, List[str]]) -> float:
+    def calculate_score(self, answer: str, context: Union[str, List[str]]) -> Dict[str, any]:
         """
         Calculate overall answer attribution score.
 
@@ -120,7 +123,7 @@ Score:"""
             context: Retrieved context(s)
 
         Returns:
-            Attribution score between 0.0 and 1.0
+            Dictionary with attribution score and optionally detailed breakdown
         """
         # Normalize context if it's a list
         context_text = self._normalize_context(context)
@@ -139,13 +142,26 @@ Score:"""
             + weights["llm"] * llm_score
         )
 
-        return max(0.0, min(1.0, final_score))
+        final_score = max(0.0, min(1.0, final_score))
+
+        result = {"answer_attribution": final_score}
+
+        # Include detailed score breakdown when verbose is enabled
+        if self.verbose:
+            result["embedding_score"] = embedding_score
+            result["ngram_score"] = ngram_score
+            result["llm_score"] = llm_score
+            result["answer"] = answer
+            result["context"] = context
+
+        return result
 
 
 def calculate_answer_attribution(
     answer: str,
     context: Union[str, List[str]],
     llm_config: Optional[LLMConfig] = None,
+    verbose: bool = False,
 ) -> Dict[str, float]:
     """
     Evaluate how much of the answer appears to be derived from the provided context.
@@ -154,11 +170,16 @@ def calculate_answer_attribution(
         answer: The generated answer to evaluate
         context: Retrieved context(s). Can be a single string or list of strings.
         llm_config: Configuration for LLM-based evaluation
+        verbose: If True, include detailed score breakdown (embedding, ngram, LLM scores)
 
     Returns:
-        Dictionary containing the answer_attribution score
+        Dictionary containing:
+            - answer_attribution: Combined attribution score (0-1)
+            - embedding_score (only if verbose=True): Embedding similarity score
+            - ngram_score (only if verbose=True): N-gram overlap score
+            - llm_score (only if verbose=True): LLM-based attribution score
+            - answer (only if verbose=True): The evaluated answer
+            - context (only if verbose=True): The evaluated context
     """
-    calculator = AnswerAttributionCalculator(llm_config)
-    score = calculator.calculate_score(answer, context)
-
-    return {"answer_attribution": score}
+    calculator = AnswerAttributionCalculator(llm_config, verbose=verbose)
+    return calculator.calculate_score(answer, context)

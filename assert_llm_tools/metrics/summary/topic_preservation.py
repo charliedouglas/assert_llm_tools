@@ -10,16 +10,18 @@ class TopicPreservationCalculator(SummaryMetricCalculator):
     Measures how well a summary preserves the main topics from the original text.
     """
 
-    def __init__(self, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None):
+    def __init__(self, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None, verbose: bool = False):
         """
         Initialize topic preservation calculator.
 
         Args:
             llm_config: Configuration for LLM
             custom_instruction: Optional custom instruction to add to the LLM prompt
+            verbose: Whether to include detailed topic-level analysis in the output
         """
         super().__init__(llm_config)
         self.custom_instruction = custom_instruction
+        self.verbose = verbose
 
     def _check_topics_in_summary(self, topics: List[str], summary: str) -> List[bool]:
         """
@@ -89,16 +91,28 @@ class TopicPreservationCalculator(SummaryMetricCalculator):
             len(preserved_topics) / len(reference_topics) if reference_topics else 0.0
         )
 
-        return {
+        result = {
             "topic_preservation": topic_preservation_score,
-            "reference_topics": reference_topics,
-            "preserved_topics": preserved_topics,
-            "missing_topics": missing_topics,
+            "reference_topics_count": len(reference_topics),
+            "preserved_topics_count": len(preserved_topics),
+            "missing_topics_count": len(missing_topics),
         }
+
+        # Include detailed topic-level analysis when verbose is enabled
+        if self.verbose:
+            result["topics_analysis"] = [
+                {"topic": topic, "is_preserved": present}
+                for topic, present in zip(reference_topics, topic_present)
+            ]
+            result["preserved_topics"] = preserved_topics
+            result["missing_topics"] = missing_topics
+
+        return result
 
 
 def calculate_topic_preservation(
-    reference: str, candidate: str, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None
+    reference: str, candidate: str, llm_config: Optional[LLMConfig] = None,
+    custom_instruction: Optional[str] = None, verbose: bool = False
 ) -> Dict[str, any]:
     """
     Evaluate how well a summary preserves the main topics from the original text.
@@ -108,9 +122,18 @@ def calculate_topic_preservation(
         candidate (str): The summary to evaluate
         llm_config (Optional[LLMConfig]): Configuration for the LLM to use
         custom_instruction (Optional[str]): Custom instruction to add to the LLM prompt for evaluation
+        verbose (bool): If True, include detailed topic-level analysis showing each extracted
+            topic and whether it was preserved in the summary
 
     Returns:
-        Dict[str, any]: Dictionary containing topic preservation score and analysis
+        Dict[str, any]: Dictionary containing:
+            - topic_preservation: Score from 0-1
+            - reference_topics_count: Total topics extracted from reference
+            - preserved_topics_count: Number of topics preserved in summary
+            - missing_topics_count: Number of topics missing from summary
+            - topics_analysis (only if verbose=True): List of dicts with topic text and preservation status
+            - preserved_topics (only if verbose=True): List of preserved topic strings
+            - missing_topics (only if verbose=True): List of missing topic strings
     """
-    calculator = TopicPreservationCalculator(llm_config, custom_instruction=custom_instruction)
+    calculator = TopicPreservationCalculator(llm_config, custom_instruction=custom_instruction, verbose=verbose)
     return calculator.calculate_score(reference, candidate)
