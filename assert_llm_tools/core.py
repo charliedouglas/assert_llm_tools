@@ -94,6 +94,7 @@ def evaluate_summary(
     mask_pii_entity_types: Optional[List[str]] = None,
     return_pii_info: bool = False,
     custom_prompt_instructions: Optional[Dict[str, str]] = None,
+    verbose: bool = False,
     **kwargs,  # Accept additional kwargs
 ) -> Union[Dict[str, float], Tuple[Dict[str, float], Dict[str, Any]]]:
     """
@@ -120,6 +121,8 @@ def evaluate_summary(
             evaluation criteria.
             Example: {"coverage": "Apply strict scientific standards", "coherence": "Focus on narrative flow"}
             Note: Old metric names (faithfulness, hallucination) are deprecated but still supported.
+        verbose: If True, include detailed analysis for LLM-based metrics showing individual claims,
+            topics, and their verification status. Useful for debugging and understanding metric results.
         **kwargs: Additional keyword arguments for specific metrics
 
     Returns:
@@ -224,45 +227,45 @@ def evaluate_summary(
 
         elif metric == "coverage":
             custom_instruction = custom_prompt_instructions.get("coverage") if custom_prompt_instructions else None
-            results.update(calculate_coverage(full_text, summary, llm_config, custom_instruction))
+            results.update(calculate_coverage(full_text, summary, llm_config, custom_instruction, verbose=verbose))
 
         elif metric == "factual_consistency":
             custom_instruction = custom_prompt_instructions.get("factual_consistency") if custom_prompt_instructions else None
-            results.update(calculate_factual_consistency(full_text, summary, llm_config, custom_instruction))
+            results.update(calculate_factual_consistency(full_text, summary, llm_config, custom_instruction, verbose=verbose))
 
         elif metric == "factual_alignment":
             custom_instruction = custom_prompt_instructions.get("factual_alignment") if custom_prompt_instructions else None
-            results.update(calculate_factual_alignment(full_text, summary, llm_config, custom_instruction))
+            results.update(calculate_factual_alignment(full_text, summary, llm_config, custom_instruction, verbose=verbose))
 
         elif metric == "topic_preservation":
             custom_instruction = custom_prompt_instructions.get("topic_preservation") if custom_prompt_instructions else None
-            results.update(calculate_topic_preservation(full_text, summary, llm_config, custom_instruction))
+            results.update(calculate_topic_preservation(full_text, summary, llm_config, custom_instruction, verbose=verbose))
 
         elif metric == "redundancy":
             custom_instruction = custom_prompt_instructions.get("redundancy") if custom_prompt_instructions else None
-            results.update(calculate_redundancy(summary, llm_config, custom_instruction))
+            results.update(calculate_redundancy(summary, llm_config, custom_instruction, verbose=verbose))
 
         elif metric == "conciseness":
             custom_instruction = custom_prompt_instructions.get("conciseness") if custom_prompt_instructions else None
-            results["conciseness"] = calculate_conciseness_score(
-                full_text, summary, llm_config, custom_instruction
-            )
+            results.update(calculate_conciseness_score(
+                full_text, summary, llm_config, custom_instruction, verbose=verbose
+            ))
 
         elif metric == "bart_score":
             results.update(calculate_bart_score(full_text, summary))
 
         elif metric == "coherence":
             custom_instruction = custom_prompt_instructions.get("coherence") if custom_prompt_instructions else None
-            results.update(calculate_coherence(summary, llm_config, custom_instruction))
+            results.update(calculate_coherence(summary, llm_config, custom_instruction, verbose=verbose))
 
         # Deprecated metrics (backwards compatibility)
         elif metric == "faithfulness":
             custom_instruction = custom_prompt_instructions.get("faithfulness") if custom_prompt_instructions else None
-            results.update(calculate_faithfulness(full_text, summary, llm_config, custom_instruction))
+            results.update(calculate_faithfulness(full_text, summary, llm_config, custom_instruction, verbose=verbose))
 
         elif metric == "hallucination":
             custom_instruction = custom_prompt_instructions.get("hallucination") if custom_prompt_instructions else None
-            results.update(calculate_hallucination(full_text, summary, llm_config, custom_instruction))
+            results.update(calculate_hallucination(full_text, summary, llm_config, custom_instruction, verbose=verbose))
 
     # Return results with or without PII info
     if return_pii_info and mask_pii:
@@ -283,6 +286,7 @@ def evaluate_rag(
     mask_pii_preserve_partial: bool = False,
     mask_pii_entity_types: Optional[List[str]] = None,
     return_pii_info: bool = False,
+    verbose: bool = False,
 ) -> Union[Dict[str, float], Tuple[Dict[str, float], Dict[str, Any]]]:
     """
     Evaluate a RAG (Retrieval-Augmented Generation) system's output using specified metrics.
@@ -299,6 +303,8 @@ def evaluate_rag(
         mask_pii_preserve_partial: Whether to preserve part of the PII (e.g., for phone numbers: 123-***-***) (default: False)
         mask_pii_entity_types: List of PII entity types to detect and mask. If None, all supported types are used.
         return_pii_info: Whether to return information about detected PII (default: False)
+        verbose: If True, include detailed analysis for metrics showing individual claims,
+            topics, and their verification status. Useful for debugging and understanding metric results.
 
     Returns:
         If return_pii_info is False:
@@ -392,15 +398,15 @@ def evaluate_rag(
     )
     for metric in metric_iterator:
         if metric == "answer_relevance":
-            results.update(calculate_answer_relevance(question, answer, llm_config))
+            results.update(calculate_answer_relevance(question, answer, llm_config, verbose=verbose))
         elif metric == "context_relevance":
-            results.update(calculate_context_relevance(question, context, llm_config))
+            results.update(calculate_context_relevance(question, context, llm_config, verbose=verbose))
         elif metric == "answer_attribution":
-            results.update(calculate_answer_attribution(answer, context, llm_config))
+            results.update(calculate_answer_attribution(answer, context, llm_config, verbose=verbose))
         elif metric == "faithfulness":
-            results.update(calculate_rag_faithfulness(answer, context, llm_config))
+            results.update(calculate_rag_faithfulness(answer, context, llm_config, verbose=verbose))
         elif metric == "completeness":
-            results.update(calculate_completeness(question, answer, llm_config))
+            results.update(calculate_completeness(question, answer, llm_config, verbose=verbose))
         # Note: RAG coherence not yet implemented but could be added here
 
     # Return results with or without PII info

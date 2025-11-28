@@ -11,6 +11,17 @@ class CompletenessCalculator(RAGMetricCalculator):
     Measures how well an answer addresses all aspects of a question.
     """
 
+    def __init__(self, llm_config: LLMConfig = None, verbose: bool = False):
+        """
+        Initialize completeness calculator.
+
+        Args:
+            llm_config: Configuration for LLM
+            verbose: Whether to include detailed point-level analysis in the output
+        """
+        super().__init__(llm_config)
+        self.verbose = verbose
+
     def _extract_required_points(self, question: str) -> List[str]:
         """
         Extract key points that a complete answer should address.
@@ -112,17 +123,25 @@ class CompletenessCalculator(RAGMetricCalculator):
             (covered_points_count / len(required_points)) if required_points else 1.0
         )
 
-        return {
+        result = {
             "completeness": completeness_score,
             "required_points_count": len(required_points),
             "covered_points_count": covered_points_count,
-            "required_points": required_points,
-            "points_not_covered": points_not_covered,
         }
+
+        # Include detailed point-level analysis when verbose is enabled
+        if self.verbose:
+            result["points_analysis"] = [
+                {"point": point, "is_covered": is_covered}
+                for point, is_covered in zip(required_points, points_coverage)
+            ]
+            result["points_not_covered"] = points_not_covered
+
+        return result
 
 
 def calculate_completeness(
-    question: str, answer: str, llm_config: LLMConfig
+    question: str, answer: str, llm_config: LLMConfig, verbose: bool = False
 ) -> Dict[str, Union[float, List[str], int]]:
     """
     Calculate completeness score by analyzing how well the answer addresses all required points from the question.
@@ -131,9 +150,15 @@ def calculate_completeness(
         question (str): The original question asked
         answer (str): The generated answer to evaluate
         llm_config (LLMConfig): Configuration for the LLM to use
+        verbose (bool): If True, include detailed point-level analysis
 
     Returns:
-        Dict containing completeness scores and point analysis
+        Dict containing:
+            - completeness: Score from 0-1
+            - required_points_count: Number of required points extracted
+            - covered_points_count: Number of points covered by the answer
+            - points_analysis (only if verbose=True): List of points with coverage status
+            - points_not_covered (only if verbose=True): List of uncovered point strings
     """
-    calculator = CompletenessCalculator(llm_config)
+    calculator = CompletenessCalculator(llm_config, verbose=verbose)
     return calculator.calculate_score(question, answer)

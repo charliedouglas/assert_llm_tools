@@ -12,16 +12,18 @@ class FactualConsistencyCalculator(SummaryMetricCalculator):
     are factually grounded in the source material.
     """
 
-    def __init__(self, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None):
+    def __init__(self, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None, verbose: bool = False):
         """
         Initialize factual consistency calculator.
 
         Args:
             llm_config: Configuration for LLM
             custom_instruction: Optional custom instruction to add to the LLM prompt
+            verbose: Whether to include detailed claim-level analysis in the output
         """
         super().__init__(llm_config)
         self.custom_instruction = custom_instruction
+        self.verbose = verbose
 
     def _verify_claims_batch(self, claims: List[str], context: str) -> List[bool]:
         """
@@ -155,25 +157,26 @@ class FactualConsistencyCalculator(SummaryMetricCalculator):
         # Calculate factual consistency score (higher is better)
         factual_consistency_score = supported_claims_count / len(summary_claims)
 
-        # Create debug info with actual claims and their support status
-        debug_info = []
-        for claim, is_supported in zip(summary_claims, supported_results):
-            debug_info.append({
-                "claim": claim,
-                "is_supported": is_supported
-            })
-
-        return {
+        result = {
             "factual_consistency": factual_consistency_score,
             "summary_claims_count": len(summary_claims),
             "supported_claims_count": supported_claims_count,
             "unsupported_claims_count": unsupported_claims_count,
-            "debug_info": debug_info  # Include for troubleshooting, can be removed in production
         }
+
+        # Include detailed claim-level analysis when verbose is enabled
+        if self.verbose:
+            result["claims_analysis"] = [
+                {"claim": claim, "is_supported": is_supported}
+                for claim, is_supported in zip(summary_claims, supported_results)
+            ]
+
+        return result
 
 
 def calculate_factual_consistency(
-    reference: str, candidate: str, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None
+    reference: str, candidate: str, llm_config: Optional[LLMConfig] = None,
+    custom_instruction: Optional[str] = None, verbose: bool = False
 ) -> Dict[str, float]:
     """
     Calculate factual consistency score by verifying if claims in the summary are supported by the reference text.
@@ -187,6 +190,8 @@ def calculate_factual_consistency(
         candidate (str): The summary to evaluate
         llm_config (Optional[LLMConfig]): Configuration for the LLM to use
         custom_instruction (Optional[str]): Custom instruction to add to the LLM prompt for evaluation
+        verbose (bool): If True, include detailed claim-level analysis showing each extracted
+            claim and whether it is supported by the reference
 
     Returns:
         Dict[str, float]: Dictionary containing:
@@ -194,6 +199,7 @@ def calculate_factual_consistency(
             - summary_claims_count: Total claims extracted from summary
             - supported_claims_count: Number of summary claims supported by reference
             - unsupported_claims_count: Number of summary claims not supported by reference
+            - claims_analysis (only if verbose=True): List of dicts with claim text and support status
     """
-    calculator = FactualConsistencyCalculator(llm_config, custom_instruction=custom_instruction)
+    calculator = FactualConsistencyCalculator(llm_config, custom_instruction=custom_instruction, verbose=verbose)
     return calculator.calculate_score(reference, candidate)

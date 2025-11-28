@@ -11,6 +11,17 @@ class RAGFaithfulnessCalculator(RAGMetricCalculator):
     by analyzing both claims and topics.
     """
 
+    def __init__(self, llm_config: Optional[LLMConfig] = None, verbose: bool = False):
+        """
+        Initialize RAG faithfulness calculator.
+
+        Args:
+            llm_config: Configuration for LLM
+            verbose: Whether to include detailed claim/topic-level analysis in the output
+        """
+        super().__init__(llm_config)
+        self.verbose = verbose
+
     def _verify_claims_batch(self, claims: List[str], context: str) -> List[bool]:
         """
         Verify if claims can be inferred from the provided context.
@@ -132,7 +143,7 @@ class RAGFaithfulnessCalculator(RAGMetricCalculator):
         # Combined faithfulness score (average of claims and topics scores)
         faithfulness_score = (claims_score + topics_score) / 2
 
-        return {
+        result = {
             "faithfulness": faithfulness_score,
             "claims_score": claims_score,
             "topics_score": topics_score,
@@ -140,13 +151,26 @@ class RAGFaithfulnessCalculator(RAGMetricCalculator):
             "verified_claims_count": verified_claims_count,
             "topics_count": len(answer_topics),
             "verified_topics_count": sum(topics_verification),
-            "topics_found": answer_topics,
-            "topics_not_found_in_context": topics_not_found,
         }
+
+        # Include detailed claim/topic-level analysis when verbose is enabled
+        if self.verbose:
+            result["claims_analysis"] = [
+                {"claim": claim, "is_verified": is_verified}
+                for claim, is_verified in zip(answer_claims, claims_verification)
+            ]
+            result["topics_analysis"] = [
+                {"topic": topic, "is_in_context": is_present}
+                for topic, is_present in zip(answer_topics, topics_verification)
+            ]
+            result["topics_not_found_in_context"] = topics_not_found
+
+        return result
 
 
 def calculate_rag_faithfulness(
-    answer: str, context: Union[str, List[str]], llm_config: LLMConfig
+    answer: str, context: Union[str, List[str]], llm_config: LLMConfig,
+    verbose: bool = False
 ) -> Dict[str, Union[float, List[str], int]]:
     """
     Calculate faithfulness score by comparing claims and topics in the answer against the provided context.
@@ -155,9 +179,20 @@ def calculate_rag_faithfulness(
         answer (str): The generated answer to evaluate
         context (Union[str, List[str]]): The context(s) used to generate the answer
         llm_config (LLMConfig): Configuration for the LLM to use
+        verbose (bool): If True, include detailed claim and topic-level analysis
 
     Returns:
-        Dict containing faithfulness scores, claim counts, and topic analysis
+        Dict containing:
+            - faithfulness: Combined faithfulness score (0-1)
+            - claims_score: Score based on claim verification
+            - topics_score: Score based on topic verification
+            - claims_count: Number of claims extracted
+            - verified_claims_count: Number of claims verified
+            - topics_count: Number of topics extracted
+            - verified_topics_count: Number of topics found in context
+            - claims_analysis (only if verbose=True): List of claims with verification status
+            - topics_analysis (only if verbose=True): List of topics with context status
+            - topics_not_found_in_context (only if verbose=True): List of missing topics
     """
-    calculator = RAGFaithfulnessCalculator(llm_config)
+    calculator = RAGFaithfulnessCalculator(llm_config, verbose=verbose)
     return calculator.calculate_score(answer, context)

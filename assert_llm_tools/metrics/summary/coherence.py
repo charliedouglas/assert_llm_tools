@@ -19,6 +19,7 @@ class CoherenceCalculator(SummaryMetricCalculator):
         llm_config: Optional[LLMConfig] = None,
         embedding_model: str = "all-MiniLM-L6-v2",
         custom_instruction: Optional[str] = None,
+        verbose: bool = False,
     ):
         """
         Initialize coherence calculator.
@@ -27,11 +28,13 @@ class CoherenceCalculator(SummaryMetricCalculator):
             llm_config: Configuration for LLM
             embedding_model: Name of sentence transformer model for embeddings
             custom_instruction: Optional custom instruction to add to the LLM prompt
+            verbose: Whether to include detailed score breakdown in the output
         """
         super().__init__(llm_config)
         # Initialize embedding model for semantic analysis
         self.embedding_model = SentenceTransformer(embedding_model)
         self.custom_instruction = custom_instruction
+        self.verbose = verbose
 
     def _calculate_sentence_similarity(self, sentences: List[str]) -> float:
         """
@@ -93,7 +96,7 @@ Important: Your response must be only a numerical score between 0.0 and 1.0."""
         response = self.llm.generate(prompt).strip()
         return self._extract_float_from_response(response)
 
-    def calculate_score(self, text: str) -> float:
+    def calculate_score(self, text: str) -> Dict[str, any]:
         """
         Calculate overall coherence score.
 
@@ -101,13 +104,18 @@ Important: Your response must be only a numerical score between 0.0 and 1.0."""
             text: Text to evaluate
 
         Returns:
-            Coherence score between 0.0 and 1.0
+            Dictionary with coherence score and optionally detailed breakdown
         """
         # Split text into sentences
         sentences = sent_tokenize(text)
 
         if len(sentences) <= 1:
-            return 1.0  # Single sentence is coherent by default
+            result = {"coherence": 1.0, "sentence_count": len(sentences)}
+            if self.verbose:
+                result["similarity_score"] = 1.0
+                result["discourse_score"] = 1.0
+                result["sentences"] = sentences
+            return result
 
         # Get similarity-based coherence
         similarity_score = self._calculate_sentence_similarity(sentences)
@@ -118,11 +126,20 @@ Important: Your response must be only a numerical score between 0.0 and 1.0."""
         # Combine scores (weighted more toward discourse evaluation)
         final_score = 0.3 * similarity_score + 0.7 * discourse_score
 
-        return final_score
+        result = {"coherence": final_score, "sentence_count": len(sentences)}
+
+        # Include detailed breakdown when verbose is enabled
+        if self.verbose:
+            result["similarity_score"] = similarity_score
+            result["discourse_score"] = discourse_score
+            result["sentences"] = sentences
+
+        return result
 
 
 def calculate_coherence(
-    summary: str, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None
+    summary: str, llm_config: Optional[LLMConfig] = None,
+    custom_instruction: Optional[str] = None, verbose: bool = False
 ) -> Dict[str, float]:
     """
     Evaluate coherence of a summary.
@@ -131,11 +148,16 @@ def calculate_coherence(
         summary (str): The summary to evaluate
         llm_config (Optional[LLMConfig]): Configuration for LLM-based evaluation
         custom_instruction (Optional[str]): Custom instruction to add to the LLM prompt for evaluation
+        verbose (bool): If True, include detailed score breakdown showing similarity score,
+            discourse score, and individual sentences
 
     Returns:
-        Dict[str, float]: Dictionary containing the coherence score
+        Dict[str, float]: Dictionary containing:
+            - coherence: Combined coherence score (0-1)
+            - sentence_count: Number of sentences in the text
+            - similarity_score (only if verbose=True): Embedding-based sentence similarity score
+            - discourse_score (only if verbose=True): LLM-based discourse coherence score
+            - sentences (only if verbose=True): List of sentences in the text
     """
-    calculator = CoherenceCalculator(llm_config, custom_instruction=custom_instruction)
-    score = calculator.calculate_score(summary)
-
-    return {"coherence": score}
+    calculator = CoherenceCalculator(llm_config, custom_instruction=custom_instruction, verbose=verbose)
+    return calculator.calculate_score(summary)

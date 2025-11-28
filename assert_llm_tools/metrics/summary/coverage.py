@@ -13,16 +13,18 @@ class CoverageCalculator(SummaryMetricCalculator):
     information is captured in the summary.
     """
 
-    def __init__(self, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None):
+    def __init__(self, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None, verbose: bool = False):
         """
         Initialize coverage calculator.
 
         Args:
             llm_config: Configuration for LLM
             custom_instruction: Optional custom instruction to add to the LLM prompt
+            verbose: Whether to include detailed claim-level analysis in the output
         """
         super().__init__(llm_config)
         self.custom_instruction = custom_instruction
+        self.verbose = verbose
 
     def _check_claims_in_summary_batch(self, claims: List[str], summary: str) -> List[bool]:
         """
@@ -35,29 +37,64 @@ class CoverageCalculator(SummaryMetricCalculator):
         Returns:
             List of boolean values indicating if each claim is present in the summary
         """
+        if not claims:
+            return []
+
         claims_text = "\n".join(
             f"Claim {i+1}: {claim}" for i, claim in enumerate(claims)
         )
         prompt = f"""
-        System: You are a helpful assistant that determines if claims from a source document are present in a summary.
-        For each claim, determine if the information from that claim appears in the summary (even if worded differently).
-        Answer with only 'true' if the claim's information is present in the summary, or 'false' if it is missing.
+        You are a coverage verification assistant that determines if claims from a source document are present in a summary.
 
-        Summary: {summary}
+        For each claim below, determine if the information from that claim appears in the summary (even if worded differently).
+
+        Summary:
+        ```
+        {summary}
+        ```
 
         Claims from source document to check:
         {claims_text}
 
-        For each claim, answer with only 'true' or 'false', one per line."""
+        Respond with EXACTLY one line per claim, containing ONLY the word 'present' or 'missing'.
+        Do not include any explanation, reasoning, or numbering in your response.
+
+        For example, if there are 3 claims, your response should look exactly like:
+        present
+        missing
+        present"""
 
         if self.custom_instruction:
             prompt += f"\n\nAdditional Instructions:\n{self.custom_instruction}"
 
-        prompt += "\n\nAssistant:"
-
         response = self.llm.generate(prompt, max_tokens=300)
-        results = response.strip().split("\n")
-        return [result.strip().lower() == "true" for result in results]
+
+        # Clean up response and split into lines
+        lines = [line.strip() for line in response.strip().split("\n") if line.strip()]
+
+        # Filter out any lines that don't contain our expected response formats
+        valid_lines = []
+        for line in lines:
+            line_lower = line.lower()
+            # Check for present or missing anywhere in the line
+            if "present" in line_lower or "missing" in line_lower:
+                valid_lines.append(line_lower)
+
+        # Make sure we have a result for each claim
+        results = valid_lines[:len(claims)]  # Truncate if too many
+        if len(results) < len(claims):
+            # Pad with "missing" if too few (being conservative - assume not covered)
+            results.extend(["missing"] * (len(claims) - len(results)))
+
+        # Determine if each result indicates presence
+        present = []
+        for result in results:
+            # If the result contains "missing", count it as not present
+            # Handle edge cases like "not missing" though unlikely
+            is_present = "present" in result and "not present" not in result
+            present.append(is_present)
+
+        return present
 
     def calculate_score(self, reference: str, candidate: str) -> Dict[str, float]:
         """
@@ -91,15 +128,25 @@ class CoverageCalculator(SummaryMetricCalculator):
         # Calculate coverage score as recall
         coverage_score = claims_in_summary_count / len(reference_claims)
 
-        return {
+        result = {
             "coverage": coverage_score,
             "reference_claims_count": len(reference_claims),
             "claims_in_summary_count": claims_in_summary_count,
         }
 
+        # Include detailed claim-level analysis when verbose is enabled
+        if self.verbose:
+            result["claims_analysis"] = [
+                {"claim": claim, "is_covered": is_present}
+                for claim, is_present in zip(reference_claims, claims_present_results)
+            ]
+
+        return result
+
 
 def calculate_coverage(
-    reference: str, candidate: str, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None
+    reference: str, candidate: str, llm_config: Optional[LLMConfig] = None,
+    custom_instruction: Optional[str] = None, verbose: bool = False
 ) -> Dict[str, float]:
     """
     Calculate coverage score by measuring how many claims from the reference appear in the summary.
@@ -113,12 +160,15 @@ def calculate_coverage(
         candidate (str): The summary to evaluate
         llm_config (Optional[LLMConfig]): Configuration for the LLM to use
         custom_instruction (Optional[str]): Custom instruction to add to the LLM prompt for evaluation
+        verbose (bool): If True, include detailed claim-level analysis showing each extracted
+            claim and whether it was found in the summary
 
     Returns:
         Dict[str, float]: Dictionary containing:
             - coverage: Score from 0-1 (claims_in_summary / total_reference_claims)
             - reference_claims_count: Total claims extracted from reference
             - claims_in_summary_count: Number of reference claims present in summary
+            - claims_analysis (only if verbose=True): List of dicts with claim text and coverage status
     """
-    calculator = CoverageCalculator(llm_config, custom_instruction=custom_instruction)
+    calculator = CoverageCalculator(llm_config, custom_instruction=custom_instruction, verbose=verbose)
     return calculator.calculate_score(reference, candidate)

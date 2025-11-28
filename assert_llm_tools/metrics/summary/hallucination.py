@@ -11,16 +11,18 @@ class HallucinationCalculator(SummaryMetricCalculator):
     specifically targeting content that appears to be fabricated or hallucinated.
     """
 
-    def __init__(self, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None):
+    def __init__(self, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None, verbose: bool = False):
         """
         Initialize hallucination calculator.
 
         Args:
             llm_config: Configuration for LLM
             custom_instruction: Optional custom instruction to add to the LLM prompt
+            verbose: Whether to include detailed claim-level analysis in the output
         """
         super().__init__(llm_config)
         self.custom_instruction = custom_instruction
+        self.verbose = verbose
 
     def _detect_hallucinations_batch(self, claims: List[str], context: str) -> List[bool]:
         """
@@ -154,25 +156,26 @@ class HallucinationCalculator(SummaryMetricCalculator):
         hallucination_free_score = 1.0 - (
             hallucinated_claims_count / len(summary_claims) if summary_claims else 0.0
         )
-        
-        # Create debug info with actual claims and their hallucination status
-        debug_info = []
-        for claim, is_hallucination in zip(summary_claims, hallucination_results):
-            debug_info.append({
-                "claim": claim,
-                "is_hallucination": is_hallucination
-            })
 
-        return {
+        result = {
             "hallucination_score": hallucination_free_score,  # More consistent with other metric names
             "summary_claims_count": len(summary_claims),
             "hallucinated_claims_count": hallucinated_claims_count,
-            "debug_info": debug_info  # Include for troubleshooting, can be removed in production
         }
+
+        # Include detailed claim-level analysis when verbose is enabled
+        if self.verbose:
+            result["claims_analysis"] = [
+                {"claim": claim, "is_hallucination": is_hallucination}
+                for claim, is_hallucination in zip(summary_claims, hallucination_results)
+            ]
+
+        return result
 
 
 def calculate_hallucination(
-    reference: str, candidate: str, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None
+    reference: str, candidate: str, llm_config: Optional[LLMConfig] = None,
+    custom_instruction: Optional[str] = None, verbose: bool = False
 ) -> Dict[str, float]:
     """
     Calculate hallucination score by identifying claims in the summary not supported by the reference text.
@@ -182,9 +185,14 @@ def calculate_hallucination(
         candidate (str): The summary to evaluate
         llm_config (Optional[LLMConfig]): Configuration for the LLM to use
         custom_instruction (Optional[str]): Custom instruction to add to the LLM prompt for evaluation
+        verbose (bool): If True, include detailed claim-level analysis
 
     Returns:
-        Dict[str, float]: Dictionary containing hallucination score and claim counts
+        Dict[str, float]: Dictionary containing:
+            - hallucination_score: Score from 0-1 (1 = no hallucinations)
+            - summary_claims_count: Total claims extracted from summary
+            - hallucinated_claims_count: Number of hallucinated claims
+            - claims_analysis (only if verbose=True): List of dicts with claim text and hallucination status
     """
-    calculator = HallucinationCalculator(llm_config, custom_instruction=custom_instruction)
+    calculator = HallucinationCalculator(llm_config, custom_instruction=custom_instruction, verbose=verbose)
     return calculator.calculate_score(reference, candidate)

@@ -20,7 +20,8 @@ class RedundancyCalculator(SummaryMetricCalculator):
         llm_config: Optional[LLMConfig] = None,
         custom_instruction: Optional[str] = None,
         similarity_threshold: float = 0.85,
-        embedding_model: str = "all-MiniLM-L6-v2"
+        embedding_model: str = "all-MiniLM-L6-v2",
+        verbose: bool = False
     ):
         """
         Initialize redundancy calculator.
@@ -30,11 +31,13 @@ class RedundancyCalculator(SummaryMetricCalculator):
             custom_instruction: Optional custom instruction to add to the LLM prompt
             similarity_threshold: Cosine similarity threshold for identifying redundancy (default: 0.85)
             embedding_model: Name of sentence transformer model for embeddings
+            verbose: Whether to include detailed redundant pair analysis in the output
         """
         super().__init__(llm_config)
         self.custom_instruction = custom_instruction
         self.similarity_threshold = similarity_threshold
         self.embedding_model = SentenceTransformer(embedding_model)
+        self.verbose = verbose
 
     def _identify_redundant_segments_semantic(self, sentences: List[str]) -> List[Tuple[int, int, float]]:
         """
@@ -101,32 +104,36 @@ class RedundancyCalculator(SummaryMetricCalculator):
         # Invert the score so 1 means no redundancy (better) and 0 means highly redundant (worse)
         redundancy_score = 1.0 - redundancy_ratio
 
-        # Format redundant pairs for output
-        formatted_pairs = [
-            {
-                "sentence_1_index": i,
-                "sentence_2_index": j,
-                "sentence_1": sentences[i],
-                "sentence_2": sentences[j],
-                "similarity": similarity
-            }
-            for i, j, similarity in redundant_pairs
-        ]
-
-        return {
+        result = {
             "redundancy_score": redundancy_score,
-            "redundant_pairs": formatted_pairs,
             "redundant_pair_count": len(redundant_pairs),
             "total_sentences": len(sentences),
             "redundant_sentences_count": len(redundant_sentence_indices),
         }
+
+        # Include detailed redundant pair analysis when verbose is enabled
+        if self.verbose:
+            result["redundant_pairs"] = [
+                {
+                    "sentence_1_index": i,
+                    "sentence_2_index": j,
+                    "sentence_1": sentences[i],
+                    "sentence_2": sentences[j],
+                    "similarity": similarity
+                }
+                for i, j, similarity in redundant_pairs
+            ]
+            result["sentences"] = sentences
+
+        return result
 
 
 def calculate_redundancy(
     text: str,
     llm_config: Optional[LLMConfig] = None,
     custom_instruction: Optional[str] = None,
-    similarity_threshold: float = 0.85
+    similarity_threshold: float = 0.85,
+    verbose: bool = False
 ) -> Dict[str, any]:
     """
     Calculate redundancy score using semantic similarity detection.
@@ -141,19 +148,23 @@ def calculate_redundancy(
         llm_config (Optional[LLMConfig]): Configuration for the LLM to use (maintained for compatibility)
         custom_instruction (Optional[str]): Custom instruction (maintained for compatibility)
         similarity_threshold (float): Cosine similarity threshold for redundancy detection (default: 0.85)
+        verbose (bool): If True, include detailed redundant pair analysis showing each pair of
+            redundant sentences with their text and similarity scores
 
     Returns:
         Dict[str, any]: Dictionary containing:
             - redundancy_score: float between 0 and 1
               (1 = no redundancy/best, 0 = highly redundant/worst)
-            - redundant_pairs: List of dictionaries with redundant sentence pairs and similarity scores
             - redundant_pair_count: Number of redundant sentence pairs found
             - total_sentences: Total number of sentences in text
             - redundant_sentences_count: Number of unique sentences involved in redundancy
+            - redundant_pairs (only if verbose=True): List of dicts with redundant sentence pairs
+            - sentences (only if verbose=True): List of all sentences in the text
     """
     calculator = RedundancyCalculator(
         llm_config,
         custom_instruction=custom_instruction,
-        similarity_threshold=similarity_threshold
+        similarity_threshold=similarity_threshold,
+        verbose=verbose
     )
     return calculator.calculate_score(text)

@@ -12,16 +12,18 @@ class FaithfulnessCalculator(SummaryMetricCalculator):
     This provides a measure of completeness/recall.
     """
 
-    def __init__(self, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None):
+    def __init__(self, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None, verbose: bool = False):
         """
         Initialize faithfulness calculator.
 
         Args:
             llm_config: Configuration for LLM
             custom_instruction: Optional custom instruction to add to the LLM prompt
+            verbose: Whether to include detailed claim-level analysis in the output
         """
         super().__init__(llm_config)
         self.custom_instruction = custom_instruction
+        self.verbose = verbose
 
     def _check_claims_in_summary_batch(self, claims: List[str], summary: str) -> List[bool]:
         """
@@ -89,15 +91,25 @@ class FaithfulnessCalculator(SummaryMetricCalculator):
         # Calculate faithfulness score as coverage/recall
         faithfulness_score = claims_in_summary_count / len(reference_claims)
 
-        return {
+        result = {
             "faithfulness": faithfulness_score,
             "reference_claims_count": len(reference_claims),
             "claims_in_summary_count": claims_in_summary_count,
         }
 
+        # Include detailed claim-level analysis when verbose is enabled
+        if self.verbose:
+            result["claims_analysis"] = [
+                {"claim": claim, "is_covered": is_present}
+                for claim, is_present in zip(reference_claims, claims_present_results)
+            ]
+
+        return result
+
 
 def calculate_faithfulness(
-    reference: str, candidate: str, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None
+    reference: str, candidate: str, llm_config: Optional[LLMConfig] = None,
+    custom_instruction: Optional[str] = None, verbose: bool = False
 ) -> Dict[str, float]:
     """
     Calculate faithfulness score by measuring how many claims from the reference appear in the summary.
@@ -110,12 +122,14 @@ def calculate_faithfulness(
         candidate (str): The summary to evaluate
         llm_config (Optional[LLMConfig]): Configuration for the LLM to use
         custom_instruction (Optional[str]): Custom instruction to add to the LLM prompt for evaluation
+        verbose (bool): If True, include detailed claim-level analysis
 
     Returns:
         Dict[str, float]: Dictionary containing:
             - faithfulness: Score from 0-1 (claims_in_summary / total_reference_claims)
             - reference_claims_count: Total claims extracted from reference
             - claims_in_summary_count: Number of reference claims present in summary
+            - claims_analysis (only if verbose=True): List of dicts with claim text and coverage status
     """
-    calculator = FaithfulnessCalculator(llm_config, custom_instruction=custom_instruction)
+    calculator = FaithfulnessCalculator(llm_config, custom_instruction=custom_instruction, verbose=verbose)
     return calculator.calculate_score(reference, candidate)

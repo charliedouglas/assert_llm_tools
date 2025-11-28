@@ -11,16 +11,18 @@ class ConcisenessCalculator(SummaryMetricCalculator):
     Measures information density and brevity of expression.
     """
 
-    def __init__(self, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None):
+    def __init__(self, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None, verbose: bool = False):
         """
         Initialize conciseness calculator.
 
         Args:
             llm_config: Configuration for LLM
             custom_instruction: Optional custom instruction to add to the LLM prompt
+            verbose: Whether to include detailed score breakdown in the output
         """
         super().__init__(llm_config)
         self.custom_instruction = custom_instruction
+        self.verbose = verbose
 
     def _get_llm_conciseness_evaluation(self, summary: str) -> float:
         """
@@ -81,7 +83,7 @@ class ConcisenessCalculator(SummaryMetricCalculator):
         # Combine scores
         return 0.6 * compression_score + 0.4 * sentence_length_score
 
-    def calculate_score(self, source_text: str, summary: str) -> float:
+    def calculate_score(self, source_text: str, summary: str) -> Dict[str, any]:
         """
         Calculate overall conciseness score.
 
@@ -90,8 +92,13 @@ class ConcisenessCalculator(SummaryMetricCalculator):
             summary: Summary to evaluate
 
         Returns:
-            Conciseness score between 0.0 and 1.0
+            Dictionary with conciseness score and optionally detailed breakdown
         """
+        # Get basic text metrics for verbose output
+        source_words = word_tokenize(source_text)
+        summary_words = word_tokenize(summary)
+        summary_sents = sent_tokenize(summary)
+
         # Calculate base statistical metrics
         statistical_score = self._calculate_statistical_score(source_text, summary)
 
@@ -99,12 +106,29 @@ class ConcisenessCalculator(SummaryMetricCalculator):
         llm_score = self._get_llm_conciseness_evaluation(summary)
 
         # Combine scores with more weight on statistical analysis
-        return 0.7 * statistical_score + 0.3 * llm_score
+        final_score = 0.7 * statistical_score + 0.3 * llm_score
+
+        result = {"conciseness": final_score}
+
+        # Include detailed breakdown when verbose is enabled
+        if self.verbose:
+            compression_ratio = len(summary_words) / len(source_words)
+            avg_words_per_sent = len(summary_words) / max(1, len(summary_sents))
+            result["statistical_score"] = statistical_score
+            result["llm_score"] = llm_score
+            result["compression_ratio"] = compression_ratio
+            result["source_word_count"] = len(source_words)
+            result["summary_word_count"] = len(summary_words)
+            result["summary_sentence_count"] = len(summary_sents)
+            result["avg_words_per_sentence"] = avg_words_per_sent
+
+        return result
 
 
 def calculate_conciseness_score(
-    source_text: str, summary: str, llm_config: Optional[LLMConfig] = None, custom_instruction: Optional[str] = None
-) -> float:
+    source_text: str, summary: str, llm_config: Optional[LLMConfig] = None,
+    custom_instruction: Optional[str] = None, verbose: bool = False
+) -> Dict[str, any]:
     """
     Calculate a conciseness score based on multiple factors:
     1. Compression ratio (how well the text was condensed)
@@ -116,9 +140,19 @@ def calculate_conciseness_score(
         summary (str): The summary to evaluate
         llm_config (Optional[LLMConfig]): Configuration for LLM-based evaluation
         custom_instruction (Optional[str]): Custom instruction to add to the LLM prompt for evaluation
+        verbose (bool): If True, include detailed score breakdown showing statistical score,
+            LLM score, compression ratio, and word/sentence counts
 
     Returns:
-        float: Conciseness score between 0 and 1, where 1 indicates optimal conciseness
+        Dict[str, any]: Dictionary containing:
+            - conciseness: Combined conciseness score (0-1)
+            - statistical_score (only if verbose=True): Statistical analysis score
+            - llm_score (only if verbose=True): LLM-based evaluation score
+            - compression_ratio (only if verbose=True): Summary length / source length
+            - source_word_count (only if verbose=True): Word count in source
+            - summary_word_count (only if verbose=True): Word count in summary
+            - summary_sentence_count (only if verbose=True): Sentence count in summary
+            - avg_words_per_sentence (only if verbose=True): Average words per sentence
     """
-    calculator = ConcisenessCalculator(llm_config, custom_instruction=custom_instruction)
+    calculator = ConcisenessCalculator(llm_config, custom_instruction=custom_instruction, verbose=verbose)
     return calculator.calculate_score(source_text, summary)

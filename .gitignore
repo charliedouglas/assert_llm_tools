@@ -132,3 +132,9 @@ dmypy.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Tests
+test_docs.py
+test_rag.py
+test.py
+test_custom_instructions.py
