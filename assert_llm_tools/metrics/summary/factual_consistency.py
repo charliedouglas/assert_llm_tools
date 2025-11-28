@@ -82,8 +82,8 @@ class FactualConsistencyCalculator(SummaryMetricCalculator):
         # Make sure we have a result for each claim
         results = valid_lines[:len(claims)]  # Truncate if too many
         if len(results) < len(claims):
-            # Pad with "supported" if too few (being conservative)
-            results.extend(["supported"] * (len(claims) - len(results)))
+            # Pad with "unsupported" if too few (being conservative - assume not supported)
+            results.extend(["unsupported"] * (len(claims) - len(results)))
 
         # Determine if each result indicates support
         supported = []
@@ -94,39 +94,6 @@ class FactualConsistencyCalculator(SummaryMetricCalculator):
             supported.append(is_supported)
 
         return supported
-
-    def _extract_summary_claims(self, text: str) -> List[str]:
-        """
-        Extract factual claims specifically from a summary text using LLM.
-
-        Args:
-            text: Summary text to extract claims from
-
-        Returns:
-            List of extracted claims
-        """
-        prompt = f"""
-        You are a claim extraction assistant. Your task is to break down the following summary into separate factual claims.
-
-        Guidelines:
-        - Extract all verifiable statements of fact
-        - Each claim should be a single, atomic piece of information
-        - Split compound claims into separate individual claims
-        - Keep each claim concise but complete enough to be verified
-        - Include specific details, numbers, dates, names when present
-        - Exclude opinions, judgments, or subjective statements
-
-        Summary to analyze:
-        ```
-        {text}
-        ```
-
-        Return only the list of claims, one per line. Do not include any other text.
-        """
-
-        response = self.llm.generate(prompt, max_tokens=500)
-        claims = response.strip().split("\n")
-        return [claim.strip() for claim in claims if claim.strip()]
 
     def calculate_score(self, reference: str, candidate: str) -> Dict[str, float]:
         """
@@ -139,8 +106,8 @@ class FactualConsistencyCalculator(SummaryMetricCalculator):
         Returns:
             Dictionary with factual consistency score and claim statistics
         """
-        # Extract claims from summary using specialized method for summaries
-        summary_claims = self._extract_summary_claims(candidate)
+        # Extract claims from summary using context-aware extraction
+        summary_claims = self._extract_claims(candidate, context="summary")
 
         if not summary_claims:  # avoid division by zero
             return {

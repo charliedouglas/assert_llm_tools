@@ -1,3 +1,4 @@
+import re
 from typing import Optional, Dict, Union, List, Any
 from ..llm.config import LLMConfig
 from ..llm.bedrock import BedrockLLM
@@ -61,6 +62,100 @@ class BaseCalculator:
         except (ValueError, IndexError):
             return default
 
+    def _parse_claim_list(self, response: str) -> List[str]:
+        """
+        Parse claims from LLM response, handling various formats.
+
+        Handles:
+        - Numbered lists: "1. claim", "1) claim", "(1) claim"
+        - Bulleted lists: "- claim", "* claim", "• claim"
+        - Plain newline-separated claims
+        - Meta-commentary filtering ("Here are the claims:")
+
+        Args:
+            response: Raw LLM response text
+
+        Returns:
+            List of cleaned claim strings
+        """
+        lines = response.strip().split("\n")
+        claims = []
+
+        # Patterns to skip (meta-commentary)
+        skip_patterns = [
+            r"^here are",
+            r"^the (factual )?claims",
+            r"^claims:",
+            r"^$",
+        ]
+
+        # Pattern to strip prefixes (numbered lists, bullets)
+        prefix_pattern = r"^\s*(?:[\d]+[.\)]\s*|\(?[\d]+\)\s*|[-*•]\s*)"
+
+        for line in lines:
+            line = line.strip()
+
+            # Skip meta-commentary
+            if any(re.match(p, line.lower()) for p in skip_patterns):
+                continue
+
+            # Strip numbering/bullet prefixes
+            cleaned = re.sub(prefix_pattern, "", line).strip()
+
+            if cleaned:
+                claims.append(cleaned)
+
+        return claims
+
+    def _extract_claims(self, text: str, context: str = "general") -> List[str]:
+        """
+        Extract factual claims from text using LLM.
+
+        Args:
+            text: Text to extract claims from
+            context: Type of text - affects extraction granularity
+                     "source": Extract comprehensive claims from source document
+                     "summary": Extract atomic, verifiable claims from summary
+                     "general": Default balanced extraction
+
+        Returns:
+            List of extracted claims
+        """
+        context_guidelines = {
+            "source": "For this source document, extract all significant factual claims to ensure comprehensive coverage analysis. Be thorough but avoid extracting trivial or redundant information.",
+            "summary": "For this summary, extract the core claims being asserted. Each claim should be independently verifiable against a source document.",
+            "general": "Extract claims at a balanced level of granularity.",
+        }
+
+        context_instruction = context_guidelines.get(context, context_guidelines["general"])
+
+        prompt = f"""System: You are a claim extraction assistant that identifies distinct factual claims in text.
+
+Guidelines:
+- Extract all verifiable statements of fact
+- Each claim should be atomic (one fact per claim)
+- Split compound sentences into separate claims when they contain multiple facts
+- Keep each claim concise but complete enough to be independently verified
+- Include specific details: numbers, dates, names, measurements when present
+- Exclude opinions, judgments, subjective statements, and hedged language
+- Exclude procedural statements (e.g., "This document describes...")
+
+{context_instruction}
+
+Example:
+Input: "The company reported $5.2 billion in revenue for Q3 2024, representing a 15% increase year-over-year."
+Output:
+The company reported $5.2 billion in revenue for Q3 2024
+Q3 2024 revenue represented a 15% increase year-over-year
+
+Text to analyze:
+{text}
+
+Extract the factual claims, one per line:"""
+
+        response = self.llm.generate(prompt, max_tokens=1500)
+        return self._parse_claim_list(response)
+
 
 class SummaryMetricCalculator(BaseCalculator):
     """
@@ -100,30 +195,6 @@ class SummaryMetricCalculator(BaseCalculator):
         topics = response.strip().split("\n")
         return [topic.strip() for topic in topics if topic.strip()]
 
-    def _extract_claims(self, text: str) -> List[str]:
-        """
-        Extract factual claims from text using LLM.
-
-        Args:
-            text: Text to extract claims from
-
-        Returns:
-            List of extracted claims
-        """
-        prompt = f"""
-        System: You are a helpful assistant that extracts factual claims from text. Extract all factual claims from the given text. Output each claim on a new line. Only include objective, verifiable claims. Do not include opinions or subjective statements.
-
-        Human: Here is the text to analyze:
-        {text}
-
-        Please list all factual claims, one per line.
-
-        Assistant: Here are the factual claims:"""
-
-        response = self.llm.generate(prompt, max_tokens=500)
-        claims = response.strip().split("\n")
-        return [claim.strip() for claim in claims if claim.strip()]
-
 
 class RAGMetricCalculator(BaseCalculator):
     """
@@ -145,30 +216,6 @@ class RAGMetricCalculator(BaseCalculator):
         if isinstance(context, list):
             return "\n\n".join(context)
         return context
-
-    def _extract_claims(self, text: str) -> List[str]:
-        """
-        Extract factual claims from text using LLM.
-
-        Args:
-            text: Text to extract claims from
-
-        Returns:
-            List of extracted claims
-        """
-        prompt = f"""
-        System: You are a helpful assistant that extracts factual claims from text. Extract all factual claims from the given text. Output each claim on a new line. Only include objective, verifiable claims. Do not include opinions or subjective statements.
-
-        Human: Here is the text to analyze:
-        {text}
-
-        Please list all factual claims, one per line.
-
-        Assistant: Here are the factual claims:"""
-
-        response = self.llm.generate(prompt, max_tokens=500)
-        claims = response.strip().split("\n")
-        return [claim.strip() for claim in claims if claim.strip()]
 
     def _extract_topics(self, text: str) -> List[str]:
         """

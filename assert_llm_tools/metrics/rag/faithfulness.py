@@ -33,25 +33,61 @@ class RAGFaithfulnessCalculator(RAGMetricCalculator):
         Returns:
             List of boolean values indicating if each claim is supported
         """
+        if not claims:
+            return []
+
         claims_text = "\n".join(
             f"Claim {i+1}: {claim}" for i, claim in enumerate(claims)
         )
-        prompt = f"""
-        System: You are a helpful assistant that verifies if claims can be directly supported by the given context. 
-        For each claim, answer with only 'true' or 'false'.
+        prompt = f"""You are a factual verification assistant that determines if claims can be supported by the given context.
 
-        Context: {context}
+For each claim below, determine if it is supported by or can be directly inferred from the context.
 
-        Claims to verify:
-        {claims_text}
+Context:
+```
+{context}
+```
 
-        For each claim, answer with only 'true' or 'false', one per line.
+Claims to verify:
+{claims_text}
 
-        Assistant:"""
+Respond with EXACTLY one line per claim, containing ONLY the word 'supported' or 'unsupported'.
+Do not include any explanation, reasoning, or numbering in your response.
+
+For example, if there are 3 claims, your response should look exactly like:
+supported
+unsupported
+supported"""
 
         response = self.llm.generate(prompt, max_tokens=300)
-        results = response.strip().split("\n")
-        return [result.strip().lower() == "true" for result in results]
+
+        # Clean up response and split into lines
+        lines = [line.strip() for line in response.strip().split("\n") if line.strip()]
+
+        # Filter for valid responses (accept both new and legacy keywords)
+        valid_lines = []
+        for line in lines:
+            line_lower = line.lower()
+            if ("supported" in line_lower or "unsupported" in line_lower or
+                "true" in line_lower or "false" in line_lower):
+                valid_lines.append(line_lower)
+
+        # Make sure we have a result for each claim
+        results = valid_lines[:len(claims)]
+        if len(results) < len(claims):
+            # Pad with "unsupported" if too few (being conservative)
+            results.extend(["unsupported"] * (len(claims) - len(results)))
+
+        # Determine if each result indicates support
+        supported = []
+        for result in results:
+            is_supported = (
+                ("supported" in result and "unsupported" not in result) or
+                (result == "true")
+            )
+            supported.append(is_supported)
+
+        return supported
 
     def _verify_topics_batch(self, topics: List[str], context: str) -> List[bool]:
         """
@@ -108,8 +144,9 @@ class RAGFaithfulnessCalculator(RAGMetricCalculator):
         # Normalize context if it's a list
         context_text = self._normalize_context(context)
 
-        # Extract and verify claims
-        answer_claims = self._extract_claims(answer)
+        # Extract and verify claims from the answer (using "summary" context since
+        # answers are generated content similar to summaries)
+        answer_claims = self._extract_claims(answer, context="summary")
         claims_verification = (
             self._verify_claims_batch(answer_claims, context_text)
             if answer_claims

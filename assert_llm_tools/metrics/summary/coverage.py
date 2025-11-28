@@ -43,26 +43,28 @@ class CoverageCalculator(SummaryMetricCalculator):
         claims_text = "\n".join(
             f"Claim {i+1}: {claim}" for i, claim in enumerate(claims)
         )
-        prompt = f"""
-        You are a coverage verification assistant that determines if claims from a source document are present in a summary.
+        prompt = f"""You are a coverage verification assistant that determines if claims from a source document are present in a summary.
 
-        For each claim below, determine if the information from that claim appears in the summary (even if worded differently).
+For each claim below, determine if the information from that claim appears in the summary (even if worded differently or paraphrased).
 
-        Summary:
-        ```
-        {summary}
-        ```
+Summary:
+```
+{summary}
+```
 
-        Claims from source document to check:
-        {claims_text}
+Claims from source document to check:
+{claims_text}
 
-        Respond with EXACTLY one line per claim, containing ONLY the word 'present' or 'missing'.
-        Do not include any explanation, reasoning, or numbering in your response.
+Respond with EXACTLY one line per claim, containing ONLY the word 'supported' or 'unsupported'.
+- 'supported' = the claim's information appears in the summary
+- 'unsupported' = the claim's information is missing from the summary
 
-        For example, if there are 3 claims, your response should look exactly like:
-        present
-        missing
-        present"""
+Do not include any explanation, reasoning, or numbering in your response.
+
+For example, if there are 3 claims, your response should look exactly like:
+supported
+unsupported
+supported"""
 
         if self.custom_instruction:
             prompt += f"\n\nAdditional Instructions:\n{self.custom_instruction}"
@@ -73,25 +75,29 @@ class CoverageCalculator(SummaryMetricCalculator):
         lines = [line.strip() for line in response.strip().split("\n") if line.strip()]
 
         # Filter out any lines that don't contain our expected response formats
+        # Accept both new (supported/unsupported) and old (present/missing) keywords
         valid_lines = []
         for line in lines:
             line_lower = line.lower()
-            # Check for present or missing anywhere in the line
-            if "present" in line_lower or "missing" in line_lower:
+            if ("supported" in line_lower or "unsupported" in line_lower or
+                "present" in line_lower or "missing" in line_lower):
                 valid_lines.append(line_lower)
 
         # Make sure we have a result for each claim
         results = valid_lines[:len(claims)]  # Truncate if too many
         if len(results) < len(claims):
-            # Pad with "missing" if too few (being conservative - assume not covered)
-            results.extend(["missing"] * (len(claims) - len(results)))
+            # Pad with "unsupported" if too few (being conservative - assume not covered)
+            results.extend(["unsupported"] * (len(claims) - len(results)))
 
         # Determine if each result indicates presence
+        # Accept both new and old keyword formats for backward compatibility
         present = []
         for result in results:
-            # If the result contains "missing", count it as not present
-            # Handle edge cases like "not missing" though unlikely
-            is_present = "present" in result and "not present" not in result
+            # Check for positive indicators (supported/present) without negation
+            is_present = (
+                ("supported" in result and "unsupported" not in result) or
+                ("present" in result and "not present" not in result)
+            )
             present.append(is_present)
 
         return present
@@ -112,7 +118,7 @@ class CoverageCalculator(SummaryMetricCalculator):
             Dictionary with coverage score and claim statistics
         """
         # Extract claims from the reference (source material)
-        reference_claims = self._extract_claims(reference)
+        reference_claims = self._extract_claims(reference, context="source")
 
         if not reference_claims:  # avoid division by zero
             return {
