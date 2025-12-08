@@ -226,16 +226,25 @@ def evaluate_summary(
             )
 
         elif metric == "coverage":
-            custom_instruction = custom_prompt_instructions.get("coverage") if custom_prompt_instructions else None
-            results.update(calculate_coverage(full_text, summary, llm_config, custom_instruction, verbose=verbose))
+            # Skip if already computed (e.g., by factual_alignment)
+            if "coverage" not in results:
+                custom_instruction = custom_prompt_instructions.get("coverage") if custom_prompt_instructions else None
+                results.update(calculate_coverage(full_text, summary, llm_config, custom_instruction, verbose=verbose))
 
         elif metric == "factual_consistency":
-            custom_instruction = custom_prompt_instructions.get("factual_consistency") if custom_prompt_instructions else None
-            results.update(calculate_factual_consistency(full_text, summary, llm_config, custom_instruction, verbose=verbose))
+            # Skip if already computed (e.g., by factual_alignment)
+            if "factual_consistency" not in results:
+                custom_instruction = custom_prompt_instructions.get("factual_consistency") if custom_prompt_instructions else None
+                results.update(calculate_factual_consistency(full_text, summary, llm_config, custom_instruction, verbose=verbose))
 
         elif metric == "factual_alignment":
             custom_instruction = custom_prompt_instructions.get("factual_alignment") if custom_prompt_instructions else None
-            results.update(calculate_factual_alignment(full_text, summary, llm_config, custom_instruction, verbose=verbose))
+            # Pass precomputed results if available to avoid redundant LLM calls
+            results.update(calculate_factual_alignment(
+                full_text, summary, llm_config, custom_instruction, verbose=verbose,
+                _precomputed_coverage=results if "coverage" in results else None,
+                _precomputed_consistency=results if "factual_consistency" in results else None
+            ))
 
         elif metric == "topic_preservation":
             custom_instruction = custom_prompt_instructions.get("topic_preservation") if custom_prompt_instructions else None

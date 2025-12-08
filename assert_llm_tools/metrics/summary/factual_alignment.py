@@ -9,7 +9,9 @@ def calculate_factual_alignment(
     candidate: str,
     llm_config: Optional[LLMConfig] = None,
     custom_instruction: Optional[str] = None,
-    verbose: bool = False
+    verbose: bool = False,
+    _precomputed_coverage: Optional[Dict[str, float]] = None,
+    _precomputed_consistency: Optional[Dict[str, float]] = None
 ) -> Dict[str, float]:
     """
     Calculate factual alignment score as the F1 score combining coverage and factual consistency.
@@ -29,6 +31,10 @@ def calculate_factual_alignment(
         custom_instruction (Optional[str]): Custom instruction to add to the LLM prompt for evaluation
         verbose (bool): If True, include detailed claim-level analysis from both coverage
             and factual_consistency metrics
+        _precomputed_coverage (Optional[Dict[str, float]]): Internal parameter for passing
+            precomputed coverage results to avoid redundant calculation
+        _precomputed_consistency (Optional[Dict[str, float]]): Internal parameter for passing
+            precomputed consistency results to avoid redundant calculation
 
     Returns:
         Dict[str, float]: Dictionary containing:
@@ -42,13 +48,21 @@ def calculate_factual_alignment(
             - coverage_claims_analysis (only if verbose=True): Detailed coverage claim analysis
             - consistency_claims_analysis (only if verbose=True): Detailed consistency claim analysis
     """
-    # Calculate coverage (recall)
-    coverage_results = calculate_coverage(reference, candidate, llm_config, custom_instruction, verbose=verbose)
-    coverage_score = coverage_results['coverage']
+    # Calculate coverage (recall) - use precomputed if available
+    if _precomputed_coverage is not None and 'coverage' in _precomputed_coverage:
+        coverage_results = _precomputed_coverage
+        coverage_score = coverage_results['coverage']
+    else:
+        coverage_results = calculate_coverage(reference, candidate, llm_config, custom_instruction, verbose=verbose)
+        coverage_score = coverage_results['coverage']
 
-    # Calculate factual consistency (precision)
-    consistency_results = calculate_factual_consistency(reference, candidate, llm_config, custom_instruction, verbose=verbose)
-    consistency_score = consistency_results['factual_consistency']
+    # Calculate factual consistency (precision) - use precomputed if available
+    if _precomputed_consistency is not None and 'factual_consistency' in _precomputed_consistency:
+        consistency_results = _precomputed_consistency
+        consistency_score = consistency_results['factual_consistency']
+    else:
+        consistency_results = calculate_factual_consistency(reference, candidate, llm_config, custom_instruction, verbose=verbose)
+        consistency_score = consistency_results['factual_consistency']
 
     # Calculate F1 score (harmonic mean)
     if coverage_score + consistency_score > 0:

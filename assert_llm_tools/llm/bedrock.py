@@ -101,7 +101,7 @@ class BedrockLLM(BaseLLM):
         model_id_lower = self.config.model_id.lower()
         for family, prefixes in self.MODEL_FAMILIES.items():
             for prefix in prefixes:
-                if prefix in (model_id_lower.):
+                if prefix in model_id_lower:
                     return family
         return "unknown"
 
