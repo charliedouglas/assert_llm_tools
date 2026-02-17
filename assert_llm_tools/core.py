@@ -16,7 +16,7 @@ from .metrics.summary.faithfulness import calculate_faithfulness
 from .metrics.summary.hallucination import calculate_hallucination
 
 from .llm.config import LLMConfig
-from .utils import detect_and_mask_pii, remove_stopwords
+from .utils import detect_and_mask_pii
 import logging
 
 # Configure logging
@@ -57,7 +57,7 @@ def evaluate_summary(
     metrics: Optional[List[str]] = None,
     remove_stopwords: bool = False,
     llm_config: Optional[LLMConfig] = None,
-    show_progress: bool = True,
+    show_progress: bool = True,  # no-op since v0.9.0 (tqdm removed); kept for API compatibility
     mask_pii: bool = False,
     mask_pii_char: str = "*",
     mask_pii_preserve_partial: bool = False,
@@ -76,7 +76,7 @@ def evaluate_summary(
         metrics: List of metrics to calculate. Defaults to all available metrics.
         remove_stopwords: Whether to remove stopwords before evaluation
         llm_config: Configuration for LLM-based metrics (e.g., coverage, factual_consistency)
-        show_progress: Whether to show progress bar (default: True)
+        show_progress: No-op since v0.9.0 (tqdm removed). Kept for backwards compatibility.
         mask_pii: Whether to mask personally identifiable information (PII) before evaluation (default: False)
         mask_pii_char: Character to use for masking PII (default: "*")
         mask_pii_preserve_partial: Whether to preserve part of the PII (e.g., for phone numbers: 123-***-***) (default: False)
