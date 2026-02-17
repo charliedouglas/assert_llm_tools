@@ -214,9 +214,12 @@ class TestParseElementResponse:
         """Well-formed LLM response → correctly populated GapItem."""
         ev = self._ev()
         response = (
-            "STATUS: present\n"
-            "SCORE: 0.85\n"
-            "EVIDENCE: Client clearly states retirement goal in 10 years\n"
+            "STATUS: present
+"
+            "SCORE: 0.85
+"
+            "EVIDENCE: Client clearly states retirement goal in 10 years
+"
             "NOTES: Fully documented"
         )
         item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
@@ -233,9 +236,12 @@ class TestParseElementResponse:
         """When verbose=True, notes field is populated from LLM NOTES line."""
         ev = self._ev(verbose=True)
         response = (
-            "STATUS: partial\n"
-            "SCORE: 0.4\n"
-            "EVIDENCE: Some mention of goals\n"
+            "STATUS: partial
+"
+            "SCORE: 0.4
+"
+            "EVIDENCE: Some mention of goals
+"
             "NOTES: Insufficient detail provided"
         )
         item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
@@ -246,8 +252,10 @@ class TestParseElementResponse:
         """Missing SCORE field → no exception; score falls back to a valid float."""
         ev = self._ev()
         response = (
-            "STATUS: missing\n"
-            "EVIDENCE: None found\n"
+            "STATUS: missing
+"
+            "EVIDENCE: None found
+"
             "NOTES: Element absent"
         )
         # Must not raise
@@ -261,9 +269,12 @@ class TestParseElementResponse:
         """STATUS=missing with SCORE=0.9 → score corrected to 0.0 (consistency fix)."""
         ev = self._ev()
         response = (
-            "STATUS: missing\n"
-            "SCORE: 0.9\n"
-            "EVIDENCE: None found\n"
+            "STATUS: missing
+"
+            "SCORE: 0.9
+"
+            "EVIDENCE: None found
+"
             "NOTES: LLM was inconsistent"
         )
         item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
@@ -277,9 +288,12 @@ class TestParseElementResponse:
         """STATUS=partial with mid-range score → score unchanged."""
         ev = self._ev()
         response = (
-            "STATUS: partial\n"
-            "SCORE: 0.45\n"
-            "EVIDENCE: Brief mention only\n"
+            "STATUS: partial
+"
+            "SCORE: 0.45
+"
+            "EVIDENCE: Brief mention only
+"
             "NOTES: Needs more detail"
         )
         item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
@@ -291,9 +305,12 @@ class TestParseElementResponse:
         """'None found' evidence → stored as empty string."""
         ev = self._ev()
         response = (
-            "STATUS: missing\n"
-            "SCORE: 0.0\n"
-            "EVIDENCE: None found\n"
+            "STATUS: missing
+"
+            "SCORE: 0.0
+"
+            "EVIDENCE: None found
+"
             "NOTES: Absent"
         )
         item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
@@ -561,15 +578,42 @@ class TestEvaluateNoteIntegration:
 
     # One LLM response per FCA element (9 total) — all healthy
     _ELEMENT_RESPONSES = [
-        "STATUS: present\nSCORE: 0.9\nEVIDENCE: retirement in 15 years\nNOTES: Clear",
-        "STATUS: present\nSCORE: 0.85\nEVIDENCE: balanced (score 5/10)\nNOTES: Clear",
-        "STATUS: present\nSCORE: 0.8\nEVIDENCE: absorb losses up to 20%\nNOTES: Good",
-        "STATUS: present\nSCORE: 0.75\nEVIDENCE: income £60k, savings £50k\nNOTES: Present",
-        "STATUS: present\nSCORE: 0.7\nEVIDENCE: held ISAs for 8 years\nNOTES: Adequate",
-        "STATUS: present\nSCORE: 0.9\nEVIDENCE: matches balanced profile\nNOTES: Linked",
-        "STATUS: present\nSCORE: 0.8\nEVIDENCE: OCF 0.45% adviser 0.5%\nNOTES: Disclosed",
-        "STATUS: present\nSCORE: 0.6\nEVIDENCE: bond fund rejected\nNOTES: Mentioned",
-        "STATUS: present\nSCORE: 0.7\nEVIDENCE: client confirmed receipt\nNOTES: OK",
+        "STATUS: present
+SCORE: 0.9
+EVIDENCE: retirement in 15 years
+NOTES: Clear",
+        "STATUS: present
+SCORE: 0.85
+EVIDENCE: balanced (score 5/10)
+NOTES: Clear",
+        "STATUS: present
+SCORE: 0.8
+EVIDENCE: absorb losses up to 20%
+NOTES: Good",
+        "STATUS: present
+SCORE: 0.75
+EVIDENCE: income £60k, savings £50k
+NOTES: Present",
+        "STATUS: present
+SCORE: 0.7
+EVIDENCE: held ISAs for 8 years
+NOTES: Adequate",
+        "STATUS: present
+SCORE: 0.9
+EVIDENCE: matches balanced profile
+NOTES: Linked",
+        "STATUS: present
+SCORE: 0.8
+EVIDENCE: OCF 0.45% adviser 0.5%
+NOTES: Disclosed",
+        "STATUS: present
+SCORE: 0.6
+EVIDENCE: bond fund rejected
+NOTES: Mentioned",
+        "STATUS: present
+SCORE: 0.7
+EVIDENCE: client confirmed receipt
+NOTES: OK",
     ]
 
     _SUMMARY_RESPONSE = (
@@ -660,7 +704,10 @@ class TestEvaluateNoteIntegration:
         # Override first element response (client_objectives) to missing
         ev = _make_evaluator()
         responses = list(self._ELEMENT_RESPONSES)
-        responses[0] = "STATUS: missing\nSCORE: 0.0\nEVIDENCE: None found\nNOTES: Absent"
+        responses[0] = "STATUS: missing
+SCORE: 0.0
+EVIDENCE: None found
+NOTES: Absent"
         ev.llm.generate.side_effect = responses + [self._SUMMARY_RESPONSE]
 
         report = ev.evaluate(self._FAKE_NOTE, "fca_suitability_v1")
@@ -724,17 +771,17 @@ class TestCodeReviewChecks:
         import assert_llm_tools
         assert assert_llm_tools.GapReportStats is GapReportStats
 
-    def test_pass_policy_not_exported_from_top_level(self):
+    def test_pass_policy_exported_from_top_level(self):
         """
-        BUG SENTINEL: PassPolicy is NOT currently exported from assert_llm_tools.__init__.
-        Callers who want to customise pass thresholds must reach into the internals.
-        This test documents the gap so it can be tracked and fixed.
+        PassPolicy is exported from the top-level package so callers can customise
+        pass thresholds without reaching into internals.
+
         """
         import assert_llm_tools
-        has_pass_policy = hasattr(assert_llm_tools, "PassPolicy")
-        # Currently False — if this test starts failing it means the export was added (good!)
-        assert not has_pass_policy, (
-            "PassPolicy is now exported — remove this sentinel test and update __init__.py check."
+        from assert_llm_tools import PassPolicy as TopLevelPassPolicy
+
+        assert TopLevelPassPolicy is PassPolicy, (
+            "PassPolicy exported from top-level should be the same class as metrics.note.models.PassPolicy"
         )
 
     def test_detect_and_mask_pii_not_reimplemented(self):
