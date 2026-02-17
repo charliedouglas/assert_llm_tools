@@ -196,3 +196,47 @@ class SummaryMetricCalculator(BaseCalculator):
         return [topic.strip() for topic in topics if topic.strip()]
 
 
+class RAGMetricCalculator(BaseCalculator):
+    """
+    Base class for RAG evaluation metrics.
+
+    Extends BaseCalculator with methods specific to RAG evaluation.
+    """
+
+    def _normalize_context(self, context: Union[str, List[str]]) -> str:
+        """
+        Convert context to a single string if it's a list.
+
+        Args:
+            context: Context as string or list of strings
+
+        Returns:
+            Normalized context as a single string
+        """
+        if isinstance(context, list):
+            return "\n\n".join(context)
+        return context
+
+    def _extract_topics(self, text: str) -> List[str]:
+        """
+        Extract main topics from text using LLM.
+
+        Args:
+            text: Text to extract topics from
+
+        Returns:
+            List of extracted topics
+        """
+        prompt = f"""
+        System: You are a helpful assistant that extracts main topics from text. Extract all key topics or subjects mentioned. Output each topic on a new line. Be specific but concise.
+
+        Human: Here is the text to analyze:
+        {text}
+
+        Please list all key topics, one per line.
+
+        Assistant: Here are the key topics:"""
+
+        response = self.llm.generate(prompt, max_tokens=500)
+        topics = response.strip().split("\n")
+        return [topic.strip() for topic in topics if topic.strip()]
