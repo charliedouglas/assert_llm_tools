@@ -87,13 +87,13 @@ def test_evaluate_with_pii_masking():
         metrics, pii_info = evaluate_summary(
             full_text=full_text,
             summary=summary,
-            metrics=["rouge"],  # Using ROUGE since it doesn't require a real LLM connection
+            metrics=["coverage"],
             llm_config=config,
             mask_pii=True,
             mask_pii_char="*",
             return_pii_info=True
         )
-        
+
         print("\nEvaluation results with PII masking:")
         print(f"Metrics: {metrics}")
         print(f"PII detected in full text: {list(pii_info.get('full_text_pii', {}).keys())}")

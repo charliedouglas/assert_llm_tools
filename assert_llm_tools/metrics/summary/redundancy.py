@@ -2,25 +2,19 @@ from typing import Dict, List, Optional, Tuple
 from ...llm.config import LLMConfig
 from ..base import SummaryMetricCalculator
 from nltk.tokenize import sent_tokenize
-from sentence_transformers import SentenceTransformer
-import numpy as np
-from scipy.spatial.distance import cosine
 
 
 class RedundancyCalculator(SummaryMetricCalculator):
     """
     Calculator for evaluating redundancy in text.
 
-    Uses semantic similarity to identify redundant information, providing more
-    robust detection than string-based methods.
+    Uses LLM-based semantic analysis to identify redundant information.
     """
 
     def __init__(
         self,
         llm_config: Optional[LLMConfig] = None,
         custom_instruction: Optional[str] = None,
-        similarity_threshold: float = 0.85,
-        embedding_model: str = "all-MiniLM-L6-v2",
         verbose: bool = False
     ):
         """
@@ -29,48 +23,62 @@ class RedundancyCalculator(SummaryMetricCalculator):
         Args:
             llm_config: Configuration for LLM
             custom_instruction: Optional custom instruction to add to the LLM prompt
-            similarity_threshold: Cosine similarity threshold for identifying redundancy (default: 0.85)
-            embedding_model: Name of sentence transformer model for embeddings
             verbose: Whether to include detailed redundant pair analysis in the output
         """
         super().__init__(llm_config)
         self.custom_instruction = custom_instruction
-        self.similarity_threshold = similarity_threshold
-        self.embedding_model = SentenceTransformer(embedding_model)
         self.verbose = verbose
 
-    def _identify_redundant_segments_semantic(self, sentences: List[str]) -> List[Tuple[int, int, float]]:
+    def _identify_redundant_segments(self, sentences: List[str]) -> List[Tuple[int, int]]:
         """
-        Identify redundant sentence pairs using semantic similarity.
+        Identify redundant sentence pairs using LLM-based semantic analysis.
 
         Args:
             sentences: List of sentences to analyze
 
         Returns:
-            List of tuples (index1, index2, similarity_score) for redundant pairs
+            List of tuples (index1, index2) for redundant pairs
         """
         if len(sentences) <= 1:
             return []
 
-        # Generate embeddings for all sentences
-        embeddings = self.embedding_model.encode(sentences)
+        numbered = "\n".join(f"{i}: {s}" for i, s in enumerate(sentences))
 
-        # Find pairs with high similarity
-        redundant_pairs = []
-        for i in range(len(sentences)):
-            for j in range(i + 1, len(sentences)):
-                # Calculate cosine similarity
-                similarity = 1 - cosine(embeddings[i], embeddings[j])
+        prompt = f"""System: You are a redundancy detection assistant. Identify pairs of sentences that convey the same or highly overlapping information (paraphrases, restatements, or near-duplicates).
 
-                # If similarity exceeds threshold, consider it redundant
-                if similarity >= self.similarity_threshold:
-                    redundant_pairs.append((i, j, float(similarity)))
+Sentences:
+{numbered}
 
-        return redundant_pairs
+List each redundant pair as two indices separated by a comma, one pair per line.
+If no redundant pairs exist, respond with "NONE".
+Only output index pairs (e.g. "0,3") or "NONE". No other text."""
+
+        if self.custom_instruction:
+            prompt += f"\n\nAdditional Instructions:\n{self.custom_instruction}"
+
+        response = self.llm.generate(prompt, max_tokens=500).strip()
+
+        if response.upper() == "NONE":
+            return []
+
+        pairs = []
+        for line in response.strip().split("\n"):
+            line = line.strip()
+            if "," in line:
+                parts = line.split(",")
+                try:
+                    i, j = int(parts[0].strip()), int(parts[1].strip())
+                    if 0 <= i < len(sentences) and 0 <= j < len(sentences) and i != j:
+                        pairs.append((min(i, j), max(i, j)))
+                except (ValueError, IndexError):
+                    continue
+
+        # Deduplicate
+        return list(set(pairs))
 
     def calculate_score(self, text: str) -> Dict[str, any]:
         """
-        Calculate redundancy score using semantic similarity.
+        Calculate redundancy score using LLM-based semantic analysis.
 
         Args:
             text: The text to analyze
@@ -84,17 +92,16 @@ class RedundancyCalculator(SummaryMetricCalculator):
         if len(sentences) <= 1:
             return {
                 "redundancy_score": 1.0,  # Single sentence cannot be redundant
-                "redundant_pairs": [],
                 "redundant_pair_count": 0,
             }
 
         # Identify redundant sentence pairs
-        redundant_pairs = self._identify_redundant_segments_semantic(sentences)
+        redundant_pairs = self._identify_redundant_segments(sentences)
 
         # Calculate redundancy score
         # Count unique sentences involved in redundancy
         redundant_sentence_indices = set()
-        for i, j, _ in redundant_pairs:
+        for i, j in redundant_pairs:
             redundant_sentence_indices.add(i)
             redundant_sentence_indices.add(j)
 
@@ -119,9 +126,8 @@ class RedundancyCalculator(SummaryMetricCalculator):
                     "sentence_2_index": j,
                     "sentence_1": sentences[i],
                     "sentence_2": sentences[j],
-                    "similarity": similarity
                 }
-                for i, j, similarity in redundant_pairs
+                for i, j in redundant_pairs
             ]
             result["sentences"] = sentences
 
@@ -136,20 +142,19 @@ def calculate_redundancy(
     verbose: bool = False
 ) -> Dict[str, any]:
     """
-    Calculate redundancy score using semantic similarity detection.
+    Calculate redundancy score using LLM-based semantic analysis.
 
-    This method identifies redundant sentences by comparing their semantic similarity using
-    sentence embeddings. Sentences with cosine similarity above the threshold are considered
-    redundant. This approach is more robust than string-based matching as it catches
-    paraphrased redundancy.
+    This method identifies redundant sentences by asking the LLM to find semantically
+    similar or overlapping sentence pairs. This approach catches paraphrased redundancy
+    effectively.
 
     Args:
         text (str): The text to analyze for redundancy
-        llm_config (Optional[LLMConfig]): Configuration for the LLM to use (maintained for compatibility)
-        custom_instruction (Optional[str]): Custom instruction (maintained for compatibility)
-        similarity_threshold (float): Cosine similarity threshold for redundancy detection (default: 0.85)
+        llm_config (Optional[LLMConfig]): Configuration for the LLM to use
+        custom_instruction (Optional[str]): Custom instruction for evaluation
+        similarity_threshold (float): Kept for API compatibility (unused)
         verbose (bool): If True, include detailed redundant pair analysis showing each pair of
-            redundant sentences with their text and similarity scores
+            redundant sentences
 
     Returns:
         Dict[str, any]: Dictionary containing:
@@ -164,7 +169,6 @@ def calculate_redundancy(
     calculator = RedundancyCalculator(
         llm_config,
         custom_instruction=custom_instruction,
-        similarity_threshold=similarity_threshold,
         verbose=verbose
     )
     return calculator.calculate_score(text)
