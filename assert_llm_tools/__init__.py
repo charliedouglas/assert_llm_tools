@@ -2,7 +2,7 @@
 from .core import evaluate_summary, AVAILABLE_SUMMARY_METRICS, evaluate_note
 from .llm.config import LLMConfig
 from .utils import initialize_nltk
-from .metrics.note.models import GapReport, GapItem, GapReportStats
+from .metrics.note.models import GapReport, GapItem, GapReportStats, PassPolicy
 
 __all__ = [
     "evaluate_summary",
@@ -14,4 +14,5 @@ __all__ = [
     "GapReport",
     "GapItem",
     "GapReportStats",
+    "PassPolicy",
 ]
