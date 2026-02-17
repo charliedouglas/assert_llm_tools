@@ -55,7 +55,7 @@ def evaluate_summary(
     full_text: str,
     summary: str,
     metrics: Optional[List[str]] = None,
-    remove_stopwords: bool = False,
+    remove_stopwords: bool = False,  # no-op since v0.9.0; kept for API compatibility
     llm_config: Optional[LLMConfig] = None,
     show_progress: bool = True,  # no-op since v0.9.0 (tqdm removed); kept for API compatibility
     mask_pii: bool = False,

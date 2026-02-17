@@ -1,3 +1,4 @@
+import os
 import sys
 import logging
 
@@ -74,14 +75,20 @@ def test_pii_masking():
 # Test PII masking with evaluation
 def test_evaluate_with_pii_masking():
     print("\nTesting PII masking with summary evaluation...")
-    
-    # Configure LLM (typically would use an actual API, but using mock for this test)
+
+    # All metrics are LLM-based since v0.9.0 — skip if no API key is set
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        print("  Skipping LLM evaluation test: OPENAI_API_KEY not set.")
+        print("  Set OPENAI_API_KEY to run the full integration test.")
+        return True
+
     config = LLMConfig(
         provider="openai",
         model_id="gpt-4",
-        api_key="mock-key-for-testing"
+        api_key=api_key
     )
-    
+
     try:
         # Process and evaluate WITH masking and return PII info
         metrics, pii_info = evaluate_summary(
@@ -101,7 +108,7 @@ def test_evaluate_with_pii_masking():
     except Exception as e:
         logger.error(f"Error during PII masking with evaluation: {e}")
         return False
-    
+
     return True
 
 if __name__ == "__main__":

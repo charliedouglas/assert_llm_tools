@@ -93,6 +93,9 @@ Only output index pairs (e.g. "0,3") or "NONE". No other text."""
             return {
                 "redundancy_score": 1.0,  # Single sentence cannot be redundant
                 "redundant_pair_count": 0,
+                "total_sentences": len(sentences),
+                "redundant_sentences_count": 0,
+                "redundant_pairs": [],
             }
 
         # Identify redundant sentence pairs
@@ -116,11 +119,8 @@ Only output index pairs (e.g. "0,3") or "NONE". No other text."""
             "redundant_pair_count": len(redundant_pairs),
             "total_sentences": len(sentences),
             "redundant_sentences_count": len(redundant_sentence_indices),
-        }
-
-        # Include detailed redundant pair analysis when verbose is enabled
-        if self.verbose:
-            result["redundant_pairs"] = [
+            # Always include redundant_pairs to preserve API compatibility
+            "redundant_pairs": [
                 {
                     "sentence_1_index": i,
                     "sentence_2_index": j,
@@ -128,7 +128,11 @@ Only output index pairs (e.g. "0,3") or "NONE". No other text."""
                     "sentence_2": sentences[j],
                 }
                 for i, j in redundant_pairs
-            ]
+            ],
+        }
+
+        # Include full sentence list when verbose is enabled
+        if self.verbose:
             result["sentences"] = sentences
 
         return result

@@ -116,6 +116,10 @@ def calculate_coherence(
             - sentence_count: Number of sentences in the text
             - discourse_score (only if verbose=True): LLM-based discourse coherence score
             - sentences (only if verbose=True): List of sentences in the text
+
+    Migration note (v0.9.0): `similarity_score` is no longer returned. The sentence-transformer
+    cosine similarity approach was replaced with LLM-based discourse evaluation. Update any
+    callers that reference `result["similarity_score"]`.
     """
     calculator = CoherenceCalculator(llm_config, custom_instruction=custom_instruction, verbose=verbose)
     return calculator.calculate_score(summary)
