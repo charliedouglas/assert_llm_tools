@@ -214,12 +214,9 @@ class TestParseElementResponse:
         """Well-formed LLM response → correctly populated GapItem."""
         ev = self._ev()
         response = (
-            "STATUS: present
-"
-            "SCORE: 0.85
-"
-            "EVIDENCE: Client clearly states retirement goal in 10 years
-"
+            "STATUS: present\n"
+            "SCORE: 0.85\n"
+            "EVIDENCE: Client clearly states retirement goal in 10 years\n"
             "NOTES: Fully documented"
         )
         item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
@@ -236,12 +233,9 @@ class TestParseElementResponse:
         """When verbose=True, notes field is populated from LLM NOTES line."""
         ev = self._ev(verbose=True)
         response = (
-            "STATUS: partial
-"
-            "SCORE: 0.4
-"
-            "EVIDENCE: Some mention of goals
-"
+            "STATUS: partial\n"
+            "SCORE: 0.4\n"
+            "EVIDENCE: Some mention of goals\n"
             "NOTES: Insufficient detail provided"
         )
         item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
@@ -252,10 +246,8 @@ class TestParseElementResponse:
         """Missing SCORE field → no exception; score falls back to a valid float."""
         ev = self._ev()
         response = (
-            "STATUS: missing
-"
-            "EVIDENCE: None found
-"
+            "STATUS: missing\n"
+            "EVIDENCE: None found\n"
             "NOTES: Element absent"
         )
         # Must not raise
@@ -269,12 +261,9 @@ class TestParseElementResponse:
         """STATUS=missing with SCORE=0.9 → score corrected to 0.0 (consistency fix)."""
         ev = self._ev()
         response = (
-            "STATUS: missing
-"
-            "SCORE: 0.9
-"
-            "EVIDENCE: None found
-"
+            "STATUS: missing\n"
+            "SCORE: 0.9\n"
+            "EVIDENCE: None found\n"
             "NOTES: LLM was inconsistent"
         )
         item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
@@ -288,12 +277,9 @@ class TestParseElementResponse:
         """STATUS=partial with mid-range score → score unchanged."""
         ev = self._ev()
         response = (
-            "STATUS: partial
-"
-            "SCORE: 0.45
-"
-            "EVIDENCE: Brief mention only
-"
+            "STATUS: partial\n"
+            "SCORE: 0.45\n"
+            "EVIDENCE: Brief mention only\n"
             "NOTES: Needs more detail"
         )
         item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
@@ -305,12 +291,9 @@ class TestParseElementResponse:
         """'None found' evidence → stored as empty string."""
         ev = self._ev()
         response = (
-            "STATUS: missing
-"
-            "SCORE: 0.0
-"
-            "EVIDENCE: None found
-"
+            "STATUS: missing\n"
+            "SCORE: 0.0\n"
+            "EVIDENCE: None found\n"
             "NOTES: Absent"
         )
         item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
@@ -578,42 +561,15 @@ class TestEvaluateNoteIntegration:
 
     # One LLM response per FCA element (9 total) — all healthy
     _ELEMENT_RESPONSES = [
-        "STATUS: present
-SCORE: 0.9
-EVIDENCE: retirement in 15 years
-NOTES: Clear",
-        "STATUS: present
-SCORE: 0.85
-EVIDENCE: balanced (score 5/10)
-NOTES: Clear",
-        "STATUS: present
-SCORE: 0.8
-EVIDENCE: absorb losses up to 20%
-NOTES: Good",
-        "STATUS: present
-SCORE: 0.75
-EVIDENCE: income £60k, savings £50k
-NOTES: Present",
-        "STATUS: present
-SCORE: 0.7
-EVIDENCE: held ISAs for 8 years
-NOTES: Adequate",
-        "STATUS: present
-SCORE: 0.9
-EVIDENCE: matches balanced profile
-NOTES: Linked",
-        "STATUS: present
-SCORE: 0.8
-EVIDENCE: OCF 0.45% adviser 0.5%
-NOTES: Disclosed",
-        "STATUS: present
-SCORE: 0.6
-EVIDENCE: bond fund rejected
-NOTES: Mentioned",
-        "STATUS: present
-SCORE: 0.7
-EVIDENCE: client confirmed receipt
-NOTES: OK",
+        "STATUS: present\nSCORE: 0.9\nEVIDENCE: retirement in 15 years\nNOTES: Clear",
+        "STATUS: present\nSCORE: 0.85\nEVIDENCE: balanced (score 5/10)\nNOTES: Clear",
+        "STATUS: present\nSCORE: 0.8\nEVIDENCE: absorb losses up to 20%\nNOTES: Good",
+        "STATUS: present\nSCORE: 0.75\nEVIDENCE: income £60k, savings £50k\nNOTES: Present",
+        "STATUS: present\nSCORE: 0.7\nEVIDENCE: held ISAs for 8 years\nNOTES: Adequate",
+        "STATUS: present\nSCORE: 0.9\nEVIDENCE: matches balanced profile\nNOTES: Linked",
+        "STATUS: present\nSCORE: 0.8\nEVIDENCE: OCF 0.45% adviser 0.5%\nNOTES: Disclosed",
+        "STATUS: present\nSCORE: 0.6\nEVIDENCE: bond fund rejected\nNOTES: Mentioned",
+        "STATUS: present\nSCORE: 0.7\nEVIDENCE: client confirmed receipt\nNOTES: OK",
     ]
 
     _SUMMARY_RESPONSE = (
@@ -704,10 +660,7 @@ NOTES: OK",
         # Override first element response (client_objectives) to missing
         ev = _make_evaluator()
         responses = list(self._ELEMENT_RESPONSES)
-        responses[0] = "STATUS: missing
-SCORE: 0.0
-EVIDENCE: None found
-NOTES: Absent"
+        responses[0] = "STATUS: missing\nSCORE: 0.0\nEVIDENCE: None found\nNOTES: Absent"
         ev.llm.generate.side_effect = responses + [self._SUMMARY_RESPONSE]
 
         report = ev.evaluate(self._FAKE_NOTE, "fca_suitability_v1")
