@@ -3,6 +3,9 @@ from typing import Dict, Union, List, Optional, Tuple, Any
 # Import base calculator classes
 from .metrics.base import BaseCalculator, SummaryMetricCalculator
 
+# Import note evaluation
+from .metrics.note.evaluate_note import evaluate_note  # noqa: F401
+
 # Import summary metrics
 from .metrics.summary.coverage import calculate_coverage
 from .metrics.summary.factual_consistency import calculate_factual_consistency
