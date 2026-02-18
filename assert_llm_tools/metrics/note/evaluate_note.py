@@ -281,8 +281,12 @@ class NoteEvaluator(BaseCalculator):
         # Missing elements → None (no evidence exists by definition).
         # Present/partial → extracted text; empty string falls back to None.
         evidence_raw = parsed.get("EVIDENCE", "").strip()
-        if status == "missing" or evidence_raw.lower() in ("", "none", "none found"):
+        if status == "missing":
+            # Missing elements have no evidence by definition — always None
             evidence: Optional[str] = None
+        elif evidence_raw.lower() in ("", "none", "none found"):
+            # Present/partial with no usable evidence text → empty string (not None)
+            evidence = ""
         else:
             evidence = evidence_raw
 
@@ -298,9 +302,12 @@ class NoteEvaluator(BaseCalculator):
         if status != "present":
             raw_suggestions = parsed.get("SUGGESTIONS", "").strip()
             if raw_suggestions and raw_suggestions.lower() not in ("none", "n/a", ""):
+                # Split on " | " (with spaces, as instructed in the prompt) to avoid
+                # accidentally splitting on a bare "|" within suggestion text
+                parts = raw_suggestions.split(" | ") if " | " in raw_suggestions else raw_suggestions.split("|")
                 suggestions = [
                     s.strip()
-                    for s in raw_suggestions.split("|")
+                    for s in parts
                     if s.strip() and s.strip().lower() not in ("none", "n/a")
                 ][:3]  # cap at 3
 

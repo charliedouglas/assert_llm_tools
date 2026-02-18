@@ -325,6 +325,21 @@ class TestParseElementResponse:
         assert isinstance(item.evidence, str)
         assert item.evidence != ""
 
+    def test_evidence_none_found_on_partial_returns_empty_string_not_none(self):
+        """LLM returns 'None found' for a partial element → empty string, not None (Issue 2)."""
+        ev = self._ev()
+        response = (
+            "STATUS: partial\n"
+            "SCORE: 0.4\n"
+            "EVIDENCE: None found\n"
+            "NOTES: Incomplete"
+        )
+        item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
+        assert item.status == "partial"
+        # Must be empty string, not None — None is reserved for missing elements
+        assert item.evidence == ""
+        assert item.evidence is not None
+
     def test_garbled_response_no_crash(self):
         """Completely garbled LLM response → GapItem with safe defaults, no exception."""
         ev = self._ev()
