@@ -5,6 +5,8 @@
   "passed": false,
   "overall_score": 0.58,
   "pii_masked": false,
+  "overall_rating": "Requires Attention",
+  "meeting_type": null,
   "metadata": {
     "note_file": "minor_gaps_note.txt",
     "expected_rating": "Minor Gaps"

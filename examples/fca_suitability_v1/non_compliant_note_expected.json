@@ -5,6 +5,8 @@
   "passed": false,
   "overall_score": 0.07,
   "pii_masked": false,
+  "overall_rating": "Non-Compliant",
+  "meeting_type": null,
   "metadata": {
     "note_file": "non_compliant_note.txt",
     "expected_rating": "Non-Compliant"
