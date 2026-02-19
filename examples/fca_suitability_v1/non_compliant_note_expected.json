@@ -1,0 +1,110 @@
+{
+  "_comment": "Illustrative expected GapReport output for non_compliant_note.txt. Scores and evidence are approximate — actual LLM output will vary.",
+  "framework_id": "fca_suitability_v1",
+  "framework_version": "1.0.0",
+  "passed": false,
+  "overall_score": 0.07,
+  "pii_masked": false,
+  "overall_rating": "Non-Compliant",
+  "meeting_type": null,
+  "metadata": {
+    "note_file": "non_compliant_note.txt",
+    "expected_rating": "Non-Compliant"
+  },
+  "summary": "This note fails to meet the minimum requirements of a suitability record under COBS 9.2 across almost every required element. Client objectives are not documented beyond a vague statement that the client wants to invest rather than leave money in the bank. There is no record of any risk profiling — no questionnaire, no ATR score, no risk category assigned. Capacity for loss is entirely absent. The financial situation section contains no income, expenditure, asset, or liability information. Knowledge and experience has not been assessed. The recommendation rationale consists of generic fund descriptions (track record, investment style) that would be equally applicable to any client, with no connection to this client's specific circumstances, goals, or risk tolerance. Charges are mentioned only in percentage terms without monetary illustration and without disclosure of all applicable cost categories. Alternatives were not considered. Client confirmation is limited to a positive reaction with no evidence the recommendation was formally explained or accepted. As the note stands, it does not constitute a suitability record — it is closer to a transaction record. A full suitability assessment must be conducted and documented before any implementation instructions are acted upon.",
+  "stats": {
+    "total_elements": 9,
+    "required_elements": 7,
+    "present_count": 0,
+    "partial_count": 2,
+    "missing_count": 7,
+    "critical_gaps": 4,
+    "high_gaps": 3,
+    "medium_gaps": 1,
+    "low_gaps": 1,
+    "required_missing_count": 5
+  },
+  "items": [
+    {
+      "element_id": "client_objectives",
+      "status": "missing",
+      "score": 0.0,
+      "severity": "critical",
+      "required": true,
+      "evidence": "",
+      "notes": "No investment objectives are documented. 'He wants to invest the money rather than leave it in the bank' and 'he's heard stocks and shares ISAs are a good option' do not constitute documented objectives under COBS 9.2. No time horizon, purpose, income requirement, or goal is stated."
+    },
+    {
+      "element_id": "risk_attitude",
+      "status": "missing",
+      "score": 0.0,
+      "severity": "critical",
+      "required": true,
+      "evidence": "",
+      "notes": "No risk profiling is recorded. There is no reference to a risk questionnaire, no ATR score, and no assigned risk category. The recommendation of an 80% equity allocation implies significant risk, but there is no evidence this was assessed or explained to the client."
+    },
+    {
+      "element_id": "capacity_for_loss",
+      "status": "missing",
+      "score": 0.0,
+      "severity": "critical",
+      "required": true,
+      "evidence": "",
+      "notes": "Capacity for loss is not mentioned anywhere in the note. The origin of the funds (inheritance) and the client's overall financial position are not explored. Whether the client can sustain a partial or total loss of this capital without material impact to their standard of living is entirely unknown."
+    },
+    {
+      "element_id": "financial_situation",
+      "status": "partial",
+      "score": 0.08,
+      "severity": "high",
+      "required": true,
+      "evidence": "David Patel... following receipt of an inheritance of around £50,000 from his grandfather's estate.",
+      "notes": "The only financial information recorded is the source and approximate size of the funds being invested. No income, expenditure, assets, liabilities, or existing investments are documented. The inheritance origin is noted incidentally, not as part of a deliberate financial fact-find. This is the minimum possible partial credit."
+    },
+    {
+      "element_id": "knowledge_and_experience",
+      "status": "missing",
+      "score": 0.0,
+      "severity": "high",
+      "required": true,
+      "evidence": "",
+      "notes": "No assessment of David's investment knowledge or prior experience is recorded. He is described as having 'heard stocks and shares ISAs are a good option' — this suggests limited prior knowledge, but no structured assessment was conducted. For a first-time investor being placed in a high-equity portfolio, knowledge and experience assessment is particularly important."
+    },
+    {
+      "element_id": "recommendation_rationale",
+      "status": "missing",
+      "score": 0.0,
+      "severity": "critical",
+      "required": true,
+      "evidence": "Fundsmith is a high-conviction global equity fund with a strong long-term track record managed by Terry Smith. Baillie Gifford Positive Change invests in companies targeting social and environmental improvements. Both funds are appropriate for growth-oriented retail investors.",
+      "notes": "The rationale consists entirely of generic fund descriptions. There is no connection between the recommendation and any documented client attribute. 'Growth-oriented retail investors' is not a description derived from a suitability assessment of this client — it is a target market description applicable to any client. This does not meet the requirement for a personalised rationale."
+    },
+    {
+      "element_id": "charges_and_costs",
+      "status": "partial",
+      "score": 0.12,
+      "severity": "high",
+      "required": true,
+      "evidence": "Our adviser charge is 1% upfront and 0.5% ongoing. Platform charges also apply.",
+      "notes": "Adviser charges are mentioned in percentage terms only. Platform charges are referenced but not quantified. Product charges (fund OCF for Fundsmith and Baillie Gifford) are not mentioned. No monetary illustration is provided. 'Platform charges also apply' is not a cost disclosure — it is an acknowledgement that costs exist. Minimal partial credit for the adviser charge rates."
+    },
+    {
+      "element_id": "alternatives_considered",
+      "status": "missing",
+      "score": 0.0,
+      "severity": "medium",
+      "required": false,
+      "evidence": "",
+      "notes": "No alternatives are mentioned. Not a required element, but notable given the absence of a documented investment objective to anchor the recommendation."
+    },
+    {
+      "element_id": "client_confirmation",
+      "status": "missing",
+      "score": 0.0,
+      "severity": "low",
+      "required": false,
+      "evidence": "David seemed positive about the recommendation and said he would like to go ahead. I told him I'd send over the paperwork.",
+      "notes": "The client's positive reaction is noted but this does not constitute documented confirmation. There is no record that the recommendation was formally explained, that risks were disclosed, or that the client was informed they would receive a suitability report. 'Seemed positive' is an observation, not a confirmation of understanding."
+    }
+  ]
+}
