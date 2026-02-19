@@ -7,6 +7,7 @@ into a structured GapReport.
 """
 from __future__ import annotations
 
+import datetime
 import logging
 import re
 from typing import Any, Dict, List, Optional, Union
@@ -112,6 +113,7 @@ class NoteEvaluator(BaseCalculator):
         pass_policy: Optional[PassPolicy] = None,
     ) -> None:
         super().__init__(llm_config)
+        self._llm_config = llm_config  # kept for metadata injection (may be None)
         self.custom_instruction = custom_instruction
         self.verbose = verbose
         self.pass_policy = pass_policy or PassPolicy()
@@ -155,6 +157,22 @@ class NoteEvaluator(BaseCalculator):
         passed = self._determine_pass(items)
         overall_rating = self._determine_overall_rating(items, passed)
 
+        # 6. Build metadata — inject system keys then merge caller-supplied values
+        #    so caller can override any system key if needed.
+        _cfg = self._llm_config
+        system_metadata: Dict[str, Any] = {
+            "model": _cfg.model_id if _cfg is not None else None,
+            "provider": _cfg.provider if _cfg is not None else None,
+            "evaluation_time": datetime.datetime.now(
+                datetime.timezone.utc
+            ).isoformat(),
+            # framework_version is also a top-level field on GapReport, but
+            # mirroring it in metadata makes the audit trail self-contained.
+            "framework_version": fw["version"],
+        }
+        # Caller-supplied keys take precedence over system defaults
+        merged_metadata = {**system_metadata, **(metadata or {})}
+
         return GapReport(
             framework_id=fw["framework_id"],
             framework_version=fw["version"],
@@ -165,7 +183,7 @@ class NoteEvaluator(BaseCalculator):
             summary=summary,
             stats=stats,
             pii_masked=pii_masked,
-            metadata=metadata or {},
+            metadata=merged_metadata,
         )
 
     # ── Per-element evaluation ─────────────────────────────────────────────────
@@ -311,6 +329,13 @@ class NoteEvaluator(BaseCalculator):
                     if s.strip() and s.strip().lower() not in ("none", "n/a")
                 ][:3]  # cap at 3
 
+        # Derive a human-readable name from the element dict.
+        # Framework YAMLs don't have an explicit "name" field today; fall back
+        # to converting the id from snake_case to Title Case.
+        element_name: Optional[str] = element.get("name") or (
+            element["id"].replace("_", " ").title()
+        )
+
         return GapItem(
             element_id=element["id"],
             status=status,
@@ -320,6 +345,7 @@ class NoteEvaluator(BaseCalculator):
             required=element.get("required", True),
             notes=notes,
             suggestions=suggestions,
+            name=element_name,
         )
 
     # ── Overall summary ────────────────────────────────────────────────────────
