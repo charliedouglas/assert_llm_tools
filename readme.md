@@ -110,6 +110,10 @@ results = evaluate_summary(..., verbose=True)
 
 ## Compliance Note Evaluation
 
+> ⚠️ **Experimental — do not use in live or production systems.**
+>
+> `evaluate_note()` is under active development. Outputs are non-deterministic (LLM-based), the API may change between releases, and results have not been validated against real regulatory decisions. This feature is intended for research, prototyping, and internal tooling only. It is not a substitute for qualified compliance review and must not be used to make or support live regulatory or client-facing decisions.
+
 ### evaluate_note()
 
 ```python
