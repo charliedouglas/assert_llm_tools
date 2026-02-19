@@ -7,6 +7,7 @@ Covers:
 - JSON serialisation helper
 - _cmd_evaluate error paths (no LLM calls made)
 - --summary-only flag (END-54)
+- assert batch subcommand (END-53): CSV parsing, output format, error handling
 """
 from __future__ import annotations
 
@@ -621,3 +622,489 @@ class TestSummaryOnlyFlag:
         data = json.loads(out_file.read_text())
         assert "items" in data
         assert len(data["items"]) == 3
+
+
+# ---------------------------------------------------------------------------
+# END-53: batch subcommand tests
+# ---------------------------------------------------------------------------
+
+import csv as _csv_module  # noqa: E402 (module-level for helpers)
+
+
+def _write_notes_csv(path, rows: list) -> None:
+    """Helper: write a list of dicts as a CSV file."""
+    if not rows:
+        path.write_text("")
+        return
+    fieldnames = list(rows[0].keys())
+    with open(path, "w", newline="", encoding="utf-8") as fh:
+        writer = _csv_module.DictWriter(fh, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+class TestBatchArgParsing:
+    """Test argument parsing for `assert batch`."""
+
+    def _parse(self, argv):
+        from assert_llm_tools.cli import _build_parser
+        return _build_parser().parse_args(argv)
+
+    def test_batch_required_args(self):
+        args = self._parse([
+            "batch", "--framework", "fca_wealth",
+            "--input", "notes.csv",
+        ])
+        assert args.command == "batch"
+        assert args.framework == "fca_wealth"
+        assert args.input == "notes.csv"
+        assert args.output is None
+        assert args.summary_only is False
+        assert args.mask_pii is False
+
+    def test_batch_with_csv_output(self):
+        args = self._parse([
+            "batch", "--framework", "fca_wealth",
+            "--input", "notes.csv", "--output", "results.csv",
+        ])
+        assert args.output == "results.csv"
+
+    def test_batch_with_json_output(self):
+        args = self._parse([
+            "batch", "--framework", "fca_wealth",
+            "--input", "notes.csv", "--output", "results.json",
+        ])
+        assert args.output == "results.json"
+
+    def test_batch_summary_only_flag(self):
+        args = self._parse([
+            "batch", "--framework", "fca_wealth",
+            "--input", "notes.csv", "--summary-only",
+        ])
+        assert args.summary_only is True
+
+    def test_batch_missing_framework_raises(self):
+        from assert_llm_tools.cli import _build_parser
+        with pytest.raises(SystemExit):
+            _build_parser().parse_args(["batch", "--input", "notes.csv"])
+
+    def test_batch_missing_input_raises(self):
+        from assert_llm_tools.cli import _build_parser
+        with pytest.raises(SystemExit):
+            _build_parser().parse_args(["batch", "--framework", "fca_wealth"])
+
+
+class TestReadCsv:
+    """Test CSV parsing helper."""
+
+    def test_reads_text_column(self, tmp_path):
+        from assert_llm_tools.cli import _read_csv
+        csv_file = tmp_path / "notes.csv"
+        _write_notes_csv(csv_file, [{"text": "Note A"}, {"text": "Note B"}])
+        rows = _read_csv(csv_file)
+        assert len(rows) == 2
+        assert rows[0]["text"] == "Note A"
+
+    def test_reads_note_column(self, tmp_path):
+        from assert_llm_tools.cli import _read_csv
+        csv_file = tmp_path / "notes.csv"
+        _write_notes_csv(csv_file, [{"note": "Note C"}])
+        rows = _read_csv(csv_file)
+        assert rows[0]["note"] == "Note C"
+
+    def test_reads_optional_metadata_columns(self, tmp_path):
+        from assert_llm_tools.cli import _read_csv
+        csv_file = tmp_path / "notes.csv"
+        _write_notes_csv(csv_file, [
+            {"note_id": "001", "adviser": "Jane", "text": "Note text"},
+        ])
+        rows = _read_csv(csv_file)
+        assert rows[0]["note_id"] == "001"
+        assert rows[0]["adviser"] == "Jane"
+
+    def test_missing_text_column_raises(self, tmp_path):
+        from assert_llm_tools.cli import _read_csv
+        csv_file = tmp_path / "notes.csv"
+        _write_notes_csv(csv_file, [{"id": "1", "content": "No text col"}])
+        with pytest.raises(ValueError, match="'text' or 'note' column"):
+            _read_csv(csv_file)
+
+    def test_empty_file_returns_empty_list(self, tmp_path):
+        from assert_llm_tools.cli import _read_csv
+        csv_file = tmp_path / "notes.csv"
+        csv_file.write_text("text\n")  # header only, no data
+        rows = _read_csv(csv_file)
+        assert rows == []
+
+    def test_nonexistent_file_raises(self, tmp_path):
+        from assert_llm_tools.cli import _read_csv
+        with pytest.raises(OSError):
+            _read_csv(tmp_path / "missing.csv")
+
+
+class TestBuildBatchRecord:
+    """Test _build_batch_record helper."""
+
+    def test_record_contains_note_id(self):
+        from assert_llm_tools.cli import _build_batch_record
+        record = _build_batch_record("note-001", {}, _make_report(), summary_only=True)
+        assert record["note_id"] == "note-001"
+
+    def test_record_contains_score(self):
+        from assert_llm_tools.cli import _build_batch_record
+        record = _build_batch_record("001", {}, _make_report(), summary_only=True)
+        assert record["overall_score"] == pytest.approx(0.42, abs=0.001)
+
+    def test_record_contains_passed_flag(self):
+        from assert_llm_tools.cli import _build_batch_record
+        record = _build_batch_record("001", {}, _make_report(passed=True), summary_only=True)
+        assert record["passed"] is True
+
+    def test_record_contains_severity_counts(self):
+        from assert_llm_tools.cli import _build_batch_record
+        record = _build_batch_record("001", {}, _make_report(), summary_only=True)
+        assert record["critical_gaps"] == 1
+        assert record["high_gaps"] == 0
+
+    def test_record_overall_rating_non_compliant(self):
+        from assert_llm_tools.cli import _build_batch_record
+        record = _build_batch_record("001", {}, _make_report(passed=False), summary_only=True)
+        # score 0.42 → "Partially Compliant"
+        assert record["overall_rating"] in {
+            "Non-Compliant", "Partially Compliant", "Mostly Compliant"
+        }
+
+    def test_record_summary_only_omits_report(self):
+        from assert_llm_tools.cli import _build_batch_record
+        record = _build_batch_record("001", {}, _make_report(), summary_only=True)
+        assert "report" not in record
+
+    def test_record_non_summary_includes_report(self):
+        from assert_llm_tools.cli import _build_batch_record
+        record = _build_batch_record("001", {}, _make_report(), summary_only=False)
+        assert "report" in record
+        assert "items" in record["report"]
+
+    def test_record_carries_adviser_metadata(self):
+        from assert_llm_tools.cli import _build_batch_record
+        row = {"text": "Note", "adviser": "Jane Smith"}
+        record = _build_batch_record("001", row, _make_report(), summary_only=True)
+        assert record.get("adviser") == "Jane Smith"
+
+
+class TestWriteCsvOutput:
+    """Test _write_csv_output."""
+
+    def test_csv_has_expected_columns(self, tmp_path):
+        from assert_llm_tools.cli import _write_csv_output, _build_batch_record
+        records = [_build_batch_record("001", {}, _make_report(passed=True), summary_only=True)]
+        out = tmp_path / "out.csv"
+        _write_csv_output(out, records)
+
+        with open(out, newline="") as fh:
+            rows = list(_csv_module.DictReader(fh))
+
+        assert len(rows) == 1
+        assert rows[0]["note_id"] == "001"
+        assert "overall_rating" in rows[0]
+        assert "overall_score" in rows[0]
+        assert "passed" in rows[0]
+        assert "critical_gaps" in rows[0]
+
+    def test_csv_multiple_rows(self, tmp_path):
+        from assert_llm_tools.cli import _write_csv_output, _build_batch_record
+        report = _make_report()
+        records = [
+            _build_batch_record("001", {}, report, summary_only=True),
+            _build_batch_record("002", {}, report, summary_only=True),
+        ]
+        out = tmp_path / "out.csv"
+        _write_csv_output(out, records)
+
+        with open(out, newline="") as fh:
+            rows = list(_csv_module.DictReader(fh))
+        assert len(rows) == 2
+        assert rows[1]["note_id"] == "002"
+
+    def test_csv_optional_adviser_column_included(self, tmp_path):
+        from assert_llm_tools.cli import _write_csv_output, _build_batch_record
+        row = {"text": "Note", "adviser": "Bob"}
+        records = [_build_batch_record("001", row, _make_report(), summary_only=True)]
+        out = tmp_path / "out.csv"
+        _write_csv_output(out, records)
+
+        with open(out, newline="") as fh:
+            rows = list(_csv_module.DictReader(fh))
+        assert rows[0].get("adviser") == "Bob"
+
+
+class TestWriteJsonOutput:
+    """Test _write_json_output."""
+
+    def test_json_output_is_array(self, tmp_path):
+        from assert_llm_tools.cli import _write_json_output, _build_batch_record
+        records = [_build_batch_record("001", {}, _make_report(), summary_only=False)]
+        out = tmp_path / "out.json"
+        _write_json_output(out, records)
+
+        data = json.loads(out.read_text())
+        assert isinstance(data, list)
+        assert len(data) == 1
+
+    def test_json_record_has_full_report(self, tmp_path):
+        from assert_llm_tools.cli import _write_json_output, _build_batch_record
+        records = [_build_batch_record("001", {}, _make_report(), summary_only=False)]
+        out = tmp_path / "out.json"
+        _write_json_output(out, records)
+
+        data = json.loads(out.read_text())
+        assert "report" in data[0]
+        assert "items" in data[0]["report"]
+
+
+class TestCmdBatch:
+    """Integration tests for _cmd_batch (LLM mocked)."""
+
+    def setup_method(self):
+        import assert_llm_tools.cli as cli_module
+        cli_module._COLOUR = False
+
+    def _args(self, **kwargs) -> MagicMock:
+        defaults = dict(
+            framework="fca_wealth",
+            input="notes.csv",
+            output=None,
+            summary_only=False,
+            mask_pii=False,
+            verbose=False,
+            provider=None,
+            model_id=None,
+            region=None,
+            api_key=None,
+        )
+        defaults.update(kwargs)
+        return MagicMock(**defaults)
+
+    def test_missing_input_returns_2(self, tmp_path):
+        from assert_llm_tools.cli import _cmd_batch
+        args = self._args(input=str(tmp_path / "missing.csv"))
+        assert _cmd_batch(args) == 2
+
+    def test_empty_csv_returns_2(self, tmp_path):
+        from assert_llm_tools.cli import _cmd_batch
+        csv_file = tmp_path / "empty.csv"
+        csv_file.write_text("text\n")  # header only
+        args = self._args(input=str(csv_file))
+        assert _cmd_batch(args) == 2
+
+    def test_happy_path_csv_output(self, tmp_path):
+        from assert_llm_tools.cli import _cmd_batch
+        csv_file = tmp_path / "notes.csv"
+        _write_notes_csv(csv_file, [
+            {"note_id": "001", "text": "Client wants retirement income."},
+            {"note_id": "002", "text": "Another suitability note."},
+        ])
+        out_file = tmp_path / "results.csv"
+        args = self._args(input=str(csv_file), output=str(out_file))
+
+        report = _make_report(passed=False)
+        with patch("assert_llm_tools.cli.evaluate_note", return_value=report):
+            code = _cmd_batch(args)
+
+        assert out_file.exists()
+        with open(out_file, newline="") as fh:
+            rows = list(_csv_module.DictReader(fh))
+        assert len(rows) == 2
+        assert rows[0]["note_id"] == "001"
+        assert rows[1]["note_id"] == "002"
+        assert code == 1  # all non-compliant → exit 1
+
+    def test_happy_path_all_compliant_exit_0(self, tmp_path):
+        from assert_llm_tools.cli import _cmd_batch
+        csv_file = tmp_path / "notes.csv"
+        _write_notes_csv(csv_file, [{"text": "Compliant note."}])
+        args = self._args(input=str(csv_file))
+
+        report = _make_report(passed=True)
+        with patch("assert_llm_tools.cli.evaluate_note", return_value=report):
+            code = _cmd_batch(args)
+
+        assert code == 0
+
+    def test_happy_path_json_output(self, tmp_path):
+        from assert_llm_tools.cli import _cmd_batch
+        csv_file = tmp_path / "notes.csv"
+        _write_notes_csv(csv_file, [{"text": "A suitability note."}])
+        out_file = tmp_path / "results.json"
+        args = self._args(input=str(csv_file), output=str(out_file))
+
+        report = _make_report(passed=True)
+        with patch("assert_llm_tools.cli.evaluate_note", return_value=report):
+            _cmd_batch(args)
+
+        assert out_file.exists()
+        data = json.loads(out_file.read_text())
+        assert isinstance(data, list)
+        assert len(data) == 1
+
+    def test_summary_only_json_omits_report_key(self, tmp_path):
+        from assert_llm_tools.cli import _cmd_batch
+        csv_file = tmp_path / "notes.csv"
+        _write_notes_csv(csv_file, [{"text": "A note."}])
+        out_file = tmp_path / "results.json"
+        args = self._args(input=str(csv_file), output=str(out_file), summary_only=True)
+
+        report = _make_report(passed=True)
+        with patch("assert_llm_tools.cli.evaluate_note", return_value=report):
+            _cmd_batch(args)
+
+        data = json.loads(out_file.read_text())
+        assert "report" not in data[0]
+
+    def test_skips_empty_text_rows(self, tmp_path, capsys):
+        """Rows with empty text are skipped with a warning to stderr."""
+        from assert_llm_tools.cli import _cmd_batch
+        csv_file = tmp_path / "notes.csv"
+        _write_notes_csv(csv_file, [
+            {"note_id": "001", "text": "Good note."},
+            {"note_id": "002", "text": "   "},  # empty — should be skipped
+        ])
+        args = self._args(input=str(csv_file))
+
+        report = _make_report(passed=True)
+        with patch("assert_llm_tools.cli.evaluate_note", return_value=report):
+            _cmd_batch(args)
+
+        captured = capsys.readouterr()
+        assert "SKIP" in captured.err or "skip" in captured.err.lower()
+
+    def test_skips_failed_rows_continues_processing(self, tmp_path):
+        """If one note raises during evaluation, processing continues."""
+        from assert_llm_tools.cli import _cmd_batch
+        csv_file = tmp_path / "notes.csv"
+        _write_notes_csv(csv_file, [
+            {"note_id": "001", "text": "Good note."},
+            {"note_id": "002", "text": "Another note."},
+        ])
+        out_file = tmp_path / "results.csv"
+        args = self._args(input=str(csv_file), output=str(out_file))
+
+        good_report = _make_report(passed=True)
+        call_count = 0
+
+        def mock_evaluate(**kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise RuntimeError("LLM timeout")
+            return good_report
+
+        with patch("assert_llm_tools.cli.evaluate_note", side_effect=mock_evaluate):
+            _cmd_batch(args)
+
+        # Second note should still be written despite first failing
+        with open(out_file, newline="") as fh:
+            rows = list(_csv_module.DictReader(fh))
+        assert len(rows) == 1
+        assert rows[0]["note_id"] == "002"
+
+    def test_progress_messages_printed_to_stderr(self, tmp_path, capsys):
+        """Each note should emit a progress counter line to stderr."""
+        from assert_llm_tools.cli import _cmd_batch
+        csv_file = tmp_path / "notes.csv"
+        _write_notes_csv(csv_file, [
+            {"text": "Note 1"},
+            {"text": "Note 2"},
+            {"text": "Note 3"},
+        ])
+        args = self._args(input=str(csv_file))
+
+        report = _make_report(passed=True)
+        with patch("assert_llm_tools.cli.evaluate_note", return_value=report):
+            _cmd_batch(args)
+
+        captured = capsys.readouterr()
+        assert "1/3" in captured.err
+        assert "2/3" in captured.err
+        assert "3/3" in captured.err
+
+    def test_note_column_accepted(self, tmp_path):
+        """'note' column (instead of 'text') should be accepted."""
+        from assert_llm_tools.cli import _cmd_batch
+        csv_file = tmp_path / "notes.csv"
+        _write_notes_csv(csv_file, [{"note": "Note content here."}])
+        out_file = tmp_path / "results.csv"
+        args = self._args(input=str(csv_file), output=str(out_file))
+
+        report = _make_report(passed=True)
+        with patch("assert_llm_tools.cli.evaluate_note", return_value=report):
+            code = _cmd_batch(args)
+
+        assert code == 0
+
+    def test_no_output_prints_table_to_stdout(self, tmp_path, capsys):
+        """Without --output, a summary table is printed to stdout."""
+        from assert_llm_tools.cli import _cmd_batch
+        csv_file = tmp_path / "notes.csv"
+        _write_notes_csv(csv_file, [{"note_id": "001", "text": "Some note."}])
+        args = self._args(input=str(csv_file), output=None)
+
+        report = _make_report(passed=True)
+        with patch("assert_llm_tools.cli.evaluate_note", return_value=report):
+            _cmd_batch(args)
+
+        captured = capsys.readouterr()
+        assert "001" in captured.out
+
+    def test_auto_assigns_note_id_when_missing(self, tmp_path):
+        """If CSV has no note_id column, the row index is used as note_id."""
+        from assert_llm_tools.cli import _cmd_batch
+        csv_file = tmp_path / "notes.csv"
+        _write_notes_csv(csv_file, [{"text": "Note without ID."}])
+        out_file = tmp_path / "results.csv"
+        args = self._args(input=str(csv_file), output=str(out_file))
+
+        report = _make_report(passed=True)
+        with patch("assert_llm_tools.cli.evaluate_note", return_value=report):
+            _cmd_batch(args)
+
+        with open(out_file, newline="") as fh:
+            rows = list(_csv_module.DictReader(fh))
+        assert rows[0]["note_id"] == "1"
+
+    def test_csv_output_has_correct_column_headers(self, tmp_path):
+        """CSV output should have all required header columns."""
+        from assert_llm_tools.cli import _cmd_batch
+        csv_file = tmp_path / "notes.csv"
+        _write_notes_csv(csv_file, [{"text": "A note."}])
+        out_file = tmp_path / "results.csv"
+        args = self._args(input=str(csv_file), output=str(out_file))
+
+        report = _make_report(passed=True)
+        with patch("assert_llm_tools.cli.evaluate_note", return_value=report):
+            _cmd_batch(args)
+
+        with open(out_file, newline="") as fh:
+            reader = _csv_module.DictReader(fh)
+            headers = reader.fieldnames or []
+
+        assert "note_id" in headers
+        assert "overall_rating" in headers
+        assert "overall_score" in headers
+        assert "passed" in headers
+        assert "critical_gaps" in headers
+        assert "high_gaps" in headers
+        assert "medium_gaps" in headers
+        assert "low_gaps" in headers
+
+    def test_all_rows_fail_returns_error(self, tmp_path):
+        """If all rows error-out, _cmd_batch returns 2."""
+        from assert_llm_tools.cli import _cmd_batch
+        csv_file = tmp_path / "notes.csv"
+        _write_notes_csv(csv_file, [{"text": "   "}, {"text": ""}])
+        args = self._args(input=str(csv_file))
+
+        with patch("assert_llm_tools.cli.evaluate_note", side_effect=RuntimeError("fail")):
+            code = _cmd_batch(args)
+
+        assert code == 2
