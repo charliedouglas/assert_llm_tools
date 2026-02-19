@@ -77,7 +77,7 @@ with open("examples/fca_suitability_v1/compliant_note.txt") as f:
     note_text = f.read()
 
 report = evaluate_note(
-    note=note_text,
+    note_text=note_text,
     framework="fca_suitability_v1",
 )
 
@@ -110,7 +110,7 @@ with open("examples/fca_suitability_v1/minor_gaps_note.txt") as f:
 with open("examples/fca_suitability_v1/minor_gaps_note_expected.json") as f:
     expected = json.load(f)
 
-report = evaluate_note(note=note_text, framework="fca_suitability_v1")
+report = evaluate_note(note_text=note_text, framework="fca_suitability_v1")
 
 # Loose checks — direction of travel, not exact match
 assert report.passed == expected["passed"], "Pass/fail mismatch"
