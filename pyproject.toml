@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "assert_llm_tools"
-version = "0.9.5"
+version = "0.9.6"
 description = "Automated Summary Scoring & Evaluation of Retained Text"
 authors = [
     {name = "Charlie Douglas", email = "cdouglas@gmail.com"},
@@ -59,6 +59,7 @@ all = [
 packages = [
     "assert_llm_tools",
     "assert_llm_tools.metrics",
+    "assert_llm_tools.metrics.note",
     "assert_llm_tools.metrics.summary",
     "assert_llm_tools.llm"
 ]

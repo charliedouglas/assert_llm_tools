@@ -5,8 +5,6 @@ metrics = [
     "coverage",
     "factual_consistency",
     "factual_alignment",
-    "hallucination",
-    "faithfulness",
 ]
 
 
