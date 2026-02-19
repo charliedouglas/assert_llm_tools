@@ -6,6 +6,7 @@ from assert_llm_tools.metrics.note.models.
 """
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal, Optional
 
@@ -41,6 +42,8 @@ class GapItem:
                       Populated only when verbose=True.
         suggestions:  Actionable remediation suggestions (1–3 items) for gaps.
                       Empty list when status is "present" — no action needed.
+        name:         Human-readable element name (derived from element_id when not
+                      explicitly set, e.g. "client_objectives" → "Client Objectives").
     """
 
     element_id: str
@@ -51,6 +54,32 @@ class GapItem:
     required: bool
     notes: Optional[str] = None
     suggestions: List[str] = field(default_factory=list)
+    name: Optional[str] = None  # Human-readable label; derived from element_id if absent
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Serialise this element result to a plain dict matching the JSON schema.
+
+        Returns:
+            {
+                "id":          element_id string,
+                "name":        human-readable name (or None),
+                "status":      "present" | "partial" | "missing",
+                "severity":    "critical" | "high" | "medium" | "low",
+                "score":       float 0.0–1.0,
+                "evidence":    string or null (null for missing elements),
+                "suggestions": list of strings (empty for present elements),
+            }
+        """
+        return {
+            "id": self.element_id,
+            "name": self.name,
+            "status": self.status,
+            "severity": self.severity,
+            "score": self.score,
+            "evidence": self.evidence,
+            "suggestions": list(self.suggestions),
+        }
 
 
 # ── Top-level report ──────────────────────────────────────────────────────────
@@ -80,7 +109,13 @@ class GapReport:
         summary:            Human-readable summary of the evaluation produced by the LLM.
         stats:              Breakdown counts — see GapReportStats.
         pii_masked:         True if PII masking was applied before evaluation.
-        metadata:           Arbitrary key/value pairs (e.g. note_id, adviser_ref).
+        metadata:           Key/value pairs for audit trail — automatically populated
+                            by the evaluator with: model, provider, evaluation_time
+                            (ISO-8601 UTC), and framework_version. Callers may inject
+                            additional fields (e.g. note_id, adviser_ref) which are
+                            preserved alongside the system keys.
+        meeting_type:       Type of meeting that generated the note (nullable).
+                            Reserved for future use — pass None for now.
     """
 
     framework_id: str
@@ -93,6 +128,74 @@ class GapReport:
     stats: "GapReportStats"
     pii_masked: bool = False
     metadata: Dict[str, Any] = field(default_factory=dict)
+    meeting_type: Optional[str] = None
+
+    # ── Serialisation ──────────────────────────────────────────────────────────
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Serialise the full report to a plain dict matching the structured
+        JSON gap report schema (END-50).
+
+        Schema
+        ──────
+        {
+            "framework":        { "id": str, "version": str },
+            "meeting_type":     str | null,
+            "overall_score":    float (0.0–1.0),
+            "overall_rating":   "Compliant"|"Minor Gaps"|"Requires Attention"|"Non-Compliant",
+            "severity_summary": { ...counts by severity and status... },
+            "elements":         [ { id, name, status, severity, score, evidence,
+                                    suggestions }, ... ],
+            "metadata":         { model, provider, evaluation_time, framework_version,
+                                  ...any additional caller-supplied keys... },
+        }
+
+        The ``metadata`` section merges the system keys (framework_version) with
+        whatever the evaluator injected at evaluation time (model, provider,
+        evaluation_time) and any caller-supplied key/value pairs.  Caller-supplied
+        values take precedence if they collide with system keys.
+
+        Returns:
+            dict: JSON-serialisable representation of this report.
+        """
+        # Build metadata: system key framework_version + everything stored in
+        # self.metadata (which already contains model/provider/evaluation_time
+        # when the report was created via NoteEvaluator.evaluate()).
+        metadata: Dict[str, Any] = {
+            "framework_version": self.framework_version,
+        }
+        metadata.update(self.metadata)  # caller keys take precedence
+
+        return {
+            "framework": {
+                "id": self.framework_id,
+                "version": self.framework_version,
+            },
+            "meeting_type": self.meeting_type,
+            "overall_score": self.overall_score,
+            "overall_rating": self.overall_rating,
+            "severity_summary": self.stats.to_dict(),
+            "elements": [item.to_dict() for item in self.items],
+            "metadata": metadata,
+        }
+
+    def to_json(self, indent: int = 2) -> str:
+        """
+        Return the report as a pretty-printed JSON string.
+
+        Args:
+            indent: JSON indentation level (default 2).
+
+        Returns:
+            str: JSON-encoded gap report.
+
+        Example::
+
+            report = evaluate_note(note, "fca_suitability_v1")
+            print(report.to_json())
+        """
+        return json.dumps(self.to_dict(), indent=indent)
 
 
 # ── Summary statistics ─────────────────────────────────────────────────────────
@@ -125,6 +228,37 @@ class GapReportStats:
     medium_gaps: int
     low_gaps: int
     required_missing_count: int
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Serialise statistics to a plain dict for JSON output.
+
+        Returns:
+            {
+                "total_elements":         int,
+                "required_elements":      int,
+                "present_count":          int,
+                "partial_count":          int,
+                "missing_count":          int,
+                "critical_gaps":          int,
+                "high_gaps":              int,
+                "medium_gaps":            int,
+                "low_gaps":               int,
+                "required_missing_count": int,
+            }
+        """
+        return {
+            "total_elements": self.total_elements,
+            "required_elements": self.required_elements,
+            "present_count": self.present_count,
+            "partial_count": self.partial_count,
+            "missing_count": self.missing_count,
+            "critical_gaps": self.critical_gaps,
+            "high_gaps": self.high_gaps,
+            "medium_gaps": self.medium_gaps,
+            "low_gaps": self.low_gaps,
+            "required_missing_count": self.required_missing_count,
+        }
 
 
 # ── Pass policy ────────────────────────────────────────────────────────────────
