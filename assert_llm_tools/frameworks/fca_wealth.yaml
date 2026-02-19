@@ -1,0 +1,637 @@
+# assert_llm_tools/frameworks/fca_wealth.yaml
+
+framework_id: fca_wealth
+name: FCA Wealth Management Suitability Framework
+version: 1.0.0
+regulator: FCA
+description: >
+  Defines the required elements for a suitability note produced in a wealth
+  management context, covering personal recommendations on retail investment
+  products under COBS 9.2, Consumer Duty obligations (PRIN 2A / PS22/9),
+  MiFID II suitability and costs & charges requirements, and Anti-Money
+  Laundering regulations (MLR 2017 / JMLSG). Designed to accommodate
+  different meeting types (new_client, annual_review, ad_hoc_call) via the
+  meeting_type_overrides section.
+effective_date: "2024-01-01"
+reference: "COBS 9.2 / PS13/1 / PRIN 2A / PS22/9 / MLR 2017 / MiFID II Art.25"
+
+elements:
+
+  - id: client_id
+    description: >
+      The note must evidence that the client's identity has been verified in
+      accordance with Anti-Money Laundering regulations (MLR 2017) and the
+      firm's Customer Due Diligence (CDD) or Enhanced Due Diligence (EDD)
+      procedures. This includes recording the type of documentation reviewed,
+      any reference numbers, and the outcome of PEP/sanctions screening where
+      applicable.
+    required: true
+    severity: critical
+    guidance: >
+      Look for explicit reference to documents seen (passport, driving licence,
+      utility bill), document reference numbers, date of verification, and PEP
+      or sanctions screening outcome. A bare statement such as "ID on file" is
+      insufficient for a new client engagement. EDD must be evidenced where the
+      client is a PEP, HNW individual with complex source-of-wealth, or the
+      transaction carries elevated ML risk.
+    examples:
+      - "Client identity verified against current passport (doc ref: P123456GB) and utility bill dated 03/01/2026. Standard CDD completed. PEP/sanctions screening: clear (date: 14/02/2026, provider: ComplyAdvantage)."
+      - "Enhanced due diligence applied — client identified as PEP (retired senior public official). Source of wealth confirmed as proceeds of property portfolio sale; supporting documentation reviewed and retained on file."
+      - "Existing client re-verification completed following 24-month trigger review. Driving licence (DOUG9...) sighted and re-recorded. No change in risk classification."
+    anti_patterns:
+      - "ID checked."
+      - "KYC complete — details on file."
+      - "Client identity confirmed."
+
+  - id: meeting_context
+    description: >
+      The note must document the context of the meeting or interaction,
+      including: the date, format (in-person, telephone, video), location or
+      platform, the purpose of the meeting, all parties present (including any
+      third parties such as a spouse, attorney, or interpreter), and whether
+      the client initiated the meeting or was contacted by the adviser.
+    required: true
+    severity: high
+    guidance: >
+      Meeting context establishes the basis for the advice and is essential for
+      supervisory review. Purpose should be stated specifically (e.g. "retirement
+      planning review" not just "review"). Where a third party was present,
+      document any consent given for their attendance and, if they participated in
+      the discussion, note their role. Consumer Duty requires firms to evidence
+      that communications are clear and appropriate — the format and context of
+      the meeting is part of that record.
+    examples:
+      - "Annual review meeting held in person at client's home, 14/02/2026, 10:00–11:30. Client and spouse (Mrs A Douglas, also a client) present. Purpose: to reassess portfolio suitability following client's retirement in December 2025 and review income drawdown strategy."
+      - "Initial financial planning meeting held via video call (Teams), 14/02/2026. Client attended alone. Purpose: to discuss investment of inheritance proceeds (approximately £350,000) received following bereavement. Client-initiated enquiry via website."
+      - "Ad hoc telephone call, 14/02/2026, 14:15. Client called to discuss concerns about market volatility and whether portfolio rebalancing was required. No formal recommendation made during this call; follow-up meeting scheduled."
+    anti_patterns:
+      - "Meeting held with client."
+      - "Annual review completed 14/02/2026."
+      - "Client attended — discussed portfolio."
+
+  - id: objectives
+    description: >
+      The note must document the client's investment objectives in specific,
+      measurable terms where possible. This includes: the primary purpose of the
+      investment (e.g. retirement income, wealth accumulation, legacy/IHT
+      planning, school fees), the investment time horizon, any specific capital
+      or income targets, liquidity requirements, and any constraints or
+      preferences expressed by the client.
+    required: true
+    severity: critical
+    guidance: >
+      Generic statements such as "growth" or "long-term investment" are
+      insufficient. Objectives should be personalised and, where possible,
+      quantified. Time horizon must be documented explicitly — it drives asset
+      allocation and suitability of illiquid investments. Where objectives have
+      changed since the last review, document what changed and why. Multiple or
+      competing objectives (e.g. income now vs. capital growth) should each be
+      recorded with relative priority.
+    examples:
+      - "Primary objective: accumulate a retirement fund sufficient to support £30,000 pa gross income from age 65 (11 years). Secondary objective: preserve capital in real terms for estate planning purposes. No immediate income requirement. Liquidity: client requires access to £10,000 at short notice as emergency reserve (held outside this portfolio)."
+      - "Client's objective is to invest a lump sum inheritance of £280,000 for long-term growth over a 15–20 year horizon with no income requirement. Client wishes to pass wealth to children and has expressed interest in IHT-efficient structures. No capital access required within the investment period."
+      - "Objectives revised since last review: client retired December 2025. Prior objective (accumulation) now transitioning to decumulation — target sustainable income of £18,000 pa from SIPP drawdown to supplement state pension (£11,502 pa). Capital preservation now elevated in priority."
+    anti_patterns:
+      - "Client wants long-term growth."
+      - "Retirement planning discussed."
+      - "Client's objectives noted."
+
+  - id: risk_tolerance
+    description: >
+      The note must document both the client's Attitude to Risk (ATR) and their
+      Capacity for Loss (CfL) as distinct assessments. ATR reflects the client's
+      psychological willingness to accept investment risk; CfL reflects their
+      financial ability to sustain a loss of capital without materially affecting
+      their standard of living. In a wealth management context these must be
+      assessed in combination and reconciled where they diverge.
+    required: true
+    severity: critical
+    guidance: >
+      A risk profile label alone (e.g. "balanced") is insufficient without
+      supporting evidence of the assessment process. Record the tool used for
+      ATR (e.g. Dynamic Planner, Oxford Risk, FinaMetrica) and the resulting
+      score or category. CfL must be assessed separately, referencing the
+      client's income, expenditure, liquid reserves, and essential financial
+      commitments. Where ATR and CfL are misaligned (e.g. high ATR but low CfL),
+      document how the conflict was resolved and which was treated as the binding
+      constraint. Do not allow a high ATR to override a low CfL.
+    examples:
+      - "ATR assessed via Dynamic Planner questionnaire: score 6/10 (Moderately Adventurous). CfL: high — client has £60,000 liquid cash reserves, no mortgage, pension income covers essential expenditure, and investment capital represents discretionary wealth. ATR and CfL aligned; no conflict to resolve. Recommended risk level: Moderately Adventurous."
+      - "ATR (Oxford Risk): Balanced (score 52/100). CfL: medium — client's primary income is employment salary (£85,000 pa); investment represents 40% of net worth with remaining assets in illiquid property. Client confirmed a 20% portfolio loss would not affect lifestyle but a 30%+ loss would cause moderate stress. CfL treated as binding constraint; portfolio positioned at lower end of balanced range."
+      - "Client's ATR assessed as Adventurous (DP score 8). However, CfL assessed as low-medium: client recently divorced, reduced income, and this ISA represents the majority of liquid assets. ATR overridden by CfL — portfolio positioned at Balanced. Rationale explained to client and documented; client accepted the adviser's assessment."
+    anti_patterns:
+      - "Risk profile: balanced."
+      - "Client is comfortable with investment risk."
+      - "ATR questionnaire completed — results on file."
+
+  - id: suitability_rationale
+    description: >
+      The note must explain, in personalised terms, why the specific
+      recommendation(s) made are suitable for this particular client at this
+      time. The rationale must draw explicit connections between the client's
+      documented objectives, risk profile, capacity for loss, financial
+      situation, and the characteristics of the recommended product(s) or
+      strategy. Generic product descriptions do not satisfy this requirement.
+    required: true
+    severity: critical
+    guidance: >
+      The rationale must be demonstrably client-specific — a reviewer should not
+      be able to apply it verbatim to a different client. Use causal language
+      linking client attributes to the recommendation: "because the client...",
+      "given the client's... this fund was selected...". Where a recommendation
+      involves switching from an existing holding, the rationale must explain
+      why the switch is in the client's best interest and consider exit charges,
+      tax implications, and loss of benefits. Under Consumer Duty, the firm must
+      be satisfied that the recommendation delivers good outcomes, not merely
+      that it is technically suitable.
+    examples:
+      - "The recommended portfolio (65% global equity / 35% investment grade bonds, implemented via Vanguard LifeStrategy 60% Equity and Rathbone Greenbank Global Sustainability Fund) is suitable because: (1) the equity/bond split aligns with the client's Balanced risk profile; (2) the 15-year time horizon supports equity exposure without undue short-term risk; (3) low OCF (0.27% blended) preserves returns relative to the client's growth target; and (4) the ESG overlay reflects the client's documented sustainability preferences."
+      - "Drawdown recommended in preference to annuity because: client has defined benefit pension providing guaranteed income floor (£14,000 pa); remaining SIPP capital (£220,000) can therefore be invested with a higher risk tolerance; client values flexibility for ad hoc withdrawals; death benefit considerations (client wishes to pass residual SIPP to adult children). Annuity quotations obtained and reviewed — best annuity rate (£9,800 pa level) considered insufficient given the flexibility and death benefit trade-off."
+      - "Consolidation of three legacy pension pots to AJ Bell SIPP recommended because: (1) simplified ongoing management; (2) consolidated value (£94,000) meets minimum for preferred investment range; (3) no guaranteed annuity rates or enhanced transfer values lost (confirmed in writing from each ceding scheme); (4) platform charge on consolidated basis (0.25%) lower than weighted average of existing charges (0.41%)."
+    anti_patterns:
+      - "This fund is recommended as suitable for the client's needs."
+      - "The recommended portfolio matches the client's risk profile."
+      - "Product is appropriate given the client's objectives."
+
+  - id: vulnerability
+    description: >
+      Under Consumer Duty (PRIN 2A) and FCA Guidance (FG21/1), the note must
+      evidence that the adviser assessed whether the client may be vulnerable and
+      that appropriate adjustments were made where vulnerability was identified
+      or suspected. This includes assessment across the four FCA vulnerability
+      drivers: health, life events, resilience, and capability.
+    required: true
+    severity: critical
+    guidance: >
+      A bare statement that the client is "not vulnerable" is insufficient.
+      The note should show that a genuine assessment was made — either through
+      a formal vulnerability screening tool or through narrative evidence of
+      the adviser's observation and enquiry. Where vulnerability indicators are
+      present, document what adjustments were made to the advice process (e.g.
+      simplified communications, additional time, third-party support, cooling-off
+      period). Consumer Duty applies on an ongoing basis — vulnerability must be
+      re-assessed at each interaction, not just at onboarding. Record any changes
+      in vulnerability status since the previous meeting.
+    examples:
+      - "No vulnerability indicators identified at this meeting. Client engaged confidently throughout, demonstrated clear understanding of recommendations, asked pertinent questions about drawdown tax implications, and confirmed no significant changes to health, personal circumstances, or financial resilience since last review. Vulnerability status: unchanged (low risk)."
+      - "Vulnerability indicator identified: life event — client disclosed bereavement of spouse (December 2025). Client is now sole decision-maker for household finances for the first time. Adjustments made: (1) meeting extended by 30 minutes; (2) written summary of recommendations issued prior to any action being taken; (3) client advised of right to bring a trusted person to future meetings; (4) 30-day follow-up call scheduled before proceeding with pension consolidation. Client confirmed they wished to continue the meeting."
+      - "Client disclosed mild cognitive difficulties (early-stage diagnosis, self-reported). Vulnerability indicator: health. EDD applied: (1) meeting conducted with client's daughter (with client's written consent); (2) all documents issued in large print; (3) no immediate action taken — suitability report issued for consideration over 4 weeks; (4) referral made to firm's vulnerable client support team. Escalated to compliance for review."
+    anti_patterns:
+      - "Not vulnerable."
+      - "No vulnerability concerns noted."
+      - "Vulnerability: N/A."
+
+  - id: existing_arrangements
+    description: >
+      The note must document the client's existing financial arrangements
+      relevant to the advice, including: investment portfolios, ISAs, pension
+      arrangements (workplace, personal, DB/DC), protection policies, cash
+      savings, property assets and liabilities, and any other products that
+      may interact with the recommendation. Values and providers should be
+      recorded where known.
+    required: true
+    severity: high
+    guidance: >
+      Understanding the client's full financial picture is necessary to avoid
+      duplicative, contradictory, or harmful recommendations (e.g. recommending
+      a new pension when the client has unused DB benefits; recommending an ISA
+      subscription when the annual allowance is already used). Where the client
+      has not provided full information, document what was provided and what
+      remains outstanding. For annual reviews, the note should compare current
+      values and allocation against the previous review and explain material
+      changes. Pension transfer advice requires specific disclosure of all
+      existing pension terms including any guaranteed benefits.
+    examples:
+      - "Existing arrangements recorded: (1) S&S ISA — Hargreaves Lansdown, current value £67,000, invested in HL Multi-Manager Balanced; (2) Workplace DC pension — Aviva, employer scheme, estimated value £43,000 (last statement Dec 2025), client contributing 5%, employer 4%; (3) Cash savings — £22,000 across two accounts (Lloyds current account £7,000, Marcus easy access £15,000); (4) Residential mortgage — NatWest, £148,000 outstanding, 6 years remaining, fixed rate to 2027; (5) No protection products in force."
+      - "Three legacy personal pensions identified: (i) Scottish Widows (employer from 2008–2014, est. value £34,000); (ii) Aviva (self-employed contributions 2014–2018, est. value £28,500); (iii) Standard Life (current employer, est. value £24,000 — still contributing). No guaranteed annuity rates on (i) or (ii) — confirmed in writing. No DB entitlements. ISA allowance: not utilised current tax year."
+      - "Portfolio update since last review (Feb 2025): total portfolio value £412,000 (up 8.3% net of withdrawals). Asset allocation drift noted — equity weighting at 72% vs. target 65%; rebalancing recommended. New arrangement since last review: client opened JISA for grandchild — £9,000 subscribed, provider Vanguard."
+    anti_patterns:
+      - "Existing arrangements discussed."
+      - "Client has pensions and savings."
+      - "Portfolio reviewed — details on file."
+
+  - id: charges
+    description: >
+      The note must disclose all charges, costs, and fees associated with the
+      recommended product(s), platform, and advice service, in both percentage
+      and monetary terms where possible. This includes: ongoing adviser charges,
+      one-off advice fees, platform/wrap charges, product/fund ongoing charges
+      (OCF/AMC), transaction costs, and any third-party costs. Disclosure must
+      comply with COBS 6.1ZA and MiFID II costs and charges requirements.
+    required: true
+    severity: high
+    guidance: >
+      A summary reference to a separate costs and charges illustration (CCI) is
+      acceptable provided the CCI is cross-referenced, dated, and confirmed as
+      issued to and acknowledged by the client. The note should record the total
+      cost figure (e.g. total annual cost as % and £ on invested amount) to
+      enable the client to understand the aggregate impact. Where charges are
+      contingent (e.g. a switch triggers exit charges), these must be itemised.
+      Fair value assessment: under Consumer Duty, the note should confirm that
+      charges have been assessed as providing fair value given the service and
+      outcomes delivered.
+    examples:
+      - "Charges disclosed: (1) Ongoing adviser charge: 0.75% pa (£562.50 pa on £75,000 portfolio); (2) Platform charge: Transact 0.25% pa (tiered — 0.20% above £250,000); (3) Fund OCF: blended 0.19% pa; (4) Total ongoing charge: 1.19% pa (£892.50 pa). No initial or switch fees. Costs and charges illustration (ref: CCI-END-20260214) issued and acknowledged by client. Fair value confirmed — charges reflect bespoke portfolio management and ongoing review service."
+      - "One-off advice fee: £2,500 (pension transfer analysis and recommendation). Ongoing adviser charge: 0.5% pa (charged from SIPP). Platform (AJ Bell): 0.25% pa. Fund OCF: 0.22% pa. Total year one cost: £2,500 + £748.50 ongoing = disclosed in CCI ref AJB-20260214. Exit charge from ceding scheme: nil (confirmed by Aviva). Client confirmed understanding of all charges in writing."
+      - "Charges compared to prior arrangement: previous platform (Aviva) total cost 1.65% pa. Recommended platform (Transact) total cost 1.19% pa. Annual saving: approximately £345 on current portfolio value. Net benefit of switch positive after accounting for nil exit charges and re-registration costs."
+    anti_patterns:
+      - "Charges discussed and agreed."
+      - "Fees as per our standard schedule."
+      - "Costs explained — see separate document."
+
+  - id: actions
+    description: >
+      The note must record all actions agreed during the meeting, specifying
+      who is responsible for each action, the expected timeline or deadline,
+      and any dependencies or prerequisites. This should include both adviser
+      actions and client actions, covering implementation steps, documentation
+      required, referrals to other specialists, and the date of the next review
+      or follow-up contact.
+    required: true
+    severity: high
+    guidance: >
+      Vague commitments such as "adviser to follow up" or "next steps TBC" are
+      insufficient. Each action should be specific and time-bound. Where client
+      actions are required before the adviser can proceed (e.g. provision of
+      documents, signatures), record this dependency clearly. Actions arising
+      from vulnerability adjustments (e.g. extended cooling-off, follow-up call)
+      should be included. The action list serves as an audit trail for
+      supervisory oversight and for complaint handling — ensure it is complete.
+    examples:
+      - "Actions agreed: (1) Adviser: submit ISA subscription application (£20,000, Transact) by 28/02/2026 — client to provide payment authority by 21/02/2026; (2) Adviser: initiate pension consolidation — LOA forms sent to client for signature, return requested by 28/02/2026; (3) Client: provide copy of most recent Aviva pension statement (requested in meeting); (4) Adviser: issue suitability report within 5 working days; (5) Next annual review: February 2027 — calendar invite sent."
+      - "Next steps: (1) Adviser to submit drawdown commencement request to Quilter within 3 working days of receipt of signed application (client to sign and return by post — envelope provided); (2) Client to contact HMRC to update tax code on pension income (adviser to provide template letter); (3) Follow-up call scheduled 7 March 2026 to confirm first payment received; (4) Adviser to review expression of wishes nomination — client to complete updated form."
+      - "Actions: (1) No immediate investment action — client wishes to take 4 weeks to consider recommendation before proceeding (vulnerability adjustment); (2) Adviser to resend suitability report in larger font (14pt) by 17/02/2026; (3) Follow-up meeting to be scheduled for w/c 16/03/2026 with client's daughter present; (4) Compliance notification filed re: vulnerable client protocol."
+    anti_patterns:
+      - "Actions to follow."
+      - "Will be in touch."
+      - "Next steps to be confirmed."
+
+  - id: client_agreement
+    description: >
+      The note must record that the client received, understood, and
+      acknowledged the recommendation, including acknowledgement of the costs
+      and charges, the risks involved, and any right to a cooling-off period.
+      Where a client declines or defers a recommendation, this should also be
+      recorded, together with any information provided about the consequences
+      of not proceeding.
+    required: true
+    severity: high
+    guidance: >
+      Evidence of client agreement may take the form of a signed letter of
+      authority, electronic signature, verbal confirmation recorded in the note,
+      or a signature on the suitability report itself. Under Consumer Duty, the
+      firm must have reasonable assurance that the client understood the
+      recommendation — a signature alone may be insufficient where there are
+      comprehension concerns (e.g. vulnerability indicators). Where a client
+      proceeds against adviser recommendation, document this as an execution-only
+      instruction with the client's reasons recorded.
+    examples:
+      - "Client confirmed agreement with all recommendations verbally during the meeting and subsequently via signed letter of authority received 14/02/2026. Suitability report to be issued within 5 working days; client advised of right to raise concerns or withdraw instructions within that period. Client confirmed understanding of charges, risks, and the basis of the recommendation."
+      - "Electronic signature obtained via DocuSign (envelope ID: DS-20260214-0042) on suitability report and costs disclosure illustration. Client confirmed receipt and confirmed no further questions. Two-day cooling-off period noted; no contact received. Instructions to proceed authorised 16/02/2026."
+      - "Client declined drawdown recommendation and elected to take tax-free cash only at this stage, deferring income drawdown decision by 6 months. Execution-only instruction recorded for PCLS payment of £55,000. Client provided written confirmation of decision against advice (form EO-2026-001 retained on file). Risks of delay and ongoing pension charges explained."
+    anti_patterns:
+      - "Client agreed to proceed."
+      - "Client happy with recommendations."
+      - "Client signed."
+
+  - id: tax
+    description: >
+      The note must document the tax considerations relevant to the advice,
+      including as applicable: pension tax relief (rate applicable to the
+      client, annual allowance, lifetime allowance legacy protections),
+      Capital Gains Tax (annual exemption, estimated gain, tax band),
+      Inheritance Tax (estate position, available reliefs, potential IHT
+      liability), and Income Tax implications of investment returns or
+      withdrawals. Where tax advice falls outside the scope of the firm's
+      permissions, referrals to a tax specialist or accountant should be noted.
+    required: true
+    severity: high
+    guidance: >
+      Tax considerations must be personalised to the client's situation. A
+      generic statement that "ISAs are tax-efficient" does not satisfy this
+      requirement. Where the advice has material tax implications (e.g. a large
+      pension withdrawal triggering higher-rate tax, a disposal crystallising a
+      significant CGT liability), these must be quantified or estimated. Document
+      whether the client has sought or been referred for independent tax advice.
+      Pension annual allowance must be confirmed as sufficient for recommended
+      contributions, with reference to any carry forward used. Post-April 2024
+      LTA abolition should be referenced where relevant.
+    examples:
+      - "Tax position: client is a higher-rate (40%) taxpayer. Pension contributions of £20,000 recommended — basic rate relief claimed at source (£16,000 net contribution); client must claim additional 20% (£4,000) via self-assessment. Annual allowance: £60,000 — utilised £24,000 via employer scheme; £36,000 available. No LTA protections in place (post-April 2024 LTA abolished). ISA subscription of £20,000 recommended to shelter future growth from CGT and income tax — full annual allowance available."
+      - "CGT consideration: client proposing to encash unit trust (estimated gain £48,000, cost basis £20,000). CGT annual exemption: £3,000. Estimated taxable gain: £45,000. At basic rate (10%) this would crystallise approximately £4,500 CGT. Adviser recommended phased disposal over two tax years to utilise two annual exemptions — estimated CGT saving £300. Client's accountant to be consulted re: other disposals in current tax year."
+      - "IHT position: client's estate estimated at £1.4m (property £950,000, pension £280,000 excluded post-April 2027 rule change, investments £170,000). Nil-rate band £325,000 + RNRB £175,000 = £500,000 threshold. Estimated IHT exposure: £360,000. IHT planning not in scope of this advice; referral letter to specialist solicitor provided at client's request."
+    anti_patterns:
+      - "Tax considered."
+      - "ISA recommended for tax efficiency."
+      - "Tax advice is outside the scope of this meeting."
+
+  - id: esg
+    description: >
+      Under MiFID II sustainability preferences requirements (as amended 2022)
+      and FCA expectations under SDR, the note must document: whether ESG or
+      sustainability preferences were assessed, the outcome of that assessment,
+      and how the recommended product(s) address (or do not address) those
+      preferences. Where the client has preferences that cannot be fully met
+      by available products, the note must document how this was handled and
+      whether the client accepted a product that partially meets their
+      preferences.
+    required: true
+    severity: medium
+    guidance: >
+      ESG preferences must be assessed positively — it is not sufficient to
+      note only that the client has no preferences. The assessment should
+      cover the three MiFID II preference categories: (1) minimum proportion
+      in EU Taxonomy-aligned investments, (2) minimum proportion in sustainable
+      investments per SFDR Art.9/2(17), and (3) consideration of principal
+      adverse impacts (PAIs). In practice, advisers may use a simplified
+      preference questionnaire, but the outcome must be recorded. Where the
+      client has preferences, document the SFDR classification of recommended
+      funds (Article 6, 8, or 9). Under FCA SDR, use of sustainability labels
+      should be referenced where applicable.
+    examples:
+      - "ESG preferences assessed via firm's sustainability questionnaire (completed in meeting). Client expressed strong preference for exclusion of fossil fuel companies and arms manufacturers. No minimum Taxonomy or SFDR allocation requirement specified by client beyond these exclusions. Recommended funds: Rathbone Greenbank Global Sustainability Fund (Article 8 SFDR, fossil fuel and weapons exclusions confirmed) and Royal London Sustainable Leaders (Article 8). Client confirmed these meet their preferences. SDR label: 'Sustainability Focus' (RLSL)."
+      - "ESG questionnaire completed. Client has no specific sustainability preferences and prioritises financial returns above sustainability considerations. Confirmed they do not wish to restrict investment universe on ESG grounds. Conventional fund range recommended (Vanguard LifeStrategy — Article 6 SFDR). Client acknowledged availability of sustainable alternatives and confirmed this choice. Documented per MiFID II requirement to record outcome even where no preferences expressed."
+      - "Client expressed preference for impact investing — wishes capital to demonstrably contribute to positive environmental outcomes. Recommended Impax Environmental Markets Investment Trust (Article 9 SFDR equivalent, FCA-authorised). ESG methodology and impact reporting explained. Client noted that financial return is secondary to impact for this portion of the portfolio (£50,000 of £200,000 total). Remainder of portfolio in conventional funds per client's instruction."
+    anti_patterns:
+      - "ESG discussed."
+      - "Client has no ESG preference noted."
+      - "Client happy with ESG approach — sustainable funds selected."
+
+meeting_type_overrides:
+  annual_review:
+    description: >
+      Overrides applied when the meeting is an annual suitability review of
+      an existing client relationship. The review must confirm continued
+      suitability of all existing holdings, reassess the client's circumstances,
+      and identify any material changes since the prior review.
+    elements:
+      client_id:
+        required: false
+        severity: low
+        notes: >
+          Existing client — identity verification already on file. Re-verification
+          only required if triggered by a periodic CDD review cycle (typically
+          every 2–3 years), a change in client risk classification, or a suspicious
+          activity indicator. Note the last verification date.
+      meeting_context:
+        required: true
+        severity: high
+        notes: >
+          Must confirm this is a periodic review, record the date of the previous
+          review, and document whether the client's circumstances have changed
+          materially since that review.
+      objectives:
+        required: true
+        severity: critical
+        notes: >
+          Objectives must be actively re-confirmed or updated — do not carry
+          forward from the prior review without explicit client confirmation.
+          Life stage changes (e.g. approaching retirement, bereavement, redundancy)
+          may significantly alter objectives.
+      risk_tolerance:
+        required: true
+        severity: critical
+        notes: >
+          ATR and CfL must be re-assessed annually. A repeat questionnaire is
+          best practice. Document any changes in risk profile and, if the existing
+          portfolio is now misaligned, document the rebalancing recommendation or
+          record the client's informed decision not to rebalance.
+      suitability_rationale:
+        required: true
+        severity: critical
+        notes: >
+          Must confirm that existing holdings remain suitable in light of current
+          circumstances, not merely that they were suitable at outset. Where no
+          changes are recommended, a positive statement of continued suitability
+          is required.
+      vulnerability:
+        required: true
+        severity: critical
+        notes: >
+          Consumer Duty requires ongoing vulnerability assessment at every
+          client interaction. Record whether vulnerability status has changed
+          since the last review and any adjustments made.
+      existing_arrangements:
+        required: true
+        severity: critical
+        notes: >
+          Full portfolio review required — record current values, asset allocation,
+          performance since last review, and any drift from target allocation.
+          Compare to prior review and explain material changes.
+      charges:
+        required: true
+        severity: high
+        notes: >
+          Annual confirmation that charges continue to represent fair value is
+          required under Consumer Duty. Note any charge changes since the prior
+          review and confirm the client remains aware of the total cost.
+      tax:
+        required: true
+        severity: high
+        notes: >
+          Tax position should be reviewed annually given potential changes in
+          allowances (CGT exemption, pension annual allowance, ISA limits),
+          the client's income and tax band, and any legislative changes.
+      esg:
+        required: true
+        severity: high
+        notes: >
+          MiFID II requires ESG preferences to be re-assessed at least annually.
+          Confirm whether preferences have changed and whether recommended funds
+          continue to meet those preferences.
+      actions:
+        required: true
+        severity: high
+        notes: >
+          Review actions from the prior meeting and confirm completion status
+          before recording new actions.
+      client_agreement:
+        required: true
+        severity: high
+        notes: >
+          Client must confirm continued agreement with existing strategy or
+          agreement to any changes recommended at the review.
+
+  ad_hoc_call:
+    description: >
+      Overrides applied when the interaction is an unscheduled or ad hoc
+      contact — typically client-initiated to discuss a specific concern,
+      market event, or minor change — where no new formal recommendation
+      is necessarily made. Where a recommendation is made in an ad hoc
+      call, full suitability requirements apply.
+    elements:
+      client_id:
+        required: false
+        severity: low
+        notes: >
+          Existing client — ID verification not required for an ad hoc call
+          unless a new transaction is being initiated that triggers AML
+          re-verification requirements.
+      meeting_context:
+        required: true
+        severity: high
+        notes: >
+          Must document the purpose of the call, who initiated it, and what
+          was discussed. If no recommendation was made, this should be stated
+          explicitly.
+      objectives:
+        required: false
+        severity: medium
+        notes: >
+          Full objectives re-assessment is not required for an ad hoc call
+          where no recommendation is made. However, if the client's circumstances
+          suggest a material change in objectives, escalate to a full review.
+      risk_tolerance:
+        required: false
+        severity: medium
+        notes: >
+          Risk re-assessment not required for an informational or reassurance
+          call. Required if any new recommendation is made during the call.
+      suitability_rationale:
+        required: false
+        severity: high
+        notes: >
+          Required only if a recommendation is made during the ad hoc call.
+          If no recommendation is made, note this explicitly. If a recommendation
+          is made, full suitability rationale must be documented.
+      vulnerability:
+        required: true
+        severity: high
+        notes: >
+          Consumer Duty requires vulnerability to be considered at every client
+          interaction regardless of meeting type. Even for a brief call, note
+          any indicators observed and any adjustments made.
+      existing_arrangements:
+        required: false
+        severity: low
+        notes: >
+          Full review of existing arrangements is not required unless the call
+          leads to a recommendation to change or add to those arrangements.
+      charges:
+        required: false
+        severity: medium
+        notes: >
+          Charges disclosure required only if a new product, transaction, or
+          change in service level is recommended during the call.
+      tax:
+        required: false
+        severity: low
+        notes: >
+          Tax considerations required only if a transaction with tax implications
+          is recommended or executed during the ad hoc call.
+      esg:
+        required: false
+        severity: low
+        notes: >
+          ESG re-assessment not required for an ad hoc call unless a new
+          investment recommendation is made.
+      actions:
+        required: true
+        severity: high
+        notes: >
+          Any commitments made during the call — by adviser or client — must be
+          recorded, even if they are minor (e.g. "will send updated factsheet").
+      client_agreement:
+        required: false
+        severity: medium
+        notes: >
+          Required if any instruction or recommendation is confirmed during the
+          call. If the call is purely informational, record that no instruction
+          was given.
+
+  new_client:
+    description: >
+      Overrides applied when the meeting is with a new client — i.e. a client
+      for whom the firm has no prior suitability record. All elements are
+      required in full, and enhanced standards apply to identity verification,
+      fact-finding, and disclosure.
+    elements:
+      client_id:
+        required: true
+        severity: critical
+        notes: >
+          Full CDD mandatory for all new clients. Where risk factors are present
+          (HNW, complex source of wealth, PEP, non-standard nationality), EDD
+          must be applied before any recommendation is made. Do not proceed to
+          advice until CDD is complete and satisfactory.
+      meeting_context:
+        required: true
+        severity: high
+        notes: >
+          Document how the client was introduced (referral, marketing, direct
+          enquiry), the scope of the initial engagement, and any disclosure of
+          the firm's services and regulatory status made at the outset.
+      objectives:
+        required: true
+        severity: critical
+        notes: >
+          Full fact-find required. For a new client, objectives should be explored
+          in depth — do not rely on client's initial framing. Probe for competing
+          priorities, undisclosed constraints, and life stage context.
+      risk_tolerance:
+        required: true
+        severity: critical
+        notes: >
+          ATR questionnaire must be completed and retained for all new clients.
+          CfL must be assessed with reference to the client's full financial
+          position established during the fact-find.
+      suitability_rationale:
+        required: true
+        severity: critical
+        notes: >
+          For a new client, the rationale must also explain why this product
+          is suitable relative to the client's existing arrangements (if any),
+          and confirm that any recommendation to switch or consolidate is in
+          the client's best interest.
+      vulnerability:
+        required: true
+        severity: critical
+        notes: >
+          Initial vulnerability assessment must be thorough for a new client
+          where no prior relationship exists. Use a structured vulnerability
+          screening approach and document the outcome in full.
+      existing_arrangements:
+        required: true
+        severity: high
+        notes: >
+          A complete picture of existing arrangements is essential before making
+          any recommendation to a new client. Do not make a recommendation until
+          all material existing arrangements have been disclosed and considered.
+      charges:
+        required: true
+        severity: critical
+        notes: >
+          Initial disclosure of all charges must be given at the outset of the
+          new client relationship, prior to any advice being provided.
+          The client must have the opportunity to understand and accept the
+          cost of the service before proceeding. Record explicit acknowledgement.
+      tax:
+        required: true
+        severity: high
+        notes: >
+          Full tax fact-find required for new clients — establish income tax
+          band, pension annual allowance position, CGT history, IHT exposure,
+          and any relevant tax protections or elections in place.
+      esg:
+        required: true
+        severity: high
+        notes: >
+          ESG preference assessment is mandatory for all new clients at
+          onboarding under MiFID II. Use a structured questionnaire and
+          retain the output.
+      actions:
+        required: true
+        severity: high
+        notes: >
+          For a new client, actions should include all outstanding fact-find
+          items, document requests, and the timeline for issuing the suitability
+          report. Do not commence implementation until the suitability report
+          has been issued and the client has had the opportunity to review it.
+      client_agreement:
+        required: true
+        severity: critical
+        notes: >
+          For a new client, explicit written acknowledgement of the recommendation
+          is required before implementation. Ensure the client has received the
+          suitability report, the costs and charges illustration, and the client
+          agreement/terms of business, and that all have been acknowledged.
