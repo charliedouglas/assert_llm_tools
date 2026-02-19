@@ -32,6 +32,7 @@ def evaluate_note(
     custom_instruction: Optional[str] = None,
     pass_policy: Optional[PassPolicy] = None,
     metadata: Optional[Dict[str, Any]] = None,
+    meeting_type: Optional[str] = None,
 ) -> GapReport:
     """
     Evaluate a compliance note against a regulatory framework definition.
@@ -72,6 +73,15 @@ def evaluate_note(
         metadata (dict, optional):
             Arbitrary key/value pairs attached to GapReport.metadata.
 
+        meeting_type (str, optional):
+            The type of meeting being evaluated (e.g. "annual_review",
+            "ad_hoc_call", "new_client"). When supplied, per-element
+            ``required`` and ``severity`` overrides from the framework's
+            ``meeting_type_overrides`` section are applied before evaluation.
+            If the meeting_type is not present in the framework overrides,
+            the full framework is used with no error. Defaults to None (full
+            framework, no overrides).
+
     Returns:
         GapReport: Structured evaluation result.
 
@@ -90,6 +100,7 @@ def evaluate_note(
         framework=framework,
         mask_pii=mask_pii,
         metadata=metadata or {},
+        meeting_type=meeting_type,
     )
 
 
@@ -124,12 +135,45 @@ class NoteEvaluator(BaseCalculator):
         framework: Union[str, dict],
         mask_pii: bool = False,
         metadata: Optional[Dict[str, Any]] = None,
+        meeting_type: Optional[str] = None,
     ) -> GapReport:
         """Run the full evaluation pipeline and return a GapReport."""
         # 1. Load & validate framework
         fw = load_framework(framework)
 
-        # 2. Optionally mask PII
+        # 2. Apply meeting_type overrides (if supplied and present in framework)
+        effective_meeting_type: Optional[str] = None
+        elements = fw["elements"]
+        if meeting_type is not None:
+            overrides_section = fw.get("meeting_type_overrides", {})
+            meeting_overrides = overrides_section.get(meeting_type)
+            if meeting_overrides is not None:
+                effective_meeting_type = meeting_type
+                element_overrides: Dict[str, Any] = meeting_overrides.get("elements", {})
+                # Deep-copy elements so we never mutate the cached framework dict
+                import copy
+                elements = copy.deepcopy(elements)
+                for element in elements:
+                    elem_id = element["id"]
+                    if elem_id in element_overrides:
+                        override = element_overrides[elem_id]
+                        if "required" in override:
+                            element["required"] = override["required"]
+                        if "severity" in override:
+                            element["severity"] = override["severity"]
+                logger.info(
+                    "meeting_type '%s' applied: overrides for %d element(s).",
+                    meeting_type,
+                    len(element_overrides),
+                )
+            else:
+                logger.info(
+                    "meeting_type '%s' not found in framework overrides; "
+                    "falling back to full framework.",
+                    meeting_type,
+                )
+
+        # 3. Optionally mask PII
         pii_masked = False
         if mask_pii:
             try:
@@ -139,17 +183,17 @@ class NoteEvaluator(BaseCalculator):
             except Exception as exc:
                 logger.warning("PII masking failed (%s); continuing with original text.", exc)
 
-        # 3. Evaluate each element independently
+        # 4. Evaluate each element independently
         items: List[GapItem] = []
-        for element in fw["elements"]:
+        for element in elements:
             logger.debug("Evaluating element: %s", element["id"])
             item = self._evaluate_element(note_text, element)
             items.append(item)
 
-        # 4. Generate overall summary via a single additional LLM call
+        # 5. Generate overall summary via a single additional LLM call
         summary = self._generate_summary(note_text, fw, items)
 
-        # 5. Compute derived statistics
+        # 6. Compute derived statistics
         stats = self._compute_stats(items)
         overall_score = self._compute_overall_score(items)
         passed = self._determine_pass(items)
@@ -163,6 +207,7 @@ class NoteEvaluator(BaseCalculator):
             summary=summary,
             stats=stats,
             pii_masked=pii_masked,
+            meeting_type=effective_meeting_type,
             metadata=metadata or {},
         )
 

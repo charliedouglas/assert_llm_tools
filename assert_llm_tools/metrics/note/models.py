@@ -65,6 +65,8 @@ class GapReport:
         summary:            Human-readable summary of the evaluation produced by the LLM.
         stats:              Breakdown counts — see GapReportStats.
         pii_masked:         True if PII masking was applied before evaluation.
+        meeting_type:       The meeting type used for this evaluation, or None if the
+                            full framework (no overrides) was applied.
         metadata:           Arbitrary key/value pairs (e.g. note_id, adviser_ref).
     """
 
@@ -76,6 +78,7 @@ class GapReport:
     summary: str
     stats: "GapReportStats"
     pii_masked: bool = False
+    meeting_type: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
