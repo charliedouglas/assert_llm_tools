@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 ElementStatus = Literal["present", "partial", "missing"]
 ElementSeverity = Literal["critical", "high", "medium", "low"]
+OverallRating = Literal["Compliant", "Minor Gaps", "Requires Attention", "Non-Compliant"]
 
 
 # ── Element-level result ───────────────────────────────────────────────────────
@@ -24,27 +25,32 @@ class GapItem:
     Evaluation result for a single framework element.
 
     Attributes:
-        element_id:  The element's id as defined in the framework YAML.
-        status:      Whether the element is present, partially present, or missing.
-        score:       Confidence/quality score for the element, 0.0–1.0.
-                     1.0 = fully present and well-documented.
-                     0.5 = partially addressed.
-                     0.0 = absent.
-        evidence:    Verbatim or paraphrased excerpt from the note that
-                     supports the status assessment, or empty string if missing.
-        severity:    Severity copied from the framework element definition —
-                     reflects the compliance impact if this element is absent/partial.
-        required:    Whether the element is required per the framework.
-        notes:       (optional) Free-text LLM commentary on the gap or quality.
+        element_id:   The element's id as defined in the framework YAML.
+        status:       Whether the element is present, partially present, or missing.
+        score:        Confidence/quality score for the element, 0.0–1.0.
+                      1.0 = fully present and well-documented.
+                      0.5 = partially addressed.
+                      0.0 = absent.
+        evidence:     Verbatim or paraphrased excerpt from the note that supports the
+                      status assessment. None when the element is missing entirely;
+                      for partial elements, captures what was found and what is absent.
+        severity:     Severity copied from the framework element definition —
+                      reflects the compliance impact if this element is absent/partial.
+        required:     Whether the element is required per the framework.
+        notes:        (optional) Free-text LLM commentary on the gap or quality.
+                      Populated only when verbose=True.
+        suggestions:  Actionable remediation suggestions (1–3 items) for gaps.
+                      Empty list when status is "present" — no action needed.
     """
 
     element_id: str
     status: ElementStatus
     score: float          # 0.0–1.0
-    evidence: str
+    evidence: Optional[str]   # None when element is missing
     severity: ElementSeverity
     required: bool
     notes: Optional[str] = None
+    suggestions: List[str] = field(default_factory=list)
 
 
 # ── Top-level report ──────────────────────────────────────────────────────────
@@ -61,6 +67,15 @@ class GapReport:
                             or high elements are missing/partial below threshold.
         overall_score:      Weighted mean of element scores (required elements
                             weighted 2×, optional elements 1×), 0.0–1.0.
+        overall_rating:     Human-readable compliance rating derived from pass/fail
+                            status and gap severity profile. One of:
+                            "Compliant"          — passed, no gaps at all.
+                            "Minor Gaps"         — passed, but some elements partial
+                                                   or optional elements missing.
+                            "Requires Attention" — failed due to high/medium gaps;
+                                                   no critical blockers.
+                            "Non-Compliant"      — failed due to critical required
+                                                   element gaps.
         items:              List of GapItem, one per framework element.
         summary:            Human-readable summary of the evaluation produced by the LLM.
         stats:              Breakdown counts — see GapReportStats.
@@ -71,6 +86,7 @@ class GapReport:
     framework_version: str
     passed: bool
     overall_score: float          # 0.0–1.0
+    overall_rating: OverallRating
     items: List[GapItem]
     summary: str
     stats: "GapReportStats"

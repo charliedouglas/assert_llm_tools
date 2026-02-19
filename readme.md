@@ -2,312 +2,289 @@
 
 **A**utomated **S**ummary **S**coring & **E**valuation of **R**etained **T**ext
 
-ASSERT LLM Tools is a Python library for evaluating summaries and RAG (Retrieval-Augmented Generation) outputs using various metrics, both traditional (ROUGE, BLEU, BERTScore) and LLM-based.
+ASSERT LLM Tools is a lightweight Python library for LLM-based text evaluation. It provides two main capabilities:
 
-## Features
+- **Summary evaluation** — score a summary against source text for coverage, factual accuracy, coherence, and more
+- **Compliance note evaluation** — evaluate adviser meeting notes against regulatory frameworks (FCA, MiFID II) and return a structured gap report
 
+<<<<<<< feat/END-87-remove-pii-legacy
 - **Summary Evaluation**: Measure summary quality with metrics like faithfulness, topic preservation, coherence, and more
 - **RAG Evaluation**: Evaluate RAG systems with metrics for answer relevance, context relevance, and faithfulness
 - **Multiple LLM Providers**: Support for OpenAI and AWS Bedrock APIs
 - **Proxy Support**: Comprehensive proxy configuration for corporate environments
 - **Extensible Architecture**: Easy to add new metrics or LLM providers
+=======
+All evaluation is LLM-based. No PyTorch, no BERT, no heavy dependencies.
+>>>>>>> main
 
 ## Installation
 
 ```bash
-pip install assert_llm_tools
-```
-
-For additional features, install optional dependencies:
-
-```bash
-# For AWS Bedrock support
-pip install assert_llm_tools[bedrock]
-
-# For OpenAI support
-pip install assert_llm_tools[openai]
-
-# For all optional dependencies
-pip install assert_llm_tools[all]
+pip install assert-llm-tools
 ```
 
 ## Quick Start
 
 ### Summary Evaluation
 
-Evaluate a summary against original text:
-
 ```python
 from assert_llm_tools import evaluate_summary, LLMConfig
 
-# Configure LLM for evaluation
 config = LLMConfig(
-    provider="openai",
-    model_id="gpt-4",
-    api_key="your-openai-api-key"
+    provider="bedrock",
+    model_id="us.amazon.nova-pro-v1:0",
+    region="us-east-1",
 )
 
-# Evaluate the summary
 results = evaluate_summary(
     full_text="Original long text goes here...",
     summary="Summary to evaluate goes here...",
-    metrics=["rouge", "faithfulness", "hallucination", "coherence"],
-    llm_config=config
-)
-
-print(results)
-```
-
-### RAG Evaluation
-
-Evaluate a RAG system output:
-
-```python
-from assert_llm_tools import evaluate_rag, LLMConfig
-
-# Configure LLM for evaluation
-config = LLMConfig(
-    provider="bedrock",
-    model_id="anthropic.claude-v2",
-    region="us-east-1"
-)
-
-# Evaluate the RAG output
-results = evaluate_rag(
-    question="What are the main effects of climate change?",
-    answer="Climate change leads to rising sea levels, increased temperatures...",
-    context="Climate change refers to long-term shifts in temperatures...",
+    metrics=["coverage", "factual_consistency", "coherence"],
     llm_config=config,
-    metrics=["answer_relevance", "faithfulness"]
 )
 
 print(results)
+# {'coverage': 0.85, 'factual_consistency': 0.92, 'coherence': 0.88}
 ```
 
-## Proxy Configuration
-
-ASSERT LLM Tools supports various proxy configurations for environments that require proxies to access external APIs.
-
-### Using a General Proxy
+### Compliance Note Evaluation
 
 ```python
-from assert_llm_tools import LLMConfig
+from assert_llm_tools import evaluate_note, LLMConfig
 
-# Configure with a single proxy for both HTTP and HTTPS
-config = LLMConfig(
-    provider="openai",
-    model_id="gpt-4",
-    api_key="your-openai-api-key",
-    proxy_url="http://proxy.example.com:8080"
-)
-```
-
-### Using Protocol-Specific Proxies
-
-```python
-from assert_llm_tools import LLMConfig
-
-# Configure with separate proxies for HTTP and HTTPS
 config = LLMConfig(
     provider="bedrock",
-    model_id="anthropic.claude-v2",
+    model_id="us.amazon.nova-pro-v1:0",
     region="us-east-1",
-    http_proxy="http://http-proxy.example.com:8080",
-    https_proxy="http://https-proxy.example.com:8443"
 )
-```
 
-### Using Environment Variables
-
-The library also respects standard environment variables for proxy configuration:
-
-```bash
-# Set environment variables
-export HTTP_PROXY="http://proxy.example.com:8080"
-export HTTPS_PROXY="http://proxy.example.com:8443"
-```
-
-Then create configuration without explicit proxy settings:
-
-```python
-# No proxy settings in code - will use environment variables
-config = LLMConfig(
-    provider="openai",
-    model_id="gpt-4",
-    api_key="your-openai-api-key"
+report = evaluate_note(
+    note_text="Client meeting note text goes here...",
+    framework="fca_suitability_v1",
+    llm_config=config,
 )
+
+print(report.overall_rating)   # "Compliant" / "Minor Gaps" / "Requires Attention" / "Non-Compliant"
+print(report.overall_score)    # 0.0–1.0
+print(report.passed)           # True / False
+
+for item in report.items:
+    print(f"{item.element_id}: {item.status} (score: {item.score:.2f})")
+    if item.suggestions:
+        for s in item.suggestions:
+            print(f"  → {s}")
 ```
 
-### Proxy Authentication
+## Summary Evaluation
 
-For proxies that require authentication, include the username and password in the URL:
+### Available Metrics
 
-```python
-config = LLMConfig(
-    provider="bedrock",
-    model_id="anthropic.claude-v2",
-    region="us-east-1",
-    proxy_url="http://username:password@proxy.example.com:8080"
-)
-```
+| Metric | Description |
+|--------|-------------|
+| `coverage` | How completely the summary captures claims from the source text |
+| `factual_consistency` | Whether claims in the summary are supported by the source |
+| `factual_alignment` | Combined coverage + consistency score |
+| `topic_preservation` | How well the summary preserves the main topics |
+| `conciseness` | Information density — does the summary avoid padding? |
+| `redundancy` | Detects repetitive content within the summary |
+| `coherence` | Logical flow and readability of the summary |
 
-## Available Metrics
+> **Deprecated names** (still accepted for backwards compatibility): `faithfulness` → use `coverage`; `hallucination` → use `factual_consistency`.
 
-### Summary Metrics
+### Custom Evaluation Instructions
 
-- `rouge`: ROUGE-1, ROUGE-2, and ROUGE-L scores
-- `bleu`: BLEU score
-- `bert_score`: BERTScore precision, recall, and F1
-- `bart_score`: BARTScore
-- `faithfulness`: Measures how well the summary covers claims from the source text (completeness/recall)
-- `hallucination`: Detects claims in the summary not supported by the source text (returns hallucination_score)
-- `topic_preservation`: How well the summary preserves main topics
-- `redundancy`: Measures repetitive content
-- `conciseness`: Evaluates information density and brevity
-- `coherence`: Measures logical flow and readability
-
-### RAG Metrics
-
-- `answer_relevance`: How well the answer addresses the question
-- `context_relevance`: How relevant the retrieved context is to the question
-- `faithfulness`: Factual consistency between answer and context
-- `answer_attribution`: How much of the answer is derived from the context
-- `completeness`: Whether the answer addresses all aspects of the question
-
-## Advanced Configuration
-
-### Custom Model Selection
-
-For BERTScore calculation, you can specify the model to use:
+Tailor LLM evaluation criteria for your domain:
 
 ```python
 results = evaluate_summary(
-    full_text=source,
+    full_text=text,
     summary=summary,
-    metrics=["bert_score"],
-    bert_model="microsoft/deberta-xlarge-mnli"  # More accurate but slower
+    metrics=["coverage", "factual_consistency"],
+    llm_config=config,
+    custom_prompt_instructions={
+        "coverage": "Apply strict standards. Only mark a claim as covered if it is clearly and explicitly represented.",
+        "factual_consistency": "Flag any claim that adds detail not present in the original text.",
+    },
 )
 ```
 
-### AWS Credentials for Bedrock
+### Verbose Output
+
+Pass `verbose=True` to include per-claim reasoning in the results:
 
 ```python
+results = evaluate_summary(..., verbose=True)
+```
+
+## Compliance Note Evaluation
+
+> ⚠️ **Experimental — do not use in live or production systems.**
+>
+> `evaluate_note()` is under active development. Outputs are non-deterministic (LLM-based), the API may change between releases, and results have not been validated against real regulatory decisions. This feature is intended for research, prototyping, and internal tooling only. It is not a substitute for qualified compliance review and must not be used to make or support live regulatory or client-facing decisions.
+
+<<<<<<< feat/END-87-remove-pii-legacy
+### Custom Model Selection
+=======
+### evaluate_note()
+
+```python
+from assert_llm_tools import evaluate_note, LLMConfig
+from assert_llm_tools.metrics.note.models import PassPolicy
+
+report = evaluate_note(
+    note_text=note,
+    framework="fca_suitability_v1",   # built-in ID or path to a custom YAML
+    llm_config=config,
+    mask_pii=False,                    # mask client PII before sending to LLM
+    verbose=False,                     # include LLM reasoning in GapItem.notes
+    custom_instruction=None,           # additional instruction appended to all element prompts
+    pass_policy=None,                  # custom PassPolicy (see below)
+    metadata={"note_id": "N-001"},     # arbitrary key/value pairs, passed through to GapReport
+)
+```
+
+### GapReport
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `framework_id` | `str` | Framework used for evaluation |
+| `framework_version` | `str` | Framework version |
+| `passed` | `bool` | Whether the note passes the framework's policy thresholds |
+| `overall_score` | `float` | Weighted mean element score, 0.0–1.0 |
+| `overall_rating` | `str` | Human-readable compliance rating (see below) |
+| `items` | `List[GapItem]` | Per-element evaluation results |
+| `summary` | `str` | LLM-generated narrative summary of the evaluation |
+| `stats` | `GapReportStats` | Counts by status and severity |
+| `pii_masked` | `bool` | Whether PII masking was applied |
+| `metadata` | `dict` | Caller-supplied metadata, passed through unchanged |
+
+**Overall rating values:**
+
+| Rating | Meaning |
+|--------|---------|
+| `Compliant` | Passed — all elements fully present |
+| `Minor Gaps` | Passed — but some elements are partial or optional elements missing |
+| `Requires Attention` | Failed — high/medium gaps, no critical blockers |
+| `Non-Compliant` | Failed — one or more critical required elements missing or below threshold |
+
+### GapItem
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `element_id` | `str` | Element identifier from the framework |
+| `status` | `str` | `"present"`, `"partial"`, or `"missing"` |
+| `score` | `float` | 0.0–1.0 quality score for this element |
+| `evidence` | `Optional[str]` | Quote or paraphrase from the note supporting the assessment. `None` when element is missing. |
+| `severity` | `str` | `"critical"`, `"high"`, `"medium"`, or `"low"` |
+| `required` | `bool` | Whether this element is required by the framework |
+| `suggestions` | `List[str]` | Actionable remediation suggestions for gaps (empty when `status == "present"`) |
+| `notes` | `Optional[str]` | LLM reasoning (only populated when `verbose=True`) |
+
+### Built-in Frameworks
+
+| Framework ID | Description |
+|-------------|-------------|
+| `fca_suitability_v1` | FCA suitability note requirements under COBS 9.2 / PS13/1 (9 elements) |
+
+### Custom Frameworks
+
+Pass a path to your own YAML file:
+
+```python
+report = evaluate_note(
+    note_text=note,
+    framework="/path/to/my_framework.yaml",
+    llm_config=config,
+)
+```
+
+The YAML schema mirrors the built-in frameworks. See `assert_llm_tools/frameworks/fca_suitability_v1.yaml` for a reference example.
+>>>>>>> main
+
+### Configurable Pass Policy
+
+```python
+from assert_llm_tools.metrics.note.models import PassPolicy
+
+policy = PassPolicy(
+    critical_partial_threshold=0.5,     # partial critical element treated as blocker if score < this
+    required_pass_threshold=0.6,        # required element must score >= this to pass
+    score_correction_missing_cutoff=0.2,
+    score_correction_present_min=0.5,
+    score_correction_present_floor=0.7,
+)
+
+report = evaluate_note(note_text=note, framework="fca_suitability_v1", pass_policy=policy, llm_config=config)
+```
+
+## LLM Configuration
+
+```python
+from assert_llm_tools import LLMConfig
+
+# AWS Bedrock
 config = LLMConfig(
     provider="bedrock",
-    model_id="anthropic.claude-v2",
+    model_id="us.amazon.nova-pro-v1:0",
     region="us-east-1",
-    api_key="YOUR_AWS_ACCESS_KEY",
-    api_secret="YOUR_AWS_SECRET_KEY",
-    aws_session_token="YOUR_SESSION_TOKEN"  # Optional
+    # api_key / api_secret / aws_session_token for explicit credentials (optional — uses ~/.aws by default)
+)
+
+# OpenAI
+config = LLMConfig(
+    provider="openai",
+    model_id="gpt-4o",
+    api_key="your-openai-api-key",
 )
 ```
 
 ### Supported Bedrock Model Families
 
-AWS Bedrock supports multiple model providers. The library automatically detects and handles the correct request/response format for each:
+| Model Family | Example Model IDs |
+|-------------|-------------------|
+| Amazon Nova | `us.amazon.nova-pro-v1:0`, `amazon.nova-lite-v1:0` |
+| Anthropic Claude | `anthropic.claude-3-sonnet-20240229-v1:0` |
+| Meta Llama | `meta.llama3-70b-instruct-v1:0` |
+| Mistral AI | `mistral.mistral-large-2402-v1:0` |
+| Cohere Command | `cohere.command-r-plus-v1:0` |
+| AI21 Labs | `ai21.jamba-1-5-large-v1:0` |
 
-| Model Family | Model ID Prefixes | Example Model IDs |
-|-------------|-------------------|-------------------|
-| **Amazon Nova** | `amazon.nova-*`, `us.amazon.nova-*` | `us.amazon.nova-pro-v1:0`, `amazon.nova-lite-v1:0` |
-| **Anthropic Claude** | `anthropic.claude-*` | `anthropic.claude-3-sonnet-20240229-v1:0`, `anthropic.claude-v2` |
-| **Meta Llama** | `meta.llama*`, `us.meta.llama*` | `meta.llama3-70b-instruct-v1:0`, `us.meta.llama3-2-1b-instruct-v1:0` |
-| **Mistral AI** | `mistral.mistral-*` | `mistral.mistral-large-2402-v1:0`, `mistral.mistral-7b-instruct-v0:2` |
-| **Cohere Command** | `cohere.command-*` | `cohere.command-r-plus-v1:0`, `cohere.command-text-v14` |
-| **AI21 Labs** | `ai21.jamba-*`, `ai21.j2-*` | `ai21.jamba-1-5-large-v1:0`, `ai21.j2-ultra-v1` |
-
-Example using different model providers:
+## Proxy Configuration
 
 ```python
-# Using Meta Llama
-config = LLMConfig(
-    provider="bedrock",
-    model_id="meta.llama3-70b-instruct-v1:0",
-    region="us-east-1"
-)
+# Single proxy
+config = LLMConfig(provider="bedrock", model_id="...", region="us-east-1",
+                   proxy_url="http://proxy.example.com:8080")
 
-# Using Mistral
-config = LLMConfig(
-    provider="bedrock",
-    model_id="mistral.mistral-large-2402-v1:0",
-    region="us-east-1"
-)
+# Protocol-specific
+config = LLMConfig(provider="bedrock", model_id="...", region="us-east-1",
+                   http_proxy="http://proxy.example.com:8080",
+                   https_proxy="http://proxy.example.com:8443")
 
-# Using Cohere
-config = LLMConfig(
-    provider="bedrock",
-    model_id="cohere.command-r-plus-v1:0",
-    region="us-east-1"
-)
+# Authenticated proxy
+config = LLMConfig(provider="bedrock", model_id="...", region="us-east-1",
+                   proxy_url="http://username:password@proxy.example.com:8080")
 ```
 
-### Additional Model Parameters
+Standard `HTTP_PROXY` / `HTTPS_PROXY` environment variables are also respected.
+
+## PII Masking
+
+Apply PII detection and masking before any text is sent to the LLM:
 
 ```python
-config = LLMConfig(
-    provider="openai",
-    model_id="gpt-4",
-    api_key="your-openai-api-key",
-    additional_params={
-        "response_format": {"type": "json_object"},
-        "seed": 42
-    }
-)
-```
-
-### Custom Prompt Instructions for LLM-Based Metrics
-
-For LLM-based metrics (faithfulness, hallucination, topic_preservation, redundancy, conciseness, coherence), you can provide custom instructions to tailor the evaluation to your specific use case:
-
-```python
-# Basic usage with custom instructions
+# Summary evaluation
 results = evaluate_summary(
-    full_text=text,
-    summary=summary,
-    metrics=["faithfulness", "coherence", "hallucination"],
-    llm_config=config,
-    custom_prompt_instructions={
-        "faithfulness": "Apply strict scientific standards. Only mark source claims as present if clearly represented in the summary.",
-        "coherence": "Focus on whether the text flows naturally for a technical audience.",
-        "hallucination": "Be extremely strict. Flag any claim that adds details not in the original."
-    }
+    full_text=text, summary=summary, metrics=["coverage"],
+    llm_config=config, mask_pii=True,
 )
+
+# Note evaluation
+report = evaluate_note(note_text=note, framework="fca_suitability_v1",
+                       llm_config=config, mask_pii=True)
 ```
 
-This is particularly useful for:
-- **Domain-specific evaluation**: Apply industry standards (scientific, legal, medical)
-- **Content type adaptation**: Different criteria for technical docs vs. creative writing
-- **Strictness levels**: Control how lenient or strict the evaluation should be
-
-#### Example: Scientific Content
-
-```python
-results = evaluate_summary(
-    full_text=research_paper,
-    summary=paper_summary,
-    metrics=["faithfulness", "hallucination"],
-    llm_config=config,
-    custom_prompt_instructions={
-        "faithfulness": "Apply strict scientific standards. Ensure important statistical claims and methodology from the source are represented in the summary.",
-        "hallucination": "Flag any claims that go beyond what's explicitly stated in the research."
-    }
-)
-```
-
-#### Example: Creative Writing
-
-```python
-results = evaluate_summary(
-    full_text=story,
-    summary=story_summary,
-    metrics=["coherence", "topic_preservation", "conciseness"],
-    llm_config=config,
-    custom_prompt_instructions={
-        "coherence": "Evaluate for creative writing style. Look for natural narrative flow.",
-        "topic_preservation": "Consider emotional atmosphere and sensory details as important topics.",
-        "conciseness": "For creative writing, some descriptive language is valuable. Don't overly penalize evocative phrasing."
-    }
-)
-```
+> **Note:** `mask_pii=False` is the default. For production use with real client data, set `mask_pii=True`. Output files (e.g. `--output report.json`) may contain verbatim evidence quotes — treat them accordingly.
 
 ## License
 
