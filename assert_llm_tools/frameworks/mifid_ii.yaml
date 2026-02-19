@@ -1,0 +1,715 @@
+# assert_llm_tools/frameworks/mifid_ii.yaml
+
+framework_id: mifid_ii
+name: MiFID II Investment Suitability Framework
+version: 1.0.0
+regulator: ESMA / FCA (MiFID II)
+description: >
+  Defines the required elements for a suitability assessment and record produced
+  under MiFID II when providing personal investment advice or portfolio management
+  services. Covers Arts. 25, 24, 16, and 27 of MiFID II (Directive 2014/65/EU),
+  the Commission Delegated Regulation (EU) 2017/565 (implementing rules on
+  suitability), the ESG sustainability preferences amendment introduced by
+  Commission Delegated Regulation (EU) 2021/1253, and ESMA Guidelines on
+  certain aspects of the MiFID II suitability requirements (ESMA35-43-869).
+  Designed to accommodate different meeting types via the meeting_type_overrides
+  section (initial_advice, review, execution_only).
+effective_date: "2022-08-02"
+reference: >
+  MiFID II Arts.25, 24, 16, 27; Commission Delegated Regulation (EU) 2017/565
+  Arts.54–57; Commission Delegated Regulation (EU) 2021/1253 (ESG amendment);
+  ESMA Guidelines on MiFID II suitability requirements (ESMA35-43-869)
+
+elements:
+
+  - id: client_categorisation
+    description: >
+      The note must record the client's MiFID II categorisation — Retail Client,
+      Professional Client, or Eligible Counterparty — as this determines the
+      level of investor protection and disclosure obligations that apply. Where a
+      client has been re-categorised (e.g. elective professional) the basis for
+      that re-categorisation must be documented.
+    required: true
+    severity: critical
+    guidance: >
+      Look for an explicit reference to the client's category. Retail client
+      status must be assumed where not otherwise categorised, and carries the
+      highest level of protection. Where a client has opted up to Professional
+      status, the firm must document the quantitative test (portfolio > €500k,
+      10+ transactions per quarter, 1+ year relevant professional experience)
+      and the client's written acknowledgement of reduced protections.
+      Category directly affects suitability information requirements — a
+      Professional client may require less extensive information gathering.
+    examples:
+      - "Client categorised as Retail Client per the firm's MiFID II categorisation policy. Standard retail client protections and disclosure requirements apply. No request for re-categorisation received."
+      - "Client categorised as Elective Professional following assessment under MiFID II Annex II. Quantitative test satisfied: portfolio size £720,000, average 12 transactions per quarter in equities and bonds over preceding 12 months, CFA charterholder with 8 years in asset management. Client has provided signed acknowledgement of reduced protections (Form EC-PRO-2026, retained on file)."
+      - "Existing client — Professional Client categorisation confirmed at annual review. No material change in client's professional status, portfolio size, or trading frequency since last categorisation review (February 2025). Re-categorisation not required."
+    anti_patterns:
+      - "Client is a retail investor."
+      - "Standard protections apply."
+      - "Client categorisation reviewed."
+
+  - id: investment_objectives
+    description: >
+      The note must document the client's investment objectives in specific terms,
+      including: the purpose of the investment, the intended time horizon, the
+      client's return expectations, any liquidity needs, and any specific
+      constraints or preferences. Under MiFID II Art.25(2) and Delegated
+      Regulation Art.54(2)(a), objectives must be assessed before any personal
+      recommendation is made.
+    required: true
+    severity: critical
+    guidance: >
+      Generic descriptions such as "growth" or "long-term investment" are
+      insufficient. Objectives should be specific and, where possible,
+      quantified. Time horizon must be explicitly stated — it drives asset
+      allocation suitability. Where the client has multiple objectives (e.g.
+      capital growth alongside income generation) each must be recorded with
+      relative priority. Where objectives have changed since the last assessment,
+      document what changed, why, and the impact on the recommendation.
+    examples:
+      - "Investment objective: capital accumulation over a 12-year time horizon to fund retirement at age 67. Target real return: 4–5% pa above CPI. No income requirement during the accumulation phase; client requires access to emergency liquidity of £15,000 (held separately in cash savings). Capital loss tolerance: up to 20% peak-to-trough in any 12-month period acceptable without impacting the overall plan."
+      - "Client's primary objective is to generate sustainable income of €24,000 pa from a €400,000 lump sum following sale of business. Secondary objective: inflation protection over 20-year horizon. Liquidity: client requires ability to access up to 10% of portfolio within 30 days without penalty. No growth imperative — income stability prioritised over capital appreciation."
+      - "Objective: short-to-medium term (3–5 years) capital preservation with modest growth above cash rates. Client approaching retirement (age 61) and seeking to de-risk a legacy equity portfolio. Capital is not required within the period but client is uncomfortable with losses exceeding 10% in any year. Transition strategy recommended — phased de-risking over 18 months."
+    anti_patterns:
+      - "Client wants to invest for the long term."
+      - "Objectives: growth."
+      - "Client's investment goals discussed and noted."
+
+  - id: financial_situation
+    description: >
+      The note must document the client's current financial situation including
+      regular income sources, regular expenditure commitments, existing assets
+      (liquid and illiquid), liabilities, and current liquidity needs. Under
+      MiFID II Art.25(2) and Delegated Regulation Art.54(2)(b), the firm must
+      obtain information about the client's financial situation to the extent
+      relevant to the investment service provided.
+    required: true
+    severity: critical
+    guidance: >
+      A bare statement that the financial situation was "reviewed" is insufficient.
+      Document specific figures or ranges where the client has consented to provide
+      them. Where a client declines to provide information, the firm must document
+      this and may be unable to make a personal recommendation. Assess whether
+      the amount to be invested is appropriate relative to the client's overall
+      financial position — a disproportionate concentration of wealth in a single
+      product or illiquid investment is itself a suitability concern. Liabilities
+      (mortgage, loans) must be documented where material.
+    examples:
+      - "Financial situation: annual gross income £95,000 (employment). Annual committed expenditure approximately £48,000 (mortgage £18,000, household and living costs £20,000, other commitments £10,000). Liquid assets: current account £8,000; Cash ISA £22,000 (emergency reserve); S&S ISA £67,000. Pension (AVC): £112,000. Property: primary residence (£480,000 estimated, mortgage outstanding £190,000). No other material liabilities. Amount to be invested: £50,000 — represents 16% of liquid net worth; concentration risk acceptable."
+      - "Financial situation (summary): self-employed, variable income — average £60,000 pa over past 3 years (range £42,000–£74,000). Monthly fixed outgoings: €2,100. Liquid reserves: €18,000 (3 months expenditure). Existing portfolio: €95,000 equities and bonds. No outstanding loans. New investment: €30,000 from business sale proceeds — client confirmed this is surplus to liquidity needs."
+      - "Client declined to provide detailed income and expenditure figures. Client confirmed that: (a) the sum to be invested (£80,000) is discretionary capital and would not be missed if lost in full; (b) ongoing committed expenditure is fully covered by income; (c) liquid reserves in excess of 6 months expenditure are maintained separately. Unable to conduct full financial assessment; recommendation proceeds on the basis of client self-certification. Limitations of this assessment noted and explained to client."
+    anti_patterns:
+      - "Financial situation reviewed — satisfactory."
+      - "Client has sufficient assets for this investment."
+      - "Income and expenditure discussed."
+
+  - id: knowledge_experience
+    description: >
+      The note must record the client's knowledge of and experience with the
+      relevant types of financial instruments and investment services. Under
+      MiFID II Art.25(2) and Delegated Regulation Art.55, this includes: the
+      types of instruments the client is familiar with, the nature, volume, and
+      frequency of past transactions, and the client's level of education and
+      professional experience relevant to investments.
+    required: true
+    severity: high
+    guidance: >
+      For a personal recommendation (suitability assessment), knowledge and
+      experience assessment is distinct from the appropriateness test applied
+      to execution-only services. The purpose is to ensure the recommendation
+      is understood and appropriate in context. Document whether the client has
+      prior experience with the specific asset class or instrument being
+      recommended. Where experience is limited, record what explanations were
+      provided and confirm the client's understanding. For complex or illiquid
+      instruments (e.g. structured products, AIF, UCITS with complex strategies),
+      additional scrutiny of knowledge and experience is required under ESMA
+      guidelines.
+    examples:
+      - "Knowledge and experience: client has 15 years' experience investing in equities and bonds through ISAs and a SIPP. Familiar with collective investment schemes (unit trusts, OEICs, ETFs). No prior experience with alternative investments or structured products. Recommended instruments (global equity and bond UCITS funds) are within the client's existing knowledge base. No additional explanations required."
+      - "Client is a first-time investor with no prior experience of financial instruments beyond bank savings accounts. Investment knowledge assessed as basic. Adviser explained the nature of collective investment schemes, the impact of charges, investment risk and the potential for loss of capital, and the difference between equity and fixed income risk profiles. Client confirmed understanding and comfort with the explanations provided before proceeding."
+      - "Client is a qualified solicitor with 20 years' experience. Has held direct equities, bonds, ETFs, and two structured capital-at-risk products. Demonstrates good understanding of risk/return trade-off, charges, and market dynamics. Knowledge and experience sufficient for the recommended investment strategy (multi-asset UCITS portfolio with moderate complexity)."
+    anti_patterns:
+      - "Client has investment experience."
+      - "Knowledge and experience: adequate."
+      - "Client confirmed understanding of products."
+
+  - id: risk_profile
+    description: >
+      The note must document the client's risk profile, comprising both their
+      Attitude to Risk (ATR — psychological willingness to accept risk) and
+      their Capacity for Loss (CfL — financial ability to sustain capital loss
+      without material detriment to living standards). These must be assessed
+      as distinct dimensions and reconciled where they conflict. The resulting
+      risk category must be assigned and documented with supporting rationale.
+      Required under MiFID II Art.25(2) and Delegated Regulation Art.54(2)(a).
+    required: true
+    severity: critical
+    guidance: >
+      A risk label alone (e.g. "Balanced") is insufficient without documenting
+      the assessment process. Record the tool or methodology used for ATR (e.g.
+      FinaMetrica, Dynamic Planner, Oxford Risk), the resulting score or outcome,
+      and the risk category assigned. CfL must be assessed separately by reference
+      to income, liquid assets, essential commitments, and the relative size of
+      the investment. Where ATR and CfL diverge, the more conservative of the
+      two must be treated as the binding constraint, with the rationale explained
+      to and accepted by the client. Risk profile must be re-assessed at each
+      review or where circumstances change.
+    examples:
+      - "ATR assessed via FinaMetrica questionnaire (score: 62/100 — Balanced). CfL: high — investment represents 22% of net worth, client has stable public sector employment, no material liabilities, and liquid reserves of 8 months' expenditure. ATR and CfL aligned at Balanced. Recommended risk level: Balanced (risk category 4 of 7 on firm's scale)."
+      - "ATR questionnaire result: Moderately Adventurous (Dynamic Planner score 7/10). CfL assessed as Medium: client's income is variable (self-employed), liquid assets outside this portfolio are limited (€15,000), and investment represents 55% of investable assets. CfL treated as binding constraint — portfolio positioned at Balanced (DP 5/10). Conflict between ATR and CfL explained to client; client accepted the more conservative positioning."
+      - "Client's risk profile unchanged since last annual review (Cautious, score 38/100 on Oxford Risk). Re-assessment completed in meeting using updated questionnaire — score 41/100, within the same Cautious band. CfL re-confirmed as Low (retired, fixed income, minimal liquid reserves). No change to risk category or asset allocation required."
+    anti_patterns:
+      - "Risk profile: Balanced."
+      - "Client is comfortable with some investment risk."
+      - "Risk questionnaire completed — results filed."
+
+  - id: product_suitability
+    description: >
+      The note must explain, in personalised and specific terms, why the
+      recommended product(s) or investment strategy are suitable for this
+      particular client at this time. The rationale must draw explicit
+      connections between the client's documented objectives, risk profile,
+      capacity for loss, financial situation, and knowledge/experience, and
+      the specific characteristics of the recommended instrument(s). Required
+      under MiFID II Art.25(2) and Delegated Regulation Art.54.
+    required: true
+    severity: critical
+    guidance: >
+      Generic product descriptions or references to a product being "appropriate
+      for the client's risk profile" are not sufficient. The rationale must be
+      demonstrably client-specific — it should not be possible to apply it
+      verbatim to a different client. Use causal language linking client
+      attributes to the product characteristics: "because the client requires...,
+      this fund was selected because it...". Where alternative products were
+      considered, document why the recommended product was preferred. Under
+      ESMA guidelines, the suitability assessment must cover the entirety of
+      the client's portfolio where relevant (portfolio-level suitability), not
+      only the product in isolation.
+    examples:
+      - "The recommended product (Vanguard FTSE All-World UCITS ETF, OCF 0.22%) is suitable for this client because: (1) the global diversification across 3,700+ holdings aligns with the client's growth objective and 12-year time horizon; (2) the low OCF preserves returns against the client's 4–5% pa real return target; (3) the equity exposure (100%) is consistent with the client's Moderately Adventurous risk profile and high CfL; (4) the daily liquidity of the ETF meets the client's liquidity requirements; (5) the client has prior experience with equity UCITS funds and does not require simplified explanations."
+      - "Recommended strategy: phased de-risking via monthly switches from global equities (60%) to a multi-asset Cautious fund (40%) over 18 months. Suitable because: (1) client is 5 years from intended drawdown commencement — sequencing risk must be managed; (2) ATR assessed as Cautious/Balanced boundary (DP 4.5); (3) target end allocation (30% equity / 70% fixed income/cash) is appropriate for the planned income drawdown strategy; (4) phased approach avoids timing risk of a single switch and is within the client's understanding and comfort. Annuity considered and rejected — client values flexibility and estate planning benefits of drawdown."
+      - "Portfolio rebalanced to restore target allocation (60% equity, 40% bonds) following equity market outperformance — portfolio had drifted to 72% equity. Rebalancing is suitable because: (1) restored allocation is consistent with client's confirmed Balanced risk profile; (2) rebalancing within a SIPP wrapper avoids CGT crystallisation; (3) no change in client's circumstances, objectives, or risk profile since last review justifies a change in target allocation; (4) transaction costs are minimal (fund switches within platform, no external dealing charges)."
+    anti_patterns:
+      - "This fund is suitable for the client's risk profile."
+      - "Product recommended as appropriate for client's objectives."
+      - "Investment matches client's stated needs."
+
+  - id: costs_charges
+    description: >
+      The note must disclose all costs and charges associated with the
+      recommended investment product(s) and the investment service provided,
+      including one-off costs (entry, exit, transaction) and ongoing costs
+      (product charges, platform fees, adviser fees). Under MiFID II Art.24(4)
+      and the associated Delegated Regulation, costs must be presented in both
+      percentage and monetary terms and aggregated into a total cost figure.
+      The impact of costs on the expected return must be illustrated.
+    required: true
+    severity: critical
+    guidance: >
+      A statement that costs were "discussed" or "provided separately" is
+      insufficient unless cross-referenced to a contemporaneous costs disclosure
+      document retained on file. All material cost categories must be covered:
+      product charges (OCF/TER), transaction costs (where applicable), platform
+      or custodian fees, and adviser charges (initial and ongoing). The aggregate
+      cost figure and its annualised impact on the investment must be stated.
+      For portfolio management services, aggregated costs on the entire portfolio
+      must be disclosed at least annually (Art.25(6)). Commission and inducements
+      must be disclosed separately where they apply.
+    examples:
+      - "Costs and charges disclosed per MiFID II Art.24(4): Product (OEIC): OCF 0.59% pa (£295 pa on £50,000). Platform (Transact): 0.25% pa (£125 pa). Adviser charge: 0.75% pa ongoing (£375 pa). Total ongoing cost: 1.59% pa (£795 pa on £50,000). One-off initial adviser charge: 3.0% (£1,500). Transaction costs (estimated): 0.05% (£25). Total first-year cost: £2,320 (4.64% of investment). Costs illustration provided in Personalised Costs and Charges document (ref: CC-2026-0214-001) issued to client in advance of meeting and reviewed together."
+      - "Aggregate costs (portfolio management service, portfolio value €180,000): Portfolio management fee: 0.80% pa (€1,440). Product charges (blended OCF across 8 funds): 0.34% pa (€612). Custodian: 0.15% pa (€270). Transaction costs (estimated from prior year): 0.07% pa (€126). Total: 1.36% pa (€2,448 pa). Aggregated annual costs statement issued per Art.25(6) for the preceding calendar year. Client confirmed receipt and raised no queries."
+      - "Initial investment costs: One-off dealing charge £12.50 per transaction (4 transactions = £50.00). Stamp Duty Reserve Tax: 0.5% on UK equity purchases (£87.50 on £17,500 UK equity allocation). Ongoing: Platform ISA charge £9.99 pm (£119.88 pa). Fund OCF (iShares Core MSCI World): 0.20% pa (£50 pa on £25,000). Total first-year cost: £257.38 (1.03% of £25,000 investment). No adviser charge — execution service. Cost impact on 5% gross assumed return: net return approximately 3.97% pa."
+    anti_patterns:
+      - "Charges explained to client."
+      - "Costs as per our standard schedule — see separate documentation."
+      - "Total charges: 1.5% pa."
+
+  - id: best_execution
+    description: >
+      Where the firm executes orders (or transmits orders for execution) as part
+      of the investment service, the note must confirm that the firm's best
+      execution policy was applied. Under MiFID II Art.27, firms must take all
+      sufficient steps to obtain the best possible result for clients when
+      executing orders, having regard to price, costs, speed, likelihood of
+      execution and settlement, size, nature, and any other relevant consideration.
+    required: true
+    severity: high
+    guidance: >
+      For discretionary portfolio management or advised transactions involving
+      order execution, the note should confirm that best execution was applied
+      and reference the firm's Order Execution Policy. Where specific execution
+      decisions are made (e.g. choice of execution venue, timing of trades),
+      document the rationale. For advised sales where the client retains control
+      of execution (e.g. a direct-to-platform transaction), the best execution
+      obligation may rest with the executing broker — note this and confirm the
+      broker has a best execution policy the client can access. Best execution
+      is not applicable to execution-only services in the same way but the
+      policy must still be disclosed.
+    examples:
+      - "All orders executed in accordance with the firm's Order Execution Policy (v3.2, effective January 2026). For this transaction, execution venue selected was Transact platform (primary venue for retail UCITS funds). Price obtained confirmed as mid-market at time of submission. Order size (£50,000) within normal market conditions for this fund — no liquidity concern. Execution Policy summary provided to client at onboarding; client confirmed no preference for alternative execution arrangements."
+      - "Portfolio rebalancing trades (4 fund switches within Quilter Wrap) executed in accordance with best execution policy. Switches executed as forward pricing OEIC instructions — price determined at next valuation point (12:00 next business day). No alternative execution venues available for these instruments; single venue best execution confirmed. Transaction costs within policy benchmark range."
+      - "This recommendation is an advised sale only. Client has elected to execute the transaction directly via their existing interactive brokers account. Advised the client that best execution obligations in respect of the execution itself are borne by Interactive Brokers; client confirmed they have reviewed Interactive Brokers' Order Execution Policy. Firm's best execution policy does not apply to the execution leg of this transaction."
+    anti_patterns:
+      - "Best execution policy applied."
+      - "Orders executed in line with firm policy."
+      - "Trade executed at market price."
+
+  - id: conflicts_of_interest
+    description: >
+      The note must document any conflicts of interest relevant to the advice
+      or transaction, and how those conflicts were managed in accordance with
+      the firm's conflicts of interest policy. Under MiFID II Art.23, firms
+      must identify conflicts and either prevent or disclose them. Where a
+      conflict exists, the disclosure must be sufficiently specific to enable
+      the client to make an informed decision.
+    required: true
+    severity: high
+    guidance: >
+      A bare statement that "conflicts of interest are disclosed in our terms
+      of business" is insufficient if a specific conflict is present. Where
+      a relevant conflict exists (e.g. the firm receives commission from a
+      product provider, there is a group relationship, the adviser holds a
+      personal interest, or there is a financial incentive to recommend a
+      particular product), it must be identified and disclosed specifically.
+      Where no conflicts exist relevant to this transaction, a positive
+      statement to that effect should be recorded. Under RTS 25 (Delegated
+      Regulation 2017/593), inducements received must be disclosed and
+      must demonstrably enhance service quality.
+    examples:
+      - "Conflicts of interest: none identified specific to this recommendation. The firm does not receive commission, trail, or other inducements from Royal London in respect of the recommended fund. The firm's remuneration (ongoing adviser charge 0.75% pa) is transparent and agreed with the client. No group relationship or personal interest of the adviser in the recommended product. General conflicts policy provided in Terms of Business (section 7) — no specific disclosure required for this transaction."
+      - "Conflict disclosed: the firm has a commercial arrangement with Transact platform under which it receives a rebate of 0.05% pa on assets held on platform. This benefit has been assessed as a minor non-monetary benefit that enhances service quality (consolidated reporting, reduced dealing costs) and is therefore permissible under MiFID II RTS 25. Client has been informed of this arrangement and the amount (estimated £25 pa on this investment). Client confirmed they are comfortable proceeding on this basis."
+      - "Conflict identified and managed: the adviser's bonus scheme includes a target related to new assets under management. This creates a potential incentive to recommend products that increase AUM. To manage this conflict, the recommendation has been reviewed by the Compliance function prior to issue (sign-off ref: CO-2026-0214-007). Client informed of this arrangement. Compliance review confirmed recommendation is in client's best interest and not influenced by the commercial incentive."
+    anti_patterns:
+      - "No conflicts of interest."
+      - "Conflicts policy provided in terms of business."
+      - "Conflicts of interest managed per firm policy."
+
+  - id: sustainability_preferences
+    description: >
+      The note must document the client's sustainability preferences as required
+      by the ESG amendment to MiFID II (Commission Delegated Regulation (EU)
+      2021/1253, effective August 2022). The assessment must cover the three
+      MiFID II sustainability preference categories: (1) minimum proportion of
+      investment in EU Taxonomy-aligned activities; (2) minimum proportion in
+      sustainable investments as defined in SFDR Art.2(17); and (3) consideration
+      of Principal Adverse Impacts (PAIs) on sustainability factors. The outcome
+      must be recorded and reflected in the product suitability assessment.
+    required: true
+    severity: high
+    guidance: >
+      Sustainability preferences must be assessed as a positive step — it is
+      not sufficient to note only that the client has no preferences. The
+      assessment should use a structured approach and the outcome recorded
+      for each of the three categories. Where the client has preferences that
+      cannot be fully met by available products, the note must document how
+      this was handled and whether the client agreed to adjust their preferences
+      to allow a suitable recommendation to be made. Under ESMA Q&A on
+      sustainability preferences (ESMA35-43-2998), advisers may not override
+      client preferences without the client's explicit agreement. Reference the
+      SFDR classification (Article 6, 8, or 9) of recommended products where
+      preferences are expressed.
+    examples:
+      - "Sustainability preferences assessed per MiFID II (2021/1253 amendment): (1) EU Taxonomy alignment: client specified no minimum requirement; (2) SFDR sustainable investments: client requested at least 30% of portfolio in SFDR Art.8 or Art.9 funds; (3) PAIs: client expressed preference to avoid companies with significant carbon emissions (climate PAI). Recommended portfolio: 100% SFDR Article 8 funds (Nordea 1 – Global Climate and Environment Fund; BNP Paribas Easy – Low Carbon 100 Europe ETF). PAI screening confirmed — both funds exclude companies in the top quartile of carbon intensity per MSCI ESG data. Client confirmed preferences are met."
+      - "Sustainability preferences assessment: client completed firm's ESG preference questionnaire. No minimum Taxonomy allocation specified. No minimum SFDR sustainable investment proportion required. Client requested PAI consideration for social factors (labour rights, supply chain standards). Recommended fund (Baillie Gifford Positive Change, SFDR Article 9) screens for labour standards and human rights via UNGC principles. Client confirmed this meets their PAI preference."
+      - "Client expressed no sustainability preferences across all three MiFID II categories. Client stated that financial return is the sole priority for this portfolio and they do not wish to restrict the investment universe on ESG grounds. Sustainability alternatives explained and confirmed as available. Client's decision documented — conventional fund range recommended (SFDR Article 6). Per ESMA guidance, preference assessment outcome recorded even where no preferences expressed."
+    anti_patterns:
+      - "ESG discussed with client."
+      - "Client has no ESG preferences."
+      - "Sustainable funds available — client not interested."
+
+  - id: product_governance
+    description: >
+      The note must confirm that the recommended product falls within its
+      defined target market and that the client matches the characteristics
+      for which the product was designed. Under MiFID II Arts.16(3) and 24(2),
+      distributors must have product governance arrangements in place and must
+      distribute products only to clients within the manufacturer's identified
+      target market. Negative target market exclusions must also be applied.
+    required: true
+    severity: high
+    guidance: >
+      Document confirmation that the product's target market (as defined in the
+      manufacturer's product approval documentation or PRIIP/KIID) is consistent
+      with the client's profile. Specifically, confirm: (1) the client's category
+      (retail/professional) is within the target market; (2) the client's risk
+      profile matches the product's risk indicator; (3) the client's knowledge
+      and experience are sufficient for the product; (4) the client is not in the
+      product's negative target market (e.g. a short-term investor should not be
+      in an illiquid long-term product). For complex products or those with
+      specific target market restrictions, this check must be explicit and
+      evidenced.
+    examples:
+      - "Product governance check completed for all recommended funds: Target market confirmed — Retail Client, investment horizon 5+ years, risk indicator 4/7 (Balanced). Client profile: Retail Client, 12-year horizon, Balanced risk profile (4/7). No negative target market criteria triggered (client is not seeking capital protection, does not require income within 3 years, not a vulnerable client requiring simplified products). Product governance confirmation on file (ref: PG-2026-0214-001)."
+      - "Structured product (5-year capital-at-risk note): Target market per manufacturer: Professional or Sophisticated Retail Client with risk tolerance 5–7/7, investment horizon minimum 5 years, no liquidity requirement within the term. Client categorised as Elective Professional; DP risk score 6/10; confirmed no liquidity need within 5 years. Negative target market: clients requiring capital protection or who cannot tolerate total loss — client's CfL assessment confirms tolerance for full capital loss on this portion of the portfolio. Target market confirmed as matched."
+      - "Annual review — product governance re-confirmation: reviewed all 6 funds in portfolio against updated manufacturer target market statements (accessed via EMT on 10/02/2026). No changes to target market definitions since prior review. Client's risk profile (Balanced, 4/7) and category (Retail) remain within target market for all funds. No negative target market concerns identified. Product governance re-confirmed for the coming review period."
+    anti_patterns:
+      - "Product is suitable for retail clients."
+      - "Target market confirmed."
+      - "Product governance reviewed — no issues."
+
+  - id: record_keeping
+    description: >
+      The note must confirm that a suitability statement (suitability report or
+      letter) has been or will be provided to the client documenting the advice
+      given and the reasons why the recommended product(s) are suitable for the
+      client. Under MiFID II Art.25(6) and Delegated Regulation Art.60, a
+      suitability statement must be provided before a transaction is concluded
+      (or, in limited circumstances for distance contracts, immediately after).
+      The statement must specify the advice given, how it meets the client's
+      preferences, objectives, and personal circumstances.
+    required: true
+    severity: high
+    guidance: >
+      Record: (1) that a suitability statement will be or has been issued;
+      (2) the timeline for issue; and (3) whether the client received it before
+      the transaction was executed (pre-transaction) or immediately after (for
+      distance contracts). For portfolio management services, confirm that
+      periodic suitability reporting will be provided (at least annually per
+      Art.25(6)). Where execution was deferred until after suitability statement
+      receipt, record this explicitly. A note that the "suitability report will
+      follow" is insufficient without a specific timeline and confirmation of
+      the pre/post-transaction sequencing.
+    examples:
+      - "Suitability statement to be issued to client within 3 business days (by 18/02/2026) in accordance with MiFID II Art.25(6). Client has been advised not to execute any instructions until they have received and reviewed the suitability statement. Implementation instructions to be held pending receipt of client's written confirmation of acceptance. Suitability statement will cover all elements of this recommendation including product suitability rationale, costs and charges, risks, and sustainability assessment."
+      - "Suitability statement issued to client by email (confirmed delivered 14/02/2026 10:47) prior to execution of any transactions. Client confirmed receipt verbally and subsequently via signed acknowledgement (DocuSign, env. ref DS-2026-0214-089). Transaction instructions submitted at 14:30 on 14/02/2026 — after suitability statement receipt confirmed. Pre-transaction sequencing requirement satisfied."
+      - "Portfolio management service: annual suitability review completed. Updated suitability statement issued to client summarising: confirmation of continued suitability of existing portfolio, updated costs and charges disclosure, ESG preference re-assessment, and changes in client's circumstances. Statement issued 14/02/2026. Client confirmed no queries. Next annual suitability review scheduled: February 2027."
+    anti_patterns:
+      - "Suitability report to follow."
+      - "Client provided with suitability documentation."
+      - "Suitability statement issued."
+
+meeting_type_overrides:
+
+  initial_advice:
+    description: >
+      Overrides applied when the meeting represents initial personal investment
+      advice to a new client, or the first recommendation under a new investment
+      mandate. All elements are required in full at the initial advice stage.
+      Enhanced standards apply to fact-finding, disclosure, and product governance.
+    elements:
+      client_categorisation:
+        required: true
+        severity: critical
+        notes: >
+          Client categorisation is mandatory at onboarding. Categorisation must
+          be determined and documented before advice is provided. Where a client
+          requests elective professional status, the full quantitative and
+          qualitative assessment must be completed and the client's written
+          waiver of retail protections obtained and retained before proceeding.
+      investment_objectives:
+        required: true
+        severity: critical
+        notes: >
+          Full fact-find required. For an initial advice engagement, objectives
+          must be explored in depth — do not rely solely on the client's initial
+          framing. Probe for competing priorities, undisclosed constraints, and
+          life stage context. Quantify objectives where possible.
+      financial_situation:
+        required: true
+        severity: critical
+        notes: >
+          Comprehensive financial fact-find required at initial advice stage.
+          Do not proceed to a recommendation without a complete picture of income,
+          expenditure, assets, liabilities, and existing investment arrangements.
+          Where a client declines to provide information, document this and
+          consider whether a suitable recommendation can be made.
+      knowledge_experience:
+        required: true
+        severity: high
+        notes: >
+          Full knowledge and experience assessment required at initial advice.
+          For complex instruments, assess whether the client's knowledge is
+          sufficient to understand the product's risks and characteristics.
+          Provide explanations where gaps are identified.
+      risk_profile:
+        required: true
+        severity: critical
+        notes: >
+          ATR questionnaire must be completed and retained for all new clients.
+          CfL must be assessed with reference to the full financial situation
+          established in the fact-find. Do not begin investment recommendations
+          until the risk profile is confirmed.
+      product_suitability:
+        required: true
+        severity: critical
+        notes: >
+          For initial advice, the suitability rationale must also explain why
+          the recommended product is suitable relative to the client's existing
+          arrangements (if any), and confirm that any recommendation to switch,
+          consolidate, or surrender is in the client's best interest, with costs
+          and benefits of any switch explicitly assessed.
+      costs_charges:
+        required: true
+        severity: critical
+        notes: >
+          Initial costs and charges disclosure must be provided prior to any
+          recommendation being made and before the client commits to the service.
+          The client must have had the opportunity to understand and accept the
+          total cost before proceeding. Record explicit client acknowledgement.
+      best_execution:
+        required: true
+        severity: high
+        notes: >
+          Order Execution Policy must be disclosed and explained to the client
+          at onboarding. Obtain consent to the policy where applicable. Confirm
+          best execution obligations and how they will be discharged.
+      conflicts_of_interest:
+        required: true
+        severity: high
+        notes: >
+          Full conflicts disclosure required at initial advice. General conflicts
+          policy in terms of business is necessary but may not be sufficient if
+          specific conflicts are present. Any transaction-specific conflicts must
+          be identified and disclosed before advice is provided.
+      sustainability_preferences:
+        required: true
+        severity: high
+        notes: >
+          MiFID II sustainability preferences assessment is mandatory at initial
+          advice for all new clients. Use a structured questionnaire covering all
+          three preference categories. Retain the completed questionnaire on file.
+      product_governance:
+        required: true
+        severity: high
+        notes: >
+          Full product governance target market check required before any product
+          recommendation. Confirm the client falls within the positive target market
+          and is excluded from the negative target market for each recommended
+          product. Document the check explicitly.
+      record_keeping:
+        required: true
+        severity: critical
+        notes: >
+          For initial advice, the suitability statement must be provided before
+          any transaction is executed (not merely before or shortly after). Confirm
+          the client has received, reviewed, and acknowledged the statement before
+          implementation instructions are given. Do not commence execution until
+          this confirmation is received.
+
+  review:
+    description: >
+      Overrides applied when the meeting is a periodic suitability review of
+      an ongoing advisory or portfolio management relationship. The review must
+      confirm continued suitability of all existing investments, reassess the
+      client's circumstances and preferences, and identify any material changes
+      since the prior review. Under Art.25(6), periodic suitability reports
+      are required at least annually for ongoing advisory services.
+    elements:
+      client_categorisation:
+        required: false
+        severity: low
+        notes: >
+          Re-categorisation is not required at every review unless the client's
+          circumstances suggest a change in eligibility (e.g. change in
+          professional status, portfolio size, or trading frequency). Record the
+          date of the most recent categorisation review and confirm no change
+          is required.
+      investment_objectives:
+        required: true
+        severity: critical
+        notes: >
+          Objectives must be actively re-confirmed or updated — do not carry
+          forward from the prior review without explicit client confirmation.
+          Life stage changes (e.g. approaching retirement, bereavement,
+          redundancy, change in family circumstances) may significantly alter
+          objectives and must be documented.
+      financial_situation:
+        required: true
+        severity: high
+        notes: >
+          Key financial situation data must be re-assessed. Record any material
+          changes (new income, change in employment, new liabilities, inheritance,
+          property transactions) since the last review. A positive statement that
+          there have been no material changes is acceptable where the client
+          confirms this.
+      knowledge_experience:
+        required: false
+        severity: low
+        notes: >
+          Full re-assessment of knowledge and experience is not required at
+          periodic review for existing products the client already holds.
+          Required if a new type of instrument or a more complex product is
+          being recommended that is outside the client's assessed experience.
+      risk_profile:
+        required: true
+        severity: critical
+        notes: >
+          ATR and CfL must be re-assessed at each annual review. Re-completing
+          the ATR questionnaire is best practice. Document any change in risk
+          profile and, if the existing portfolio is now misaligned with the
+          updated profile, record the rebalancing recommendation or the client's
+          informed decision not to rebalance with the rationale.
+      product_suitability:
+        required: true
+        severity: critical
+        notes: >
+          Must confirm that existing investments remain suitable in light of the
+          client's current circumstances, not merely that they were suitable at
+          outset. Where no changes are recommended, a positive statement of
+          continued suitability is required — a failure to address suitability
+          at review is itself a breach.
+      costs_charges:
+        required: true
+        severity: high
+        notes: >
+          Annual costs and charges disclosure must be provided at or before the
+          review meeting per Art.25(6). Confirm total costs for the preceding
+          year in monetary terms. Note any charge changes since the prior review.
+          For portfolio management, the annual aggregated costs statement is
+          mandatory.
+      best_execution:
+        required: false
+        severity: low
+        notes: >
+          Best execution re-disclosure is not required at every periodic review
+          unless the firm's Order Execution Policy has materially changed, or a
+          new transaction type is being recommended for which execution
+          arrangements differ from those previously disclosed.
+      conflicts_of_interest:
+        required: false
+        severity: medium
+        notes: >
+          Specific conflict disclosure is required only if a new conflict has
+          arisen since the prior review, or if a new transaction is recommended
+          that gives rise to a specific conflict not covered by the general
+          disclosure in the terms of business.
+      sustainability_preferences:
+        required: true
+        severity: high
+        notes: >
+          MiFID II requires sustainability preferences to be re-assessed at least
+          annually. Confirm whether the client's preferences have changed and
+          whether recommended products continue to meet those preferences. Where
+          preferences have changed, document the impact on the portfolio and any
+          resulting recommendation changes.
+      product_governance:
+        required: true
+        severity: medium
+        notes: >
+          Re-confirm that all existing holdings remain within the manufacturer's
+          target market, particularly where the client's profile has changed.
+          Check for any updates to target market statements issued by product
+          manufacturers since the prior review (via European MiFID Template or
+          equivalent).
+      record_keeping:
+        required: true
+        severity: high
+        notes: >
+          A periodic suitability report (or suitability statement confirming
+          continued suitability) must be provided to the client at or following
+          the review meeting. Where no changes to the portfolio are made, a
+          shorter-form statement confirming continued suitability is acceptable,
+          provided it covers all material elements reviewed.
+
+  execution_only:
+    description: >
+      Overrides applied when the service being documented is an execution-only
+      transaction — i.e. the firm is executing or transmitting a client order
+      without providing personal investment advice. Under MiFID II, execution-only
+      services do not require a suitability assessment. However, appropriateness
+      (Art.25(3)) must be assessed for non-complex instruments where the service
+      is client-initiated, and best execution and conflicts obligations continue
+      to apply. Most suitability elements are not required for execution-only.
+    elements:
+      client_categorisation:
+        required: true
+        severity: high
+        notes: >
+          Client categorisation remains relevant for execution-only services as
+          it determines the level of investor protection and disclosure
+          obligations. Confirm the client's category before executing.
+      investment_objectives:
+        required: false
+        severity: low
+        notes: >
+          Not required for execution-only — no personal advice is provided.
+          Do not solicit objectives in a way that could be construed as providing
+          investment advice.
+      financial_situation:
+        required: false
+        severity: low
+        notes: >
+          Not required for execution-only. Document that no suitability
+          assessment has been conducted and the service is execution-only at
+          the client's specific request.
+      knowledge_experience:
+        required: false
+        severity: medium
+        notes: >
+          For execution-only services in non-complex instruments (Art.25(4)),
+          appropriateness assessment may be waived. For complex instruments
+          (Art.25(3)), appropriateness must be assessed — confirm the client
+          has the knowledge and experience to understand the risks. If
+          appropriateness is negative, warn the client and record their
+          decision to proceed.
+      risk_profile:
+        required: false
+        severity: low
+        notes: >
+          No suitability-based risk profile assessment required for
+          execution-only. If the client is taking on significant risk with
+          a complex instrument, appropriateness (not suitability) obligations
+          apply — document accordingly.
+      product_suitability:
+        required: false
+        severity: low
+        notes: >
+          No suitability rationale required for execution-only. Record explicitly
+          that no personal advice has been given and the transaction is executed
+          at the client's own initiative. Retain evidence that the client
+          initiated the order without adviser recommendation.
+      costs_charges:
+        required: true
+        severity: high
+        notes: >
+          Costs and charges must still be disclosed for execution-only services
+          under MiFID II Art.24(4). Disclose transaction costs (dealing charges,
+          stamp duty, platform fees) prior to execution. Ongoing product charges
+          (OCF) should be disclosed where the client is entering a new position.
+      best_execution:
+        required: true
+        severity: critical
+        notes: >
+          Best execution obligations continue to apply in full for execution-only
+          services. Document the venue, pricing basis, and confirmation that the
+          Order Execution Policy was applied. For client-directed execution
+          venue instructions, record the instruction and confirm the firm's
+          best execution obligation is discharged accordingly.
+      conflicts_of_interest:
+        required: true
+        severity: high
+        notes: >
+          Conflicts obligations continue to apply for execution-only services,
+          particularly where the firm receives any inducement related to the
+          transaction (e.g. payment for order flow, commission). Disclose any
+          specific conflicts relevant to the execution.
+      sustainability_preferences:
+        required: false
+        severity: low
+        notes: >
+          Sustainability preferences assessment is not required for execution-only
+          services as no personal recommendation is made. The client is selecting
+          the instrument independently; no obligation to assess or filter on
+          sustainability grounds unless the firm offers a sustainability-based
+          execution service.
+      product_governance:
+        required: true
+        severity: medium
+        notes: >
+          Distributors must still apply product governance checks in execution-only
+          contexts — confirm the client is within the product's target market.
+          For execution-only transactions outside the target market (e.g. client
+          is in the negative target market), document the warning given and the
+          client's decision to proceed. MiFID II does not prohibit execution
+          outside the target market for execution-only; it requires the warning
+          to be documented.
+      record_keeping:
+        required: false
+        severity: low
+        notes: >
+          A formal suitability statement is not required for execution-only
+          services. However, a transaction record confirming the order details,
+          execution basis, and confirmation that the service was execution-only
+          must be retained. Best execution and costs disclosure records must
+          also be retained in accordance with MiFID II record-keeping requirements.
