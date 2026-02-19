@@ -7,7 +7,15 @@ ASSERT LLM Tools is a lightweight Python library for LLM-based text evaluation. 
 - **Summary evaluation** — score a summary against source text for coverage, factual accuracy, coherence, and more
 - **Compliance note evaluation** — evaluate adviser meeting notes against regulatory frameworks (FCA, MiFID II) and return a structured gap report
 
+<<<<<<< feat/END-87-remove-pii-legacy
+- **Summary Evaluation**: Measure summary quality with metrics like faithfulness, topic preservation, coherence, and more
+- **RAG Evaluation**: Evaluate RAG systems with metrics for answer relevance, context relevance, and faithfulness
+- **Multiple LLM Providers**: Support for OpenAI and AWS Bedrock APIs
+- **Proxy Support**: Comprehensive proxy configuration for corporate environments
+- **Extensible Architecture**: Easy to add new metrics or LLM providers
+=======
 All evaluation is LLM-based. No PyTorch, no BERT, no heavy dependencies.
+>>>>>>> main
 
 ## Installation
 
@@ -114,6 +122,9 @@ results = evaluate_summary(..., verbose=True)
 >
 > `evaluate_note()` is under active development. Outputs are non-deterministic (LLM-based), the API may change between releases, and results have not been validated against real regulatory decisions. This feature is intended for research, prototyping, and internal tooling only. It is not a substitute for qualified compliance review and must not be used to make or support live regulatory or client-facing decisions.
 
+<<<<<<< feat/END-87-remove-pii-legacy
+### Custom Model Selection
+=======
 ### evaluate_note()
 
 ```python
@@ -188,6 +199,7 @@ report = evaluate_note(
 ```
 
 The YAML schema mirrors the built-in frameworks. See `assert_llm_tools/frameworks/fca_suitability_v1.yaml` for a reference example.
+>>>>>>> main
 
 ### Configurable Pass Policy
 

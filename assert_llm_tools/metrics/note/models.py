@@ -79,7 +79,6 @@ class GapReport:
         items:              List of GapItem, one per framework element.
         summary:            Human-readable summary of the evaluation produced by the LLM.
         stats:              Breakdown counts — see GapReportStats.
-        pii_masked:         True if PII masking was applied before evaluation.
         metadata:           Arbitrary key/value pairs (e.g. note_id, adviser_ref).
     """
 
@@ -91,7 +90,6 @@ class GapReport:
     items: List[GapItem]
     summary: str
     stats: "GapReportStats"
-    pii_masked: bool = False
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 

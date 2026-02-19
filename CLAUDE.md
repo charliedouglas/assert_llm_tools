@@ -22,9 +22,6 @@ pip install -e ".[all]"
 # Run all tests
 pytest
 
-# Run a specific test file
-pytest test_pii_masking.py
-
 # Run with verbose output
 pytest -v
 ```
@@ -60,7 +57,7 @@ flake8 assert_llm_tools/
 **Entry Points** ([core.py](assert_llm_tools/core.py)):
 - `evaluate_summary()`: Main function for summary evaluation
 - `evaluate_rag()`: Main function for RAG evaluation
-- Handles PII masking, metric orchestration, and progress tracking
+- Handles metric orchestration and progress tracking
 
 **LLM Abstraction Layer** ([llm/](assert_llm_tools/llm/)):
 - `LLMConfig`: Unified configuration for all LLM providers
@@ -83,7 +80,6 @@ flake8 assert_llm_tools/
   - All LLM-based: answer_relevance, context_relevance, faithfulness, answer_attribution, completeness
 
 **Utilities** ([utils.py](assert_llm_tools/utils.py)):
-- PII detection and masking using Presidio
 - NLTK initialization (lazy loaded only when BLEU is used)
 - Stopword management
 
@@ -92,7 +88,6 @@ flake8 assert_llm_tools/
 1. **Lazy Initialization**: NLTK data is only downloaded when BLEU metric is requested to avoid unnecessary dependencies
 2. **Proxy Support**: All LLM providers support proxy configuration via `proxy_url`, `http_proxy`, or `https_proxy`
 3. **Provider Abstraction**: Metrics never directly call provider APIs; they use the LLM abstraction layer
-4. **PII Safety**: Optional PII masking with configurable entity types and masking strategies (full or partial)
 
 ### Metric Categories
 
@@ -141,6 +136,5 @@ flake8 assert_llm_tools/
 ## Testing Notes
 
 - Test files (test*.py) in root demonstrate usage patterns
-- PII masking tests are in [test_pii_masking.py](test_pii_masking.py)
 - RAG evaluation tests in [test_rag.py](test_rag.py)
 - Documentation tests in [test_docs.py](test_docs.py)

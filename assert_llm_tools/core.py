@@ -1,4 +1,4 @@
-from typing import Dict, Union, List, Optional, Tuple, Any
+from typing import Dict, Union, List, Optional, Any
 
 # Import base calculator classes
 from .metrics.base import BaseCalculator, SummaryMetricCalculator
@@ -19,7 +19,6 @@ from .metrics.summary.faithfulness import calculate_faithfulness
 from .metrics.summary.hallucination import calculate_hallucination
 
 from .llm.config import LLMConfig
-from .utils import detect_and_mask_pii
 import logging
 
 # Configure logging
@@ -61,15 +60,10 @@ def evaluate_summary(
     remove_stopwords: bool = False,  # no-op since v0.9.0; kept for API compatibility
     llm_config: Optional[LLMConfig] = None,
     show_progress: bool = True,  # no-op since v0.9.0 (tqdm removed); kept for API compatibility
-    mask_pii: bool = False,
-    mask_pii_char: str = "*",
-    mask_pii_preserve_partial: bool = False,
-    mask_pii_entity_types: Optional[List[str]] = None,
-    return_pii_info: bool = False,
     custom_prompt_instructions: Optional[Dict[str, str]] = None,
     verbose: bool = False,
     **kwargs,  # Accept additional kwargs
-) -> Union[Dict[str, float], Tuple[Dict[str, float], Dict[str, Any]]]:
+) -> Dict[str, float]:
     """
     Evaluate a summary using specified metrics.
 
@@ -80,11 +74,6 @@ def evaluate_summary(
         remove_stopwords: Whether to remove stopwords before evaluation
         llm_config: Configuration for LLM-based metrics (e.g., coverage, factual_consistency)
         show_progress: No-op since v0.9.0 (tqdm removed). Kept for backwards compatibility.
-        mask_pii: Whether to mask personally identifiable information (PII) before evaluation (default: False)
-        mask_pii_char: Character to use for masking PII (default: "*")
-        mask_pii_preserve_partial: Whether to preserve part of the PII (e.g., for phone numbers: 123-***-***) (default: False)
-        mask_pii_entity_types: List of PII entity types to detect and mask. If None, all supported types are used.
-        return_pii_info: Whether to return information about detected PII (default: False)
         custom_prompt_instructions: Optional dictionary mapping metric names to custom prompt instructions.
             For LLM-based metrics (coverage, factual_consistency, factual_alignment, topic_preservation,
             redundancy, conciseness, coherence), you can provide additional instructions to customize the
@@ -96,12 +85,7 @@ def evaluate_summary(
         **kwargs: Additional keyword arguments for specific metrics
 
     Returns:
-        If return_pii_info is False:
-            Dictionary containing scores for each metric
-        If return_pii_info is True:
-            Tuple containing:
-                - Dictionary containing scores for each metric
-                - Dictionary containing PII detection information
+        Dictionary containing scores for each metric
     """
     # Default to all metrics if none specified
     if metrics is None:
@@ -127,44 +111,6 @@ def evaluate_summary(
                 DeprecationWarning,
                 stacklevel=2
             )
-
-    # Handle PII masking if enabled
-    pii_info = {}
-    if mask_pii:
-        logger.info("Masking PII in text and summary...")
-        try:
-            masked_full_text, full_text_pii = detect_and_mask_pii(
-                full_text,
-                entity_types=mask_pii_entity_types,
-                mask_char=mask_pii_char,
-                preserve_partial=mask_pii_preserve_partial
-            )
-            
-            masked_summary, summary_pii = detect_and_mask_pii(
-                summary,
-                entity_types=mask_pii_entity_types,
-                mask_char=mask_pii_char,
-                preserve_partial=mask_pii_preserve_partial
-            )
-            
-            # Store PII information if requested
-            if return_pii_info:
-                pii_info = {
-                    "full_text_pii": full_text_pii,
-                    "summary_pii": summary_pii,
-                    "full_text_masked": masked_full_text != full_text,
-                    "summary_masked": masked_summary != summary
-                }
-            
-            # Update the texts with masked versions
-            full_text = masked_full_text
-            summary = masked_summary
-            
-            logger.info("PII masking complete.")
-            
-        except Exception as e:
-            logger.error(f"Error during PII masking: {e}. Continuing with original text.")
-            # Continue with original text in case of errors
 
     # Validate LLM config for metrics that require it
     llm_metrics = set(metrics) & set(LLM_REQUIRED_SUMMARY_METRICS)
@@ -224,9 +170,4 @@ def evaluate_summary(
             custom_instruction = custom_prompt_instructions.get("hallucination") if custom_prompt_instructions else None
             results.update(calculate_hallucination(full_text, summary, llm_config, custom_instruction, verbose=verbose))
 
-    # Return results with or without PII info
-    if return_pii_info and mask_pii:
-        return results, pii_info
-    else:
-        return results
-
+    return results
