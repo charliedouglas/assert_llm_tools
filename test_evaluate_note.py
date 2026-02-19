@@ -776,3 +776,405 @@ class TestCodeReviewChecks:
         # These constructor calls must not appear in note/evaluate_note.py
         assert "BedrockLLM(" not in source, "NoteEvaluator directly instantiates BedrockLLM"
         assert "OpenAILLM(" not in source, "NoteEvaluator directly instantiates OpenAILLM"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# UNIT TESTS — PassPolicy: configurable thresholds (END-51)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestPassPolicyConfigurableThresholds:
+    """
+    Verify that all configurable threshold fields exist on PassPolicy with
+    the correct defaults, and that custom values are accepted.
+    """
+
+    def test_required_pass_threshold_default(self):
+        """required_pass_threshold defaults to 0.6."""
+        p = PassPolicy()
+        assert p.required_pass_threshold == pytest.approx(0.6)
+
+    def test_score_correction_missing_cutoff_default(self):
+        """score_correction_missing_cutoff defaults to 0.2."""
+        p = PassPolicy()
+        assert p.score_correction_missing_cutoff == pytest.approx(0.2)
+
+    def test_score_correction_present_min_default(self):
+        """score_correction_present_min defaults to 0.5."""
+        p = PassPolicy()
+        assert p.score_correction_present_min == pytest.approx(0.5)
+
+    def test_score_correction_present_floor_default(self):
+        """score_correction_present_floor defaults to 0.7."""
+        p = PassPolicy()
+        assert p.score_correction_present_floor == pytest.approx(0.7)
+
+    def test_custom_required_pass_threshold_accepted(self):
+        """PassPolicy accepts a custom required_pass_threshold."""
+        p = PassPolicy(required_pass_threshold=0.75)
+        assert p.required_pass_threshold == pytest.approx(0.75)
+
+    def test_custom_score_correction_missing_cutoff_accepted(self):
+        """PassPolicy accepts a custom score_correction_missing_cutoff."""
+        p = PassPolicy(score_correction_missing_cutoff=0.1)
+        assert p.score_correction_missing_cutoff == pytest.approx(0.1)
+
+    def test_custom_score_correction_present_min_accepted(self):
+        p = PassPolicy(score_correction_present_min=0.4)
+        assert p.score_correction_present_min == pytest.approx(0.4)
+
+    def test_custom_score_correction_present_floor_accepted(self):
+        p = PassPolicy(score_correction_present_floor=0.8)
+        assert p.score_correction_present_floor == pytest.approx(0.8)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# UNIT TESTS — _determine_pass with required_pass_threshold (END-51)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestDeterminePassRequiredThreshold:
+    """
+    Verify that required_pass_threshold is applied to HIGH, MEDIUM, and LOW
+    required elements when they are partially evidenced, and that changing the
+    threshold alters outcomes as expected.
+    """
+
+    def _ev(self, **policy_kwargs) -> NoteEvaluator:
+        policy = PassPolicy(**policy_kwargs) if policy_kwargs else PassPolicy()
+        return _make_evaluator(pass_policy=policy)
+
+    # ── HIGH partial ───────────────────────────────────────────────────────────
+
+    def test_high_partial_below_default_threshold_returns_false(self):
+        """
+        Required HIGH element, status=partial, score=0.5 < default threshold 0.6
+        → fail.
+        """
+        ev = self._ev()  # required_pass_threshold=0.6 by default
+        items = [GapItem("b", "partial", 0.5, "some evidence", "high", required=True)]
+        assert ev._determine_pass(items) is False
+
+    def test_high_partial_at_default_threshold_returns_true(self):
+        """
+        Required HIGH element, status=partial, score=0.6 == threshold 0.6
+        → pass (not strictly below threshold).
+        """
+        ev = self._ev()
+        items = [GapItem("b", "partial", 0.6, "some evidence", "high", required=True)]
+        assert ev._determine_pass(items) is True
+
+    def test_high_partial_above_default_threshold_returns_true(self):
+        """
+        Required HIGH element, status=partial, score=0.8 > threshold 0.6
+        → pass.
+        """
+        ev = self._ev()
+        items = [GapItem("b", "partial", 0.8, "good evidence", "high", required=True)]
+        assert ev._determine_pass(items) is True
+
+    def test_custom_required_pass_threshold_high_partial_pass(self):
+        """
+        Custom threshold=0.3; HIGH+partial+score=0.4 → pass (0.4 >= 0.3).
+        """
+        ev = self._ev(required_pass_threshold=0.3)
+        items = [GapItem("b", "partial", 0.4, "some evidence", "high", required=True)]
+        assert ev._determine_pass(items) is True
+
+    def test_custom_required_pass_threshold_high_partial_fail(self):
+        """
+        Custom threshold=0.9; HIGH+partial+score=0.7 → fail (0.7 < 0.9).
+        """
+        ev = self._ev(required_pass_threshold=0.9)
+        items = [GapItem("b", "partial", 0.7, "some evidence", "high", required=True)]
+        assert ev._determine_pass(items) is False
+
+    def test_high_missing_still_fails_regardless_of_threshold(self):
+        """
+        HIGH+missing is blocked by block_on_high_missing, independent of
+        required_pass_threshold.
+        """
+        ev = self._ev(required_pass_threshold=0.0)  # threshold effectively disabled
+        items = [GapItem("b", "missing", 0.0, "", "high", required=True)]
+        assert ev._determine_pass(items) is False
+
+    def test_optional_high_partial_below_threshold_still_passes(self):
+        """Optional elements are never blocked, even with low score."""
+        ev = self._ev()
+        items = [GapItem("b", "partial", 0.1, "tiny evidence", "high", required=False)]
+        assert ev._determine_pass(items) is True
+
+    # ── MEDIUM partial ─────────────────────────────────────────────────────────
+
+    def test_medium_partial_below_threshold_returns_false(self):
+        """
+        Required MEDIUM element, status=partial, score=0.4 < threshold 0.6
+        → fail.
+        """
+        ev = self._ev()
+        items = [GapItem("m", "partial", 0.4, "vague mention", "medium", required=True)]
+        assert ev._determine_pass(items) is False
+
+    def test_medium_partial_above_threshold_returns_true(self):
+        """Required MEDIUM element, partial with score above threshold → pass."""
+        ev = self._ev()
+        items = [GapItem("m", "partial", 0.7, "decent mention", "medium", required=True)]
+        assert ev._determine_pass(items) is True
+
+    def test_medium_missing_still_does_not_block(self):
+        """
+        Medium+missing never blocks (existing behaviour preserved).
+        required_pass_threshold does NOT apply to missing status.
+        """
+        ev = self._ev()
+        items = [GapItem("m", "missing", 0.0, "", "medium", required=True)]
+        assert ev._determine_pass(items) is True
+
+    # ── LOW partial ────────────────────────────────────────────────────────────
+
+    def test_low_partial_below_threshold_returns_false(self):
+        """Required LOW element, partial with score below threshold → fail."""
+        ev = self._ev()
+        items = [GapItem("l", "partial", 0.3, "hint", "low", required=True)]
+        assert ev._determine_pass(items) is False
+
+    def test_low_partial_above_threshold_returns_true(self):
+        """Required LOW element, partial with score above threshold → pass."""
+        ev = self._ev()
+        items = [GapItem("l", "partial", 0.65, "decent", "low", required=True)]
+        assert ev._determine_pass(items) is True
+
+    # ── Critical is unaffected by required_pass_threshold ─────────────────────
+
+    def test_critical_partial_uses_critical_partial_threshold_not_required(self):
+        """
+        CRITICAL elements use critical_partial_threshold, NOT required_pass_threshold.
+        score=0.55 is below required_pass_threshold=0.6 but above
+        critical_partial_threshold=0.5 → should PASS.
+        """
+        ev = self._ev(
+            critical_partial_threshold=0.5,
+            required_pass_threshold=0.6,
+        )
+        items = [GapItem("a", "partial", 0.55, "evidence", "critical", required=True)]
+        assert ev._determine_pass(items) is True
+
+    # ── Defaults reproduce all existing _determine_pass behaviour ──────────────
+
+    def test_defaults_reproduce_critical_missing_fails(self):
+        ev = self._ev()
+        items = [GapItem("a", "missing", 0.0, "", "critical", required=True)]
+        assert ev._determine_pass(items) is False
+
+    def test_defaults_reproduce_high_missing_fails(self):
+        ev = self._ev()
+        items = [GapItem("b", "missing", 0.0, "", "high", required=True)]
+        assert ev._determine_pass(items) is False
+
+    def test_defaults_reproduce_medium_missing_passes(self):
+        ev = self._ev()
+        items = [GapItem("m", "missing", 0.0, "", "medium", required=True)]
+        assert ev._determine_pass(items) is True
+
+    def test_defaults_reproduce_optional_critical_missing_passes(self):
+        ev = self._ev()
+        items = [GapItem("c", "missing", 0.0, "", "critical", required=False)]
+        assert ev._determine_pass(items) is True
+
+    def test_defaults_reproduce_critical_partial_below_05_fails(self):
+        ev = self._ev()
+        items = [GapItem("a", "partial", 0.3, "", "critical", required=True)]
+        assert ev._determine_pass(items) is False
+
+    def test_defaults_reproduce_critical_partial_at_05_passes(self):
+        ev = self._ev()
+        items = [GapItem("a", "partial", 0.5, "", "critical", required=True)]
+        assert ev._determine_pass(items) is True
+
+    def test_defaults_reproduce_all_present_passes(self):
+        ev = self._ev()
+        items = [
+            GapItem("a", "present", 0.9, "", "critical", required=True),
+            GapItem("b", "present", 0.8, "", "high", required=True),
+        ]
+        assert ev._determine_pass(items) is True
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# UNIT TESTS — score correction thresholds configurable (END-51)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestScoreCorrectionThresholds:
+    """
+    Verify that score correction in _parse_element_response() uses the
+    configurable PassPolicy thresholds, and that defaults reproduce the
+    original hard-coded behaviour.
+    """
+
+    def _ev(self, **policy_kwargs) -> NoteEvaluator:
+        policy = PassPolicy(**policy_kwargs) if policy_kwargs else PassPolicy()
+        return _make_evaluator(pass_policy=policy)
+
+    def test_default_missing_score_corrected_above_0_2(self):
+        """STATUS=missing, score=0.9 → corrected to 0.0 (0.9 > default cutoff 0.2)."""
+        ev = self._ev()
+        response = "STATUS: missing\nSCORE: 0.9\nEVIDENCE: None found\nNOTES: Absent"
+        item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
+        assert item.status == "missing"
+        assert item.score == pytest.approx(0.0)
+
+    def test_default_missing_score_at_0_2_not_corrected(self):
+        """STATUS=missing, score=0.2 → NOT corrected (not strictly above cutoff 0.2)."""
+        ev = self._ev()
+        response = "STATUS: missing\nSCORE: 0.2\nEVIDENCE: None found\nNOTES: Absent"
+        item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
+        assert item.status == "missing"
+        assert item.score == pytest.approx(0.2)
+
+    def test_custom_missing_cutoff_raises_correction_threshold(self):
+        """
+        score_correction_missing_cutoff=0.05; score=0.1 > 0.05 → corrected to 0.0.
+        With default (0.2), score=0.1 would NOT be corrected (0.1 <= 0.2).
+        """
+        ev_default = self._ev()
+        ev_custom = self._ev(score_correction_missing_cutoff=0.05)
+        response = "STATUS: missing\nSCORE: 0.1\nEVIDENCE: None found\nNOTES: Absent"
+        item_default = ev_default._parse_element_response(response, _ELEMENT_CRITICAL)
+        item_custom = ev_custom._parse_element_response(response, _ELEMENT_CRITICAL)
+        # With default cutoff 0.2: 0.1 <= 0.2 → score preserved as 0.1
+        assert item_default.score == pytest.approx(0.1)
+        # With custom cutoff 0.05: 0.1 > 0.05 → score corrected to 0.0
+        assert item_custom.score == pytest.approx(0.0)
+
+    def test_default_present_score_corrected_when_below_0_5(self):
+        """STATUS=present, score=0.3 < default present_min 0.5 → corrected to ≥ 0.7."""
+        ev = self._ev()
+        response = "STATUS: present\nSCORE: 0.3\nEVIDENCE: Something\nNOTES: Present"
+        item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
+        assert item.status == "present"
+        assert item.score >= 0.7  # plain float comparison avoids pytest.approx >= issue
+
+    def test_default_present_score_not_corrected_at_0_5(self):
+        """STATUS=present, score=0.5 == present_min 0.5 → NOT corrected (not below)."""
+        ev = self._ev()
+        response = "STATUS: present\nSCORE: 0.5\nEVIDENCE: Something\nNOTES: Present"
+        item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
+        assert item.status == "present"
+        assert item.score == pytest.approx(0.5)
+
+    def test_custom_present_floor_raises_minimum_corrected_score(self):
+        """
+        Custom score_correction_present_floor=0.85; score=0.3 (below min 0.5)
+        → corrected to ≥ 0.85.
+        """
+        ev = self._ev(score_correction_present_floor=0.85)
+        response = "STATUS: present\nSCORE: 0.3\nEVIDENCE: Something\nNOTES: Present"
+        item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
+        assert item.score >= 0.85  # plain float comparison
+
+    def test_custom_present_min_widens_correction_window(self):
+        """
+        Custom score_correction_present_min=0.8; score=0.7 is now below min
+        → corrected upward. With default min=0.5, score=0.7 would be kept.
+        """
+        ev_default = self._ev()
+        response = "STATUS: present\nSCORE: 0.7\nEVIDENCE: Something\nNOTES: Present"
+        item_default = ev_default._parse_element_response(response, _ELEMENT_CRITICAL)
+        # Default: 0.7 >= 0.5 → not corrected → score stays 0.7
+        assert item_default.score == pytest.approx(0.7)
+        # Custom: 0.7 < 0.8 → corrected to max(0.7, floor=0.85)
+        ev_custom = self._ev(score_correction_present_min=0.8, score_correction_present_floor=0.85)
+        item_custom = ev_custom._parse_element_response(response, _ELEMENT_CRITICAL)
+        assert item_custom.score >= 0.85  # plain float comparison
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INTEGRATION TEST — custom thresholds via evaluate_note() entry point (END-51)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestConfigurableThresholdsIntegration:
+    """
+    Verify that custom PassPolicy thresholds can be passed through the public
+    evaluate_note() / NoteEvaluator.evaluate() entry points and produce
+    different outcomes from the default policy.
+    """
+
+    _FAKE_NOTE = (
+        "Client: Jane Smith. Risk profile: balanced. "
+        "Charges: OCF 0.45%. Alternatives: briefly mentioned."
+    )
+
+    # FCA suitability v1 element order & severities (for reference):
+    #   0: client_objectives        critical required
+    #   1: risk_attitude            critical required
+    #   2: capacity_for_loss        critical required
+    #   3: financial_situation      HIGH     required  ← we vary this one
+    #   4: knowledge_and_experience HIGH     required
+    #   5: recommendation_rationale critical required
+    #   6: charges_and_costs        HIGH     required
+    #   7: alternatives_considered  medium   optional
+    #   8: client_confirmation      low      optional
+    def _make_side_effects(self, fin_status: str, fin_score: float) -> list:
+        """9 element responses + 1 summary; financial_situation (HIGH) is variable."""
+        return [
+            "STATUS: present\nSCORE: 0.9\nEVIDENCE: retirement\nNOTES: OK",           # [0] critical
+            "STATUS: present\nSCORE: 0.8\nEVIDENCE: balanced\nNOTES: OK",              # [1] critical
+            "STATUS: present\nSCORE: 0.8\nEVIDENCE: 20% loss ok\nNOTES: OK",          # [2] critical
+            f"STATUS: {fin_status}\nSCORE: {fin_score}\nEVIDENCE: income 60k\nNOTES: Variable",  # [3] HIGH
+            "STATUS: present\nSCORE: 0.7\nEVIDENCE: held ISAs\nNOTES: OK",            # [4] HIGH
+            "STATUS: present\nSCORE: 0.9\nEVIDENCE: matches profile\nNOTES: OK",      # [5] critical
+            "STATUS: present\nSCORE: 0.8\nEVIDENCE: OCF 0.45%\nNOTES: OK",           # [6] HIGH
+            "STATUS: present\nSCORE: 0.6\nEVIDENCE: bond rejected\nNOTES: OK",        # [7] medium opt
+            "STATUS: present\nSCORE: 0.7\nEVIDENCE: client confirmed\nNOTES: OK",     # [8] low opt
+            "Summary: mostly compliant with one gap.",                                  # summary
+        ]
+
+    def test_default_policy_high_partial_below_threshold_fails(self):
+        """
+        HIGH required element (financial_situation) partial with score=0.55 < 0.6
+        → report.passed=False with default policy.
+        """
+        ev = _make_evaluator()
+        ev.llm.generate.side_effect = self._make_side_effects("partial", 0.55)
+        report = ev.evaluate(self._FAKE_NOTE, "fca_suitability_v1")
+        assert report.passed is False
+
+    def test_relaxed_threshold_high_partial_passes(self):
+        """
+        Same scenario with required_pass_threshold=0.4 → score=0.55 >= 0.4 → passed=True.
+        """
+        ev = _make_evaluator(pass_policy=PassPolicy(required_pass_threshold=0.4))
+        ev.llm.generate.side_effect = self._make_side_effects("partial", 0.55)
+        report = ev.evaluate(self._FAKE_NOTE, "fca_suitability_v1")
+        assert report.passed is True
+
+    def test_strict_threshold_high_partial_score_above_default_still_fails(self):
+        """
+        score=0.75 >= default 0.6 → passes by default.
+        But with required_pass_threshold=0.8 → 0.75 < 0.8 → fails.
+        """
+        ev_default = _make_evaluator()
+        ev_default.llm.generate.side_effect = self._make_side_effects("partial", 0.75)
+        report_default = ev_default.evaluate(self._FAKE_NOTE, "fca_suitability_v1")
+        assert report_default.passed is True  # 0.75 >= 0.6 → passes with default
+
+        ev_strict = _make_evaluator(pass_policy=PassPolicy(required_pass_threshold=0.8))
+        ev_strict.llm.generate.side_effect = self._make_side_effects("partial", 0.75)
+        report_strict = ev_strict.evaluate(self._FAKE_NOTE, "fca_suitability_v1")
+        assert report_strict.passed is False  # 0.75 < 0.8 → fails with strict
+
+    def test_pass_policy_accessible_via_evaluate_note_function(self):
+        """
+        Custom PassPolicy can be passed via the top-level evaluate_note() function.
+        """
+        import assert_llm_tools.metrics.base as _base_mod
+
+        mock_llm = MagicMock()
+        mock_llm.generate.side_effect = self._make_side_effects("partial", 0.55)
+
+        with patch.object(_base_mod, "BedrockLLM", return_value=mock_llm):
+            report = evaluate_note(
+                note_text=self._FAKE_NOTE,
+                framework="fca_suitability_v1",
+                pass_policy=PassPolicy(required_pass_threshold=0.4),  # relaxed
+            )
+
+        assert report.passed is True  # 0.55 >= 0.4 → passes
