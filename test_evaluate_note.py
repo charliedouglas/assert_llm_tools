@@ -287,8 +287,8 @@ class TestParseElementResponse:
         assert item.status == "partial"
         assert item.score == pytest.approx(0.45, abs=1e-3)
 
-    def test_evidence_none_found_normalized_to_empty_string(self):
-        """'None found' evidence → stored as empty string."""
+    def test_evidence_none_found_normalized_to_none_for_missing(self):
+        """'None found' evidence on a missing element → stored as None (END-45)."""
         ev = self._ev()
         response = (
             "STATUS: missing\n"
@@ -297,7 +297,48 @@ class TestParseElementResponse:
             "NOTES: Absent"
         )
         item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
+        assert item.evidence is None
+
+    def test_evidence_present_stored_as_string(self):
+        """Evidence text on a present element → stored as string, not None (END-45)."""
+        ev = self._ev()
+        response = (
+            "STATUS: present\n"
+            "SCORE: 0.9\n"
+            "EVIDENCE: Client confirmed retirement in 2030 as primary goal\n"
+            "NOTES: Clearly documented"
+        )
+        item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
+        assert isinstance(item.evidence, str)
+        assert "retirement" in item.evidence
+
+    def test_evidence_partial_stored_as_string(self):
+        """Evidence on a partial element → string with found/missing context (END-45)."""
+        ev = self._ev()
+        response = (
+            "STATUS: partial\n"
+            "SCORE: 0.5\n"
+            "EVIDENCE: Risk tolerance mentioned but no capacity assessment documented\n"
+            "NOTES: Incomplete"
+        )
+        item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
+        assert isinstance(item.evidence, str)
+        assert item.evidence != ""
+
+    def test_evidence_none_found_on_partial_returns_empty_string_not_none(self):
+        """LLM returns 'None found' for a partial element → empty string, not None (Issue 2)."""
+        ev = self._ev()
+        response = (
+            "STATUS: partial\n"
+            "SCORE: 0.4\n"
+            "EVIDENCE: None found\n"
+            "NOTES: Incomplete"
+        )
+        item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
+        assert item.status == "partial"
+        # Must be empty string, not None — None is reserved for missing elements
         assert item.evidence == ""
+        assert item.evidence is not None
 
     def test_garbled_response_no_crash(self):
         """Completely garbled LLM response → GapItem with safe defaults, no exception."""
@@ -676,6 +717,41 @@ class TestEvaluateNoteIntegration:
         assert report.metadata["note_id"] == "N-001"
         assert report.metadata["adviser"] == "Jane Doe"
 
+    def test_evaluate_note_overall_rating_compliant_when_all_present(self):
+        """All elements present → overall_rating == 'Compliant' (END-43)."""
+        ev = _make_evaluator()
+        ev.llm.generate.side_effect = self._mock_llm_side_effects()
+        report = ev.evaluate(self._FAKE_NOTE, "fca_suitability_v1")
+        assert report.overall_rating == "Compliant"
+
+    def test_evaluate_note_overall_rating_non_compliant_on_critical_missing(self):
+        """Critical required element missing → overall_rating == 'Non-Compliant' (END-43)."""
+        ev = _make_evaluator()
+        responses = list(self._ELEMENT_RESPONSES)
+        responses[0] = "STATUS: missing\nSCORE: 0.0\nEVIDENCE: None found\nNOTES: Absent"
+        ev.llm.generate.side_effect = responses + [self._SUMMARY_RESPONSE]
+        report = ev.evaluate(self._FAKE_NOTE, "fca_suitability_v1")
+        assert report.overall_rating == "Non-Compliant"
+
+    def test_evaluate_note_gap_items_have_suggestions_field(self):
+        """Every GapItem in the report has a suggestions attribute (END-44)."""
+        ev = _make_evaluator()
+        ev.llm.generate.side_effect = self._mock_llm_side_effects()
+        report = ev.evaluate(self._FAKE_NOTE, "fca_suitability_v1")
+        for item in report.items:
+            assert hasattr(item, "suggestions")
+            assert isinstance(item.suggestions, list)
+
+    def test_evaluate_note_missing_element_has_null_evidence(self):
+        """Missing element in report → evidence is None (END-45)."""
+        ev = _make_evaluator()
+        responses = list(self._ELEMENT_RESPONSES)
+        responses[0] = "STATUS: missing\nSCORE: 0.0\nEVIDENCE: None found\nNOTES: Absent"
+        ev.llm.generate.side_effect = responses + [self._SUMMARY_RESPONSE]
+        report = ev.evaluate(self._FAKE_NOTE, "fca_suitability_v1")
+        missing_item = next(it for it in report.items if it.status == "missing")
+        assert missing_item.evidence is None
+
     def test_evaluate_note_via_top_level_function(self):
         """evaluate_note() public entry point works end-to-end."""
         mock_llm = MagicMock()
@@ -690,6 +766,158 @@ class TestEvaluateNoteIntegration:
         assert isinstance(report, GapReport)
         assert report.framework_id == "fca_suitability_v1"
         assert len(report.items) == 9
+        assert hasattr(report, "overall_rating")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# UNIT TESTS — _determine_overall_rating  (END-43)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestDetermineOverallRating:
+
+    def _ev(self, **policy_kwargs) -> NoteEvaluator:
+        return _make_evaluator(pass_policy=PassPolicy(**policy_kwargs) if policy_kwargs else None)
+
+    def _item(self, status, severity, required=True, score=0.0) -> GapItem:
+        s = 0.9 if status == "present" else (0.4 if status == "partial" else 0.0)
+        if score:
+            s = score
+        return GapItem("x", status, s, "evidence" if status != "missing" else None, severity, required)
+
+    def test_compliant_when_all_present(self):
+        """All elements present → Compliant."""
+        ev = self._ev()
+        items = [self._item("present", "critical"), self._item("present", "high")]
+        assert ev._determine_overall_rating(items, passed=True) == "Compliant"
+
+    def test_minor_gaps_when_passed_with_partial(self):
+        """Passed but some elements partial → Minor Gaps."""
+        ev = self._ev()
+        items = [self._item("present", "critical"), self._item("partial", "medium")]
+        assert ev._determine_overall_rating(items, passed=True) == "Minor Gaps"
+
+    def test_minor_gaps_when_passed_with_optional_missing(self):
+        """Passed but optional element missing → Minor Gaps."""
+        ev = self._ev()
+        items = [self._item("present", "critical"), self._item("missing", "low", required=False)]
+        assert ev._determine_overall_rating(items, passed=True) == "Minor Gaps"
+
+    def test_non_compliant_when_critical_required_missing(self):
+        """Failed with critical required missing → Non-Compliant."""
+        ev = self._ev()
+        items = [self._item("missing", "critical", required=True)]
+        assert ev._determine_overall_rating(items, passed=False) == "Non-Compliant"
+
+    def test_non_compliant_when_critical_partial_below_threshold(self):
+        """Failed with critical partial below threshold → Non-Compliant."""
+        ev = self._ev()
+        items = [self._item("partial", "critical", required=True, score=0.3)]
+        assert ev._determine_overall_rating(items, passed=False) == "Non-Compliant"
+
+    def test_requires_attention_when_failed_high_only(self):
+        """Failed due to high required missing (no critical block) → Requires Attention."""
+        ev = self._ev(block_on_critical_missing=True, block_on_high_missing=True,
+                      block_on_critical_partial=False)
+        items = [
+            self._item("present", "critical", required=True),   # critical OK
+            self._item("missing", "high", required=True),       # high missing → fail
+        ]
+        assert ev._determine_overall_rating(items, passed=False) == "Requires Attention"
+
+    def test_optional_critical_missing_does_not_make_non_compliant(self):
+        """Critical optional element missing with passed=False still → Requires Attention
+        (optional elements don't block, so passed=False must come from elsewhere)."""
+        ev = self._ev()
+        items = [
+            self._item("present", "critical", required=True),
+            self._item("missing", "critical", required=False),   # optional — doesn't block
+            self._item("missing", "high", required=True),        # this fails it
+        ]
+        assert ev._determine_overall_rating(items, passed=False) == "Requires Attention"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# UNIT TESTS — remediation suggestions  (END-44)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestRemediationSuggestions:
+
+    def _ev(self) -> NoteEvaluator:
+        return _make_evaluator()
+
+    def test_suggestions_populated_for_missing_element(self):
+        """Missing element → suggestions list contains parsed items."""
+        ev = self._ev()
+        response = (
+            "STATUS: missing\n"
+            "SCORE: 0.0\n"
+            "EVIDENCE: None found\n"
+            "NOTES: Not documented\n"
+            "SUGGESTIONS: Document the client's retirement objective | Include target date | Note income requirements"
+        )
+        item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
+        assert item.status == "missing"
+        assert len(item.suggestions) == 3
+        assert "retirement" in item.suggestions[0].lower()
+
+    def test_suggestions_populated_for_partial_element(self):
+        """Partial element → suggestions extracted from SUGGESTIONS field."""
+        ev = self._ev()
+        response = (
+            "STATUS: partial\n"
+            "SCORE: 0.4\n"
+            "EVIDENCE: Risk mentioned briefly\n"
+            "NOTES: Needs detail\n"
+            "SUGGESTIONS: Expand risk capacity assessment | Document investment horizon"
+        )
+        item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
+        assert item.status == "partial"
+        assert len(item.suggestions) == 2
+
+    def test_suggestions_empty_for_present_element(self):
+        """Present element → suggestions is an empty list."""
+        ev = self._ev()
+        response = (
+            "STATUS: present\n"
+            "SCORE: 0.9\n"
+            "EVIDENCE: Client confirmed objective\n"
+            "NOTES: Well documented\n"
+            "SUGGESTIONS: None"
+        )
+        item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
+        assert item.status == "present"
+        assert item.suggestions == []
+
+    def test_suggestions_capped_at_three(self):
+        """More than 3 pipe-separated suggestions → only first 3 kept."""
+        ev = self._ev()
+        response = (
+            "STATUS: missing\n"
+            "SCORE: 0.0\n"
+            "EVIDENCE: None found\n"
+            "NOTES: Absent\n"
+            "SUGGESTIONS: Suggestion 1 | Suggestion 2 | Suggestion 3 | Suggestion 4"
+        )
+        item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
+        assert len(item.suggestions) == 3
+
+    def test_suggestions_empty_when_llm_omits_field(self):
+        """LLM omits SUGGESTIONS field entirely → empty list, no crash."""
+        ev = self._ev()
+        response = (
+            "STATUS: missing\n"
+            "SCORE: 0.0\n"
+            "EVIDENCE: None found\n"
+            "NOTES: Absent"
+        )
+        item = ev._parse_element_response(response, _ELEMENT_CRITICAL)
+        assert item.suggestions == []
+
+    def test_prompt_includes_suggestions_instruction(self):
+        """_build_element_prompt includes SUGGESTIONS format instruction (END-44)."""
+        ev = self._ev()
+        prompt = ev._build_element_prompt("Some note text", _ELEMENT_CRITICAL)
+        assert "SUGGESTIONS" in prompt
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

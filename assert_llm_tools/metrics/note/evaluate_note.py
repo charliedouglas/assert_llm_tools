@@ -153,12 +153,14 @@ class NoteEvaluator(BaseCalculator):
         stats = self._compute_stats(items)
         overall_score = self._compute_overall_score(items)
         passed = self._determine_pass(items)
+        overall_rating = self._determine_overall_rating(items, passed)
 
         return GapReport(
             framework_id=fw["framework_id"],
             framework_version=fw["version"],
             passed=passed,
             overall_score=overall_score,
+            overall_rating=overall_rating,
             items=items,
             summary=summary,
             stats=stats,
@@ -222,8 +224,9 @@ class NoteEvaluator(BaseCalculator):
             f"(no other text):\n"
             f"STATUS: present|partial|missing\n"
             f"SCORE: <float 0.0-1.0>\n"
-            f"EVIDENCE: <direct quote or paraphrase from the note, or \"None found\">\n"
-            f"NOTES: <brief explanation of your assessment>"
+            f"EVIDENCE: <for 'present': direct quote or paraphrase; for 'partial': what was found AND what is missing; for 'missing': None found>\n"
+            f"NOTES: <brief explanation of your assessment>\n"
+            f"SUGGESTIONS: <if status is 'present' write None; otherwise write 1-3 specific actionable suggestions separated by ' | ' that reference the requirement above>"
         )
         return prompt
 
@@ -247,7 +250,7 @@ class NoteEvaluator(BaseCalculator):
         # Parse labelled fields — multi-line values are captured greedily
         # until the next label or end of string.
         label_pattern = re.compile(
-            r"^(STATUS|SCORE|EVIDENCE|NOTES)\s*:\s*(.+?)(?=\n(?:STATUS|SCORE|EVIDENCE|NOTES)\s*:|$)",
+            r"^(STATUS|SCORE|EVIDENCE|NOTES|SUGGESTIONS)\s*:\s*(.+?)(?=\n(?:STATUS|SCORE|EVIDENCE|NOTES|SUGGESTIONS)\s*:|$)",
             re.IGNORECASE | re.MULTILINE | re.DOTALL,
         )
         parsed: Dict[str, str] = {}
@@ -275,13 +278,38 @@ class NoteEvaluator(BaseCalculator):
             score = max(score, 0.7)
 
         # ── EVIDENCE ──────────────────────────────────────────────────────────
-        evidence_raw = parsed.get("EVIDENCE", "None found")
-        evidence = evidence_raw if evidence_raw.lower() not in ("", "none", "none found") else ""
+        # Missing elements → None (no evidence exists by definition).
+        # Present/partial → extracted text; empty string falls back to None.
+        evidence_raw = parsed.get("EVIDENCE", "").strip()
+        if status == "missing":
+            # Missing elements have no evidence by definition — always None
+            evidence: Optional[str] = None
+        elif evidence_raw.lower() in ("", "none", "none found"):
+            # Present/partial with no usable evidence text → empty string (not None)
+            evidence = ""
+        else:
+            evidence = evidence_raw
 
         # ── NOTES ─────────────────────────────────────────────────────────────
         notes: Optional[str] = None
         if self.verbose:
             notes = parsed.get("NOTES", "").strip() or None
+
+        # ── SUGGESTIONS ───────────────────────────────────────────────────────
+        # Only populated for gap elements (partial/missing).
+        # Present elements → empty list.
+        suggestions: List[str] = []
+        if status != "present":
+            raw_suggestions = parsed.get("SUGGESTIONS", "").strip()
+            if raw_suggestions and raw_suggestions.lower() not in ("none", "n/a", ""):
+                # Split on " | " (with spaces, as instructed in the prompt) to avoid
+                # accidentally splitting on a bare "|" within suggestion text
+                parts = raw_suggestions.split(" | ") if " | " in raw_suggestions else raw_suggestions.split("|")
+                suggestions = [
+                    s.strip()
+                    for s in parts
+                    if s.strip() and s.strip().lower() not in ("none", "n/a")
+                ][:3]  # cap at 3
 
         return GapItem(
             element_id=element["id"],
@@ -291,6 +319,7 @@ class NoteEvaluator(BaseCalculator):
             severity=element["severity"],
             required=element.get("required", True),
             notes=notes,
+            suggestions=suggestions,
         )
 
     # ── Overall summary ────────────────────────────────────────────────────────
@@ -384,6 +413,39 @@ class NoteEvaluator(BaseCalculator):
             total_weight += weight
 
         return round(weighted_sum / total_weight, 4) if total_weight > 0 else 0.0
+
+    def _determine_overall_rating(
+        self, items: List[GapItem], passed: bool
+    ) -> str:
+        """
+        Derive the human-readable overall compliance rating.
+
+        Rating logic (evaluated in priority order):
+          Non-Compliant      — failed AND at least one critical required element
+                               is missing or partial below threshold.
+          Requires Attention — failed but no critical blocker (high/medium gaps).
+          Minor Gaps         — passed but some elements are partial or optional
+                               elements are missing.
+          Compliant          — passed with every element fully present.
+        """
+        if not passed:
+            policy = self.pass_policy
+            has_critical_block = any(
+                it.severity == "critical"
+                and it.required
+                and (
+                    it.status == "missing"
+                    or (
+                        it.status == "partial"
+                        and it.score < policy.critical_partial_threshold
+                    )
+                )
+                for it in items
+            )
+            return "Non-Compliant" if has_critical_block else "Requires Attention"
+
+        has_gaps = any(it.status != "present" for it in items)
+        return "Minor Gaps" if has_gaps else "Compliant"
 
     def _determine_pass(self, items: List[GapItem]) -> bool:
         """Apply the PassPolicy to determine overall pass/fail."""
