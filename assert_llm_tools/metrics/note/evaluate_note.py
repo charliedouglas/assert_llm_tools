@@ -195,6 +195,26 @@ class NoteEvaluator(BaseCalculator):
                 f"\nEvaluation guidance:\n{element['guidance'].strip()}\n"
             )
 
+        examples_block = ""
+        if element.get("examples"):
+            examples_lines = "\n".join(
+                f'- "{ex}"' for ex in element["examples"]
+            )
+            examples_block = (
+                f"\nEXAMPLES (phrases that would count as evidence):\n"
+                f"{examples_lines}\n"
+            )
+
+        anti_patterns_block = ""
+        if element.get("anti_patterns"):
+            anti_patterns_lines = "\n".join(
+                f'- "{ap}"' for ap in element["anti_patterns"]
+            )
+            anti_patterns_block = (
+                f"\nANTI-PATTERNS (these do NOT constitute compliant evidence):\n"
+                f"{anti_patterns_lines}\n"
+            )
+
         custom_block = ""
         if self.custom_instruction:
             custom_block = (
@@ -213,6 +233,8 @@ class NoteEvaluator(BaseCalculator):
             f"means there is no meaningful mention whatsoever.\n\n"
             f"Requirement ({required_label}): {element['description'].strip()}"
             f"{guidance_block}"
+            f"{examples_block}"
+            f"{anti_patterns_block}"
             f"{custom_block}\n"
             f"Note text:\n"
             f"---\n"

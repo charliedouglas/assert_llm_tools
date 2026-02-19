@@ -776,3 +776,201 @@ class TestCodeReviewChecks:
         # These constructor calls must not appear in note/evaluate_note.py
         assert "BedrockLLM(" not in source, "NoteEvaluator directly instantiates BedrockLLM"
         assert "OpenAILLM(" not in source, "NoteEvaluator directly instantiates OpenAILLM"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# UNIT TESTS — _build_element_prompt (END-49: examples & anti_patterns)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestBuildElementPromptExamplesAntiPatterns:
+    """
+    Verify that _build_element_prompt() wires examples and anti_patterns from
+    the element definition into the LLM prompt, and degrades gracefully when
+    those fields are absent (e.g. fca_suitability_v1 elements).
+    """
+
+    def _ev(self) -> NoteEvaluator:
+        return _make_evaluator()
+
+    _BASE_ELEMENT = {
+        "id": "test_elem",
+        "description": "The note must document the client's identity.",
+        "required": True,
+        "severity": "critical",
+    }
+
+    _EXAMPLES = [
+        "Client identity verified against current passport (doc ref: P123456GB).",
+        "Enhanced due diligence applied — client identified as PEP.",
+    ]
+
+    _ANTI_PATTERNS = [
+        "ID checked.",
+        "KYC complete — details on file.",
+    ]
+
+    # ── Positive: examples present ─────────────────────────────────────────────
+
+    def test_examples_section_present_when_field_provided(self):
+        """Prompt must contain the EXAMPLES header when element has examples."""
+        ev = self._ev()
+        element = {**self._BASE_ELEMENT, "examples": self._EXAMPLES}
+        prompt = ev._build_element_prompt("Some note text.", element)
+        assert "EXAMPLES (phrases that would count as evidence):" in prompt
+
+    def test_examples_items_appear_in_prompt(self):
+        """Each example string must be quoted and present in the prompt."""
+        ev = self._ev()
+        element = {**self._BASE_ELEMENT, "examples": self._EXAMPLES}
+        prompt = ev._build_element_prompt("Some note text.", element)
+        for ex in self._EXAMPLES:
+            assert ex in prompt, f"Example not found in prompt: {ex!r}"
+
+    def test_examples_formatted_as_bullet_quotes(self):
+        """Examples should be formatted as `- "..."` lines."""
+        ev = self._ev()
+        element = {**self._BASE_ELEMENT, "examples": self._EXAMPLES}
+        prompt = ev._build_element_prompt("Some note text.", element)
+        assert f'- "{self._EXAMPLES[0]}"' in prompt
+        assert f'- "{self._EXAMPLES[1]}"' in prompt
+
+    # ── Positive: anti_patterns present ───────────────────────────────────────
+
+    def test_anti_patterns_section_present_when_field_provided(self):
+        """Prompt must contain the ANTI-PATTERNS header when element has anti_patterns."""
+        ev = self._ev()
+        element = {**self._BASE_ELEMENT, "anti_patterns": self._ANTI_PATTERNS}
+        prompt = ev._build_element_prompt("Some note text.", element)
+        assert "ANTI-PATTERNS (these do NOT constitute compliant evidence):" in prompt
+
+    def test_anti_patterns_items_appear_in_prompt(self):
+        """Each anti-pattern string must be quoted and present in the prompt."""
+        ev = self._ev()
+        element = {**self._BASE_ELEMENT, "anti_patterns": self._ANTI_PATTERNS}
+        prompt = ev._build_element_prompt("Some note text.", element)
+        for ap in self._ANTI_PATTERNS:
+            assert ap in prompt, f"Anti-pattern not found in prompt: {ap!r}"
+
+    def test_anti_patterns_formatted_as_bullet_quotes(self):
+        """Anti-patterns should be formatted as `- "..."` lines."""
+        ev = self._ev()
+        element = {**self._BASE_ELEMENT, "anti_patterns": self._ANTI_PATTERNS}
+        prompt = ev._build_element_prompt("Some note text.", element)
+        assert f'- "{self._ANTI_PATTERNS[0]}"' in prompt
+        assert f'- "{self._ANTI_PATTERNS[1]}"' in prompt
+
+    # ── Both fields together ───────────────────────────────────────────────────
+
+    def test_both_sections_present_when_both_fields_provided(self):
+        """Both sections appear when element has both examples and anti_patterns."""
+        ev = self._ev()
+        element = {
+            **self._BASE_ELEMENT,
+            "examples": self._EXAMPLES,
+            "anti_patterns": self._ANTI_PATTERNS,
+        }
+        prompt = ev._build_element_prompt("Some note text.", element)
+        assert "EXAMPLES (phrases that would count as evidence):" in prompt
+        assert "ANTI-PATTERNS (these do NOT constitute compliant evidence):" in prompt
+        for ex in self._EXAMPLES:
+            assert ex in prompt
+        for ap in self._ANTI_PATTERNS:
+            assert ap in prompt
+
+    def test_examples_appear_before_anti_patterns(self):
+        """EXAMPLES section should precede ANTI-PATTERNS in the prompt."""
+        ev = self._ev()
+        element = {
+            **self._BASE_ELEMENT,
+            "examples": self._EXAMPLES,
+            "anti_patterns": self._ANTI_PATTERNS,
+        }
+        prompt = ev._build_element_prompt("Some note text.", element)
+        ex_pos = prompt.index("EXAMPLES (phrases that would count as evidence):")
+        ap_pos = prompt.index("ANTI-PATTERNS (these do NOT constitute compliant evidence):")
+        assert ex_pos < ap_pos, "EXAMPLES block must appear before ANTI-PATTERNS block"
+
+    # ── Graceful degradation: fields absent ───────────────────────────────────
+
+    def test_no_examples_section_when_field_absent(self):
+        """Prompt must NOT contain EXAMPLES header when element lacks examples."""
+        ev = self._ev()
+        prompt = ev._build_element_prompt("Some note text.", self._BASE_ELEMENT)
+        assert "EXAMPLES (phrases that would count as evidence):" not in prompt
+
+    def test_no_anti_patterns_section_when_field_absent(self):
+        """Prompt must NOT contain ANTI-PATTERNS header when element lacks anti_patterns."""
+        ev = self._ev()
+        prompt = ev._build_element_prompt("Some note text.", self._BASE_ELEMENT)
+        assert "ANTI-PATTERNS (these do NOT constitute compliant evidence):" not in prompt
+
+    def test_prompt_unchanged_when_neither_field_present(self):
+        """
+        Prompt produced with no examples/anti_patterns is identical to the
+        prompt produced before END-49 was implemented (regression guard).
+        """
+        ev = self._ev()
+        # Build prompt without optional fields
+        element = {**self._BASE_ELEMENT, "guidance": "Look for X."}
+        prompt = ev._build_element_prompt("Some note text.", element)
+
+        # Core required blocks must still be present
+        assert "You are a regulatory compliance reviewer" in prompt
+        assert "CRITICAL" in prompt           # severity_label
+        assert "REQUIRED" in prompt           # required_label
+        assert "Evaluation guidance:" in prompt
+        assert "STATUS: present|partial|missing" in prompt
+        assert "SCORE: <float 0.0-1.0>" in prompt
+        assert "EVIDENCE:" in prompt
+        assert "NOTES:" in prompt
+
+        # Must be absent
+        assert "EXAMPLES" not in prompt
+        assert "ANTI-PATTERNS" not in prompt
+
+    def test_fca_suitability_v1_element_prompt_no_examples(self):
+        """
+        Elements from fca_suitability_v1 (which lacks examples/anti_patterns)
+        must produce a prompt without those sections — no regression.
+        """
+        ev = self._ev()
+        fw = load_framework("fca_suitability_v1")
+        for element in fw["elements"]:
+            prompt = ev._build_element_prompt("A compliance note.", element)
+            assert "EXAMPLES (phrases that would count as evidence):" not in prompt, (
+                f"fca_suitability_v1 element '{element['id']}' unexpectedly contains EXAMPLES block"
+            )
+            assert "ANTI-PATTERNS (these do NOT constitute compliant evidence):" not in prompt, (
+                f"fca_suitability_v1 element '{element['id']}' unexpectedly contains ANTI-PATTERNS block"
+            )
+
+    # ── Edge cases ─────────────────────────────────────────────────────────────
+
+    def test_empty_examples_list_does_not_add_section(self):
+        """An empty examples list must not add the EXAMPLES section to the prompt."""
+        ev = self._ev()
+        element = {**self._BASE_ELEMENT, "examples": []}
+        prompt = ev._build_element_prompt("Some note text.", element)
+        assert "EXAMPLES (phrases that would count as evidence):" not in prompt
+
+    def test_empty_anti_patterns_list_does_not_add_section(self):
+        """An empty anti_patterns list must not add the ANTI-PATTERNS section."""
+        ev = self._ev()
+        element = {**self._BASE_ELEMENT, "anti_patterns": []}
+        prompt = ev._build_element_prompt("Some note text.", element)
+        assert "ANTI-PATTERNS (these do NOT constitute compliant evidence):" not in prompt
+
+    def test_custom_instruction_still_present_when_examples_added(self):
+        """Additional instructions block must coexist with examples/anti_patterns."""
+        ev = NoteEvaluator(custom_instruction="Check for dated signatures.")
+        ev.llm = MagicMock(name="test_mock_llm")
+        element = {
+            **self._BASE_ELEMENT,
+            "examples": self._EXAMPLES,
+            "anti_patterns": self._ANTI_PATTERNS,
+        }
+        prompt = ev._build_element_prompt("Some note text.", element)
+        assert "Additional instructions:" in prompt
+        assert "Check for dated signatures." in prompt
+        assert "EXAMPLES (phrases that would count as evidence):" in prompt
+        assert "ANTI-PATTERNS (these do NOT constitute compliant evidence):" in prompt
