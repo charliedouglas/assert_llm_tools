@@ -18,6 +18,10 @@ from assert_llm_tools import (
 )
 ```
 
+> **Note:** `NoteEvaluator` is available as a top-level import from v1.0.0. On
+> earlier versions it can be imported directly via
+> `from assert_llm_tools.metrics.note.evaluate_note import NoteEvaluator`.
+
 ---
 
 ## `evaluate_note()`
@@ -410,6 +414,10 @@ print(f"PII was masked: {report.pii_masked}")  # True
 ```
 
 ### JSON / dict output
+
+> **Note:** `to_dict()` and `to_json()` are available from v1.0.0 (introduced
+> alongside the structured JSON output feature, END-50). For earlier versions,
+> use `dataclasses.asdict(report)` instead.
 
 ```python
 import json
