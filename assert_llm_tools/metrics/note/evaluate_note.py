@@ -132,12 +132,12 @@ class NoteEvaluator(BaseCalculator):
         # 2. Optionally mask PII
         pii_masked = False
         if mask_pii:
-            try:
-                note_text, _ = detect_and_mask_pii(note_text)
-                pii_masked = True
-                logger.info("PII masking applied to note text.")
-            except Exception as exc:
-                logger.warning("PII masking failed (%s); continuing with original text.", exc)
+            # Do NOT catch exceptions here: if masking fails we must not
+            # fall through and send raw PII-containing text to the LLM.
+            # Let the RuntimeError from detect_and_mask_pii propagate to the caller.
+            note_text, _ = detect_and_mask_pii(note_text)
+            pii_masked = True
+            logger.info("PII masking applied to note text.")
 
         # 3. Evaluate each element independently
         items: List[GapItem] = []

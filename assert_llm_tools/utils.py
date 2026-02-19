@@ -6,8 +6,11 @@ import re
 import logging
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+# Libraries must not configure the root logger; let the application decide.
+# Using NullHandler means log records are silently discarded unless the caller
+# sets up their own handlers (per Python logging best-practice for libraries).
 logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 # Silence noisy third-party loggers
 logging.getLogger("presidio-analyzer").setLevel(logging.ERROR)
@@ -143,8 +146,10 @@ def detect_and_mask_pii(
     # Initialize engines
     analyzer, anonymizer = initialize_pii_engines()
     if not analyzer or not anonymizer:
-        logger.warning("PII engines not initialized properly. Returning original text.")
-        return text, {}
+        raise RuntimeError(
+            "PII engines could not be initialised (check spaCy model and Presidio install). "
+            "Refusing to return unmasked text — either fix the PII setup or disable mask_pii."
+        )
     
     try:
         # Import here to avoid dependencies if PII detection is not used
@@ -213,5 +218,6 @@ def detect_and_mask_pii(
         return anonymized_result.text, detected_entities
         
     except Exception as e:
-        logger.error(f"Error in PII detection/masking: {e}")
-        return text, {}
+        # Re-raise rather than silently returning unmasked text, which would
+        # defeat the purpose of masking and send raw PII to the LLM.
+        raise RuntimeError(f"PII detection/masking failed: {e}") from e

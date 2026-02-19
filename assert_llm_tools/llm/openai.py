@@ -1,8 +1,13 @@
 from openai import OpenAI
 import os
+import logging
 from typing import Dict, Optional
+from urllib.parse import urlparse
 from .base import BaseLLM
 from .config import LLMConfig
+
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 
 def _check_dependencies():
@@ -47,8 +52,10 @@ class OpenAILLM(BaseLLM):
             # OpenAI client uses a http_client parameter for proxy configuration
             from httpx import HTTPTransport
             client_args["http_client"] = HTTPTransport(proxy=proxies)
-            print(f"Using proxy configuration for OpenAI client: {proxies}")
-            
+            # Mask credentials before logging (same approach as BedrockLLM)
+            masked_proxies = self._mask_proxy_passwords(dict(proxies))
+            logger.info("Using proxy configuration for OpenAI client: %s", masked_proxies)
+
             # Test proxy connectivity
             self._test_proxy_connectivity(proxies)
         
@@ -84,6 +91,24 @@ class OpenAILLM(BaseLLM):
                 
         return proxies if proxies else None
     
+    def _mask_proxy_passwords(self, proxies: Dict[str, str]) -> Dict[str, str]:
+        """
+        Return a copy of the proxy dict with any embedded passwords replaced by '*****'.
+        Prevents credentials appearing in log output.
+        """
+        masked = {}
+        for key, url in proxies.items():
+            if url and "@" in url:
+                parsed = urlparse(url)
+                if parsed.password:
+                    masked_url = url.replace(f":{parsed.password}@", ":*****@")
+                    masked[key] = masked_url
+                else:
+                    masked[key] = url
+            else:
+                masked[key] = url
+        return masked
+
     def _test_proxy_connectivity(self, proxies: Dict[str, str]) -> None:
         """
         Test connectivity through the proxy before making API calls.
@@ -95,7 +120,6 @@ class OpenAILLM(BaseLLM):
             Warning: If proxy connectivity test fails (just a warning, not an exception)
         """
         import socket
-        from urllib.parse import urlparse
         
         # Only test if we have HTTPS proxy (most common for API calls)
         https_proxy = proxies.get("https://") or proxies.get("https://")
@@ -109,9 +133,9 @@ class OpenAILLM(BaseLLM):
                     (parsed.hostname, parsed.port or 443), 
                     timeout=5
                 ):
-                    print(f"Successfully connected to proxy at {parsed.hostname}:{parsed.port or 443}")
+                    logger.info("Successfully connected to proxy at %s:%s", parsed.hostname, parsed.port or 443)
             except (socket.timeout, socket.error) as e:
-                print(f"Warning: Could not connect to proxy: {e}")
+                logger.warning("Could not connect to proxy: %s", e)
                 # Don't raise here as the proxy might still work
                 # Just warn the user
 

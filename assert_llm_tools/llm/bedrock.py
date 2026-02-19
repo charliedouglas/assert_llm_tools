@@ -1,11 +1,15 @@
 import boto3
 import json
+import logging
 import os
 from typing import Dict, Any, Optional
 from urllib.parse import urlparse
 from .base import BaseLLM
 from .config import LLMConfig
 from botocore.config import Config
+
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 
 def _check_dependencies():
@@ -80,7 +84,7 @@ class BedrockLLM(BaseLLM):
             client_config = Config(proxies=proxies)  # Use proxies directly
             # Create a copy of proxies with masked passwords for printing
             masked_proxies = self._mask_proxy_passwords(proxies.copy())
-            print(f"Using proxy configuration: {masked_proxies}")
+            logger.info("Using proxy configuration: %s", masked_proxies)
             self._test_proxy_connectivity(proxies)
 
         # Create the client with proxy config if available
@@ -187,9 +191,9 @@ class BedrockLLM(BaseLLM):
                     timeout=5
                 ):
                     # Use masked host for secure logging
-                    print(f"Successfully connected to proxy at {parsed.hostname}:{parsed.port or 80}")
+                    logger.info("Successfully connected to proxy at %s:%s", parsed.hostname, parsed.port or 80)
             except (socket.timeout, socket.error) as e:
-                print(f"Warning: Could not connect to proxy: {e}")
+                logger.warning("Could not connect to proxy: %s", e)
                 # Don't raise here as the proxy might still work with boto3
                 # Just warn the user
 

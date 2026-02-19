@@ -34,6 +34,19 @@ class LLMConfig:
     https_proxy: Optional[str] = None
     additional_params: Optional[Dict[str, Any]] = None
 
+    def __repr__(self) -> str:
+        """
+        Redact sensitive credential fields so that printing or logging an
+        LLMConfig object never exposes API keys or secrets.
+        """
+        return (
+            f"LLMConfig(provider={self.provider!r}, model_id={self.model_id!r}, "
+            f"region={self.region!r}, "
+            f"api_key={'***' if self.api_key else None}, "
+            f"api_secret={'***' if self.api_secret else None}, "
+            f"aws_session_token={'***' if self.aws_session_token else None})"
+        )
+
     def validate(self) -> None:
         """
         Validate the configuration parameters.

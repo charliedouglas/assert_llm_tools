@@ -163,8 +163,9 @@ def evaluate_summary(
             logger.info("PII masking complete.")
             
         except Exception as e:
-            logger.error(f"Error during PII masking: {e}. Continuing with original text.")
-            # Continue with original text in case of errors
+            # Re-raise: silently falling back to unmasked text would defeat the
+            # purpose of mask_pii and could send raw PII to the LLM provider.
+            raise RuntimeError(f"PII masking failed; aborting to avoid raw-PII exposure: {e}") from e
 
     # Validate LLM config for metrics that require it
     llm_metrics = set(metrics) & set(LLM_REQUIRED_SUMMARY_METRICS)
