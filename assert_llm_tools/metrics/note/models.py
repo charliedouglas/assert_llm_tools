@@ -119,15 +119,34 @@ class PassPolicy:
     Configures the pass/fail threshold for GapReport.passed.
 
     Attributes:
-        block_on_critical_missing:  Fail if any critical required element is missing.
-        block_on_critical_partial:  Fail if any critical required element is partial
-                                    with score below critical_partial_threshold.
-        block_on_high_missing:      Fail if any high required element is missing.
-        critical_partial_threshold: Minimum score for a critical element to not
-                                    block on partial status. Default 0.5.
+        block_on_critical_missing:      Fail if any critical required element is missing.
+        block_on_critical_partial:      Fail if any critical required element is partial
+                                        with score below critical_partial_threshold.
+        block_on_high_missing:          Fail if any high required element is missing.
+        critical_partial_threshold:     Minimum score for a critical element to not
+                                        block on partial status. Default 0.5.
+        required_pass_threshold:        Minimum score for a required non-critical element
+                                        to count as "passing" when partially documented.
+                                        Applied to HIGH, MEDIUM, and LOW elements:
+                                        if status == "partial" and score is below this
+                                        threshold, the element is treated as a blocker.
+                                        Default 0.6.
+        score_correction_missing_cutoff: In score alignment after LLM parsing — if
+                                         status is "missing" and raw score exceeds this
+                                         value, the score is corrected to 0.0.
+                                         Default 0.2.
+        score_correction_present_min:    In score alignment — if status is "present" and
+                                         raw score is below this value, the score is
+                                         corrected upward. Default 0.5.
+        score_correction_present_floor:  Minimum corrected score for a "present" element
+                                         after upward correction. Default 0.7.
     """
 
     block_on_critical_missing: bool = True
     block_on_critical_partial: bool = True
     block_on_high_missing: bool = True
     critical_partial_threshold: float = 0.5
+    required_pass_threshold: float = 0.6
+    score_correction_missing_cutoff: float = 0.2
+    score_correction_present_min: float = 0.5
+    score_correction_present_floor: float = 0.7

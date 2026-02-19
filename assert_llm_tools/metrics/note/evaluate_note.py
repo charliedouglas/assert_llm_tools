@@ -268,11 +268,13 @@ class NoteEvaluator(BaseCalculator):
         # ── SCORE ─────────────────────────────────────────────────────────────
         raw_score = parsed.get("SCORE", "")
         score = self._extract_float_from_response(raw_score, default=0.0)
-        # Align score with status when LLM is inconsistent
-        if status == "missing" and score > 0.2:
+        # Align score with status when LLM is inconsistent.
+        # Thresholds are configurable via PassPolicy (defaults reproduce prior behaviour).
+        _policy = self.pass_policy
+        if status == "missing" and score > _policy.score_correction_missing_cutoff:
             score = 0.0
-        elif status == "present" and score < 0.5:
-            score = max(score, 0.7)
+        elif status == "present" and score < _policy.score_correction_present_min:
+            score = max(score, _policy.score_correction_present_floor)
 
         # ── EVIDENCE ──────────────────────────────────────────────────────────
         evidence_raw = parsed.get("EVIDENCE", "None found")
@@ -405,6 +407,22 @@ class NoteEvaluator(BaseCalculator):
 
             elif item.severity == "high":
                 if policy.block_on_high_missing and item.status == "missing":
+                    return False
+                # Also block if a high required element is only partially evidenced
+                # and its score falls below the configurable required_pass_threshold.
+                if (
+                    item.status == "partial"
+                    and item.score < policy.required_pass_threshold
+                ):
+                    return False
+
+            else:
+                # medium / low: missing never blocks (preserves existing behaviour),
+                # but a partial element with score below the threshold does block.
+                if (
+                    item.status == "partial"
+                    and item.score < policy.required_pass_threshold
+                ):
                     return False
 
         return True
