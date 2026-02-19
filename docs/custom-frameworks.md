@@ -111,14 +111,14 @@ Some elements are essential in an initial advice meeting but less critical — o
 
 ### How it works
 
-When you call `evaluate_note()` with a `metadata` dict containing `meeting_type`, the evaluator applies overrides for that meeting type before running the assessment.
+When you call `evaluate_note()` with a `meeting_type` argument, the evaluator applies overrides for that meeting type before running the assessment.
 
 ```python
 report = evaluate_note(
     note_text=note,
     framework="my_framework.yaml",
     llm_config=config,
-    metadata={"meeting_type": "annual_review"}
+    meeting_type="annual_review"
 )
 ```
 
