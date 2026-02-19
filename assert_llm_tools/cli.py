@@ -11,10 +11,14 @@ Usage examples:
     assert evaluate --framework fca_suitability_v1 --input note.txt --verbose
     assert evaluate --framework fca_suitability_v1 --input note.txt --mask-pii
     assert evaluate --framework fca_suitability_v1 --input note.txt --summary-only
+    assert batch --framework fca_wealth --input notes.csv --output results.csv
+    assert batch --framework fca_wealth --input notes.csv --output results.json
+    assert batch --framework fca_wealth --input notes.csv --summary-only
 """
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import sys
 from dataclasses import asdict
@@ -361,6 +365,234 @@ def _build_llm_config(args: argparse.Namespace):
     )
 
 
+# ── Sub-command: batch ────────────────────────────────────────────────────────
+
+def _cmd_batch(args: argparse.Namespace) -> int:
+    """
+    Entry point for `assert batch`.
+
+    Processes multiple notes from a CSV file and writes per-note results to
+    a CSV or JSON output file. Skips bad rows and continues processing.
+
+    Returns an integer exit code (0 = all passed, 1 = some failed, 2 = error).
+    """
+    input_path = Path(args.input)
+    if not input_path.exists():
+        print(f"Error: input file not found: {input_path}", file=sys.stderr)
+        return 2
+
+    # ── Parse CSV ─────────────────────────────────────────────────────────────
+    try:
+        rows = _read_csv(input_path)
+    except OSError as exc:
+        print(f"Error reading input file: {exc}", file=sys.stderr)
+        return 2
+    except ValueError as exc:
+        print(f"CSV format error: {exc}", file=sys.stderr)
+        return 2
+
+    if not rows:
+        print("Error: input CSV has no data rows.", file=sys.stderr)
+        return 2
+
+    total = len(rows)
+    llm_config = _build_llm_config(args)
+    summary_only = getattr(args, "summary_only", False)
+
+    results: list[dict] = []
+    any_failed = False
+    any_error = False
+
+    for idx, row in enumerate(rows, start=1):
+        note_id = row.get("note_id") or row.get("id") or str(idx)
+        note_text = row.get("text") or row.get("note") or ""
+
+        print(f"Evaluating note {idx}/{total}…", file=sys.stderr)
+
+        if not note_text.strip():
+            print(
+                f"  [SKIP] note_id={note_id!r}: empty text — skipping.",
+                file=sys.stderr,
+            )
+            any_error = True
+            continue
+
+        try:
+            report = evaluate_note(
+                note_text=note_text,
+                framework=args.framework,
+                llm_config=llm_config,
+                mask_pii=getattr(args, "mask_pii", False),
+                verbose=getattr(args, "verbose", False),
+            )
+        except Exception as exc:  # noqa: BLE001
+            print(
+                f"  [ERROR] note_id={note_id!r}: evaluation failed — {exc}",
+                file=sys.stderr,
+            )
+            any_error = True
+            continue
+
+        if not report.passed:
+            any_failed = True
+
+        record = _build_batch_record(note_id, row, report, summary_only)
+        results.append(record)
+
+    if not results:
+        print("Error: no notes were successfully evaluated.", file=sys.stderr)
+        return 2
+
+    # ── Write output ──────────────────────────────────────────────────────────
+    if args.output:
+        output_path = Path(args.output)
+        suffix = output_path.suffix.lower()
+        try:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            if suffix == ".json":
+                _write_json_output(output_path, results)
+            else:
+                _write_csv_output(output_path, results)
+            print(f"Results written to: {output_path}", file=sys.stderr)
+        except OSError as exc:
+            print(f"Error writing output file: {exc}", file=sys.stderr)
+            return 2
+    else:
+        # Print summary table to stdout when no output file is specified
+        _print_batch_summary(results)
+
+    if any_error:
+        return 2 if not results else (1 if any_failed else 0)
+    return 1 if any_failed else 0
+
+
+def _read_csv(path: Path) -> list[dict]:
+    """
+    Read a CSV file and return a list of row dicts.
+
+    Requires at least a ``text`` or ``note`` column. Optional metadata
+    columns (``note_id``, ``adviser``, ``date``, ``reference``) are
+    preserved and carried through to the output.
+    """
+    with open(path, newline="", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        rows = list(reader)
+
+    if not rows:
+        return []
+
+    fieldnames = rows[0].keys()
+    if "text" not in fieldnames and "note" not in fieldnames:
+        raise ValueError(
+            "CSV must contain a 'text' or 'note' column with note content."
+        )
+
+    return rows
+
+
+def _build_batch_record(
+    note_id: str,
+    row: dict,
+    report,
+    summary_only: bool,
+) -> dict:
+    """
+    Build a result record dict from a GapReport for batch output.
+
+    Always includes note_id, overall_rating, overall_score, passed, and
+    per-severity gap counts. Optional metadata columns from the input row
+    are carried through. When *summary_only* is False, attaches the full
+    GapReport as a nested ``report`` key (used for JSON output).
+    """
+    stats = report.stats
+    record: dict = {
+        "note_id": note_id,
+        "overall_rating": _rating_label(report),
+        "overall_score": round(report.overall_score, 4),
+        "passed": report.passed,
+        "critical_gaps": stats.critical_gaps,
+        "high_gaps": stats.high_gaps,
+        "medium_gaps": stats.medium_gaps,
+        "low_gaps": stats.low_gaps,
+    }
+
+    # Carry through any extra metadata columns from the input CSV
+    for key in ("adviser", "adviser_id", "date", "reference"):
+        if key in row and row[key]:
+            record[key] = row[key]
+
+    if not summary_only:
+        # Attach full GapReport as nested dict for JSON output
+        record["report"] = _report_to_dict(report)
+
+    return record
+
+
+def _rating_label(report) -> str:
+    """Map report.passed + score to a human-readable rating string."""
+    if report.passed:
+        return "Compliant"
+    score = report.overall_score
+    if score >= 0.7:
+        return "Mostly Compliant"
+    if score >= 0.4:
+        return "Partially Compliant"
+    return "Non-Compliant"
+
+
+def _write_json_output(path: Path, results: list[dict]) -> None:
+    """Write batch results as a JSON array."""
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(results, fh, indent=2)
+
+
+_BATCH_CSV_FIELDS = [
+    "note_id",
+    "overall_rating",
+    "overall_score",
+    "passed",
+    "critical_gaps",
+    "high_gaps",
+    "medium_gaps",
+    "low_gaps",
+]
+
+_BATCH_CSV_OPTIONAL_FIELDS = ["adviser", "adviser_id", "date", "reference"]
+
+
+def _write_csv_output(path: Path, results: list[dict]) -> None:
+    """Write batch results as a CSV file (summary columns only)."""
+    # Determine which optional metadata columns are present in any result
+    extra_fields = [
+        f for f in _BATCH_CSV_OPTIONAL_FIELDS
+        if any(f in r for r in results)
+    ]
+    fieldnames = _BATCH_CSV_FIELDS + extra_fields
+
+    with open(path, "w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(results)
+
+
+def _print_batch_summary(results: list[dict]) -> None:
+    """Print a compact batch summary table to stdout."""
+    header = (
+        f"{'note_id':<20} {'rating':<20} {'score':>6} {'passed':>7} "
+        f"{'crit':>5} {'high':>5} {'med':>5} {'low':>5}"
+    )
+    print(_bold(header))
+    print("-" * len(header))
+    for r in results:
+        passed_str = "✅" if r["passed"] else "❌"
+        print(
+            f"{str(r['note_id']):<20} {str(r['overall_rating']):<20} "
+            f"{r['overall_score']:>6.3f} {passed_str:>7} "
+            f"{r['critical_gaps']:>5} {r['high_gaps']:>5} "
+            f"{r['medium_gaps']:>5} {r['low_gaps']:>5}"
+        )
+
+
 # ── Argument parser ───────────────────────────────────────────────────────────
 
 def _add_llm_args(parser: argparse.ArgumentParser) -> None:
@@ -474,6 +706,71 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     _add_llm_args(eval_p)
 
+    # ── batch ─────────────────────────────────────────────────────────────────
+    batch_p = sub.add_parser(
+        "batch",
+        help="Evaluate multiple compliance notes from a CSV file.",
+        description=(
+            "Process multiple notes from a CSV input file and write per-note "
+            "results to a CSV or JSON output file.\n\n"
+            "CSV input must contain at minimum a 'text' or 'note' column. "
+            "Optional columns: note_id, adviser, date, reference.\n\n"
+            "Examples:\n"
+            "  assert batch --framework fca_wealth --input notes.csv --output results.csv\n"
+            "  assert batch --framework fca_wealth --input notes.csv --output results.json\n"
+            "  assert batch --framework fca_wealth --input notes.csv --summary-only"
+        ),
+    )
+    batch_p.add_argument(
+        "--framework", "-f",
+        required=True,
+        metavar="FRAMEWORK",
+        help=(
+            "Built-in framework ID (e.g. 'fca_wealth') or path to a "
+            "custom YAML framework file."
+        ),
+    )
+    batch_p.add_argument(
+        "--input", "-i",
+        required=True,
+        metavar="FILE",
+        help="Path to the CSV file containing notes to evaluate.",
+    )
+    batch_p.add_argument(
+        "--output", "-o",
+        metavar="FILE",
+        default=None,
+        help=(
+            "Output file path. Use .csv for summary rows, .json for full "
+            "GapReport dicts. If omitted, prints a summary table to stdout."
+        ),
+    )
+    batch_p.add_argument(
+        "--summary-only",
+        action="store_true",
+        default=False,
+        dest="summary_only",
+        help=(
+            "Include only headline stats in output (no per-element detail). "
+            "For JSON output this omits the 'items' array from each report."
+        ),
+    )
+    batch_p.add_argument(
+        "--mask-pii",
+        action="store_true",
+        default=False,
+        dest="mask_pii",
+        help="Apply PII detection and masking before sending each note to the LLM.",
+    )
+    batch_p.add_argument(
+        "--no-color",
+        action="store_true",
+        default=False,
+        dest="no_color",
+        help="Disable ANSI colour in terminal output.",
+    )
+    _add_llm_args(batch_p)
+
     return parser
 
 
@@ -505,6 +802,8 @@ def main(argv: Optional[list] = None) -> None:
 
     if args.command == "evaluate":
         exit_code = _cmd_evaluate(args)
+    elif args.command == "batch":
+        exit_code = _cmd_batch(args)
     else:
         parser.print_help()
         exit_code = 2
