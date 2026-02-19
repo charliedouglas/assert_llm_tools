@@ -648,13 +648,6 @@ class TestEvaluateNoteIntegration:
         assert isinstance(report.summary, str)
         assert len(report.summary.strip()) > 0
 
-    def test_evaluate_note_pii_masked_false_by_default(self):
-        """pii_masked=False when mask_pii not requested."""
-        ev = _make_evaluator()
-        ev.llm.generate.side_effect = self._mock_llm_side_effects()
-        report = ev.evaluate(self._FAKE_NOTE, "fca_suitability_v1", mask_pii=False)
-        assert report.pii_masked is False
-
     def test_evaluate_note_with_critical_missing_fails(self):
         """If a required critical element is missing → passed=False."""
         # Override first element response (client_objectives) to missing
@@ -735,33 +728,6 @@ class TestCodeReviewChecks:
 
         assert TopLevelPassPolicy is PassPolicy, (
             "PassPolicy exported from top-level should be the same class as metrics.note.models.PassPolicy"
-        )
-
-    def test_detect_and_mask_pii_not_reimplemented(self):
-        """
-        evaluate_note.py must import detect_and_mask_pii from utils, not redefine it.
-
-        NOTE: assert_llm_tools.metrics.note.__init__ re-exports the `evaluate_note`
-        *function*, which shadows the submodule name when doing a dotted import.
-        We therefore fetch the real module object via sys.modules.
-        """
-        # metrics.note.__init__ re-exports evaluate_note (function), shadowing
-        # the submodule — we must go to sys.modules for the real module object.
-        ev_mod = sys.modules.get("assert_llm_tools.metrics.note.evaluate_note")
-        assert ev_mod is not None and isinstance(ev_mod, types.ModuleType), (
-            "evaluate_note module not found in sys.modules — was it imported?"
-        )
-
-        import assert_llm_tools.utils as utils_mod
-
-        ev_fn = getattr(ev_mod, "detect_and_mask_pii", None)
-        utils_fn = getattr(utils_mod, "detect_and_mask_pii", None)
-
-        assert ev_fn is not None, "detect_and_mask_pii not imported into evaluate_note module"
-        assert utils_fn is not None, "detect_and_mask_pii not found in utils module"
-        assert ev_fn is utils_fn, (
-            "detect_and_mask_pii in evaluate_note.py is NOT the same object as utils.py — "
-            "it may have been reimplemented rather than imported!"
         )
 
     def test_no_direct_bedrock_or_openai_instantiation_in_note_evaluator(self):

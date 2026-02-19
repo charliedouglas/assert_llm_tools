@@ -12,7 +12,6 @@ import re
 from typing import Any, Dict, List, Optional, Union
 
 from ...llm.config import LLMConfig
-from ...utils import detect_and_mask_pii
 from ..base import BaseCalculator
 from .loader import load_framework
 from .models import GapItem, GapReport, GapReportStats, PassPolicy
@@ -27,7 +26,6 @@ def evaluate_note(
     framework: Union[str, dict],
     llm_config: Optional[LLMConfig] = None,
     *,
-    mask_pii: bool = False,
     verbose: bool = False,
     custom_instruction: Optional[str] = None,
     pass_policy: Optional[PassPolicy] = None,
@@ -51,11 +49,6 @@ def evaluate_note(
         llm_config (LLMConfig, optional):
             LLM provider configuration. If None, a default Bedrock/Claude
             config is used (consistent with BaseCalculator default).
-
-        mask_pii (bool):
-            If True, apply PII detection and masking to note_text before
-            passing it to the LLM. pii_masked=True is recorded in the report.
-            Default: False.
 
         verbose (bool):
             If True, GapItem.notes will contain the raw LLM reasoning for
@@ -88,7 +81,6 @@ def evaluate_note(
     return calculator.evaluate(
         note_text=note_text,
         framework=framework,
-        mask_pii=mask_pii,
         metadata=metadata or {},
     )
 
@@ -122,24 +114,13 @@ class NoteEvaluator(BaseCalculator):
         self,
         note_text: str,
         framework: Union[str, dict],
-        mask_pii: bool = False,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> GapReport:
         """Run the full evaluation pipeline and return a GapReport."""
         # 1. Load & validate framework
         fw = load_framework(framework)
 
-        # 2. Optionally mask PII
-        pii_masked = False
-        if mask_pii:
-            try:
-                note_text, _ = detect_and_mask_pii(note_text)
-                pii_masked = True
-                logger.info("PII masking applied to note text.")
-            except Exception as exc:
-                logger.warning("PII masking failed (%s); continuing with original text.", exc)
-
-        # 3. Evaluate each element independently
+        # 2. Evaluate each element independently
         items: List[GapItem] = []
         for element in fw["elements"]:
             logger.debug("Evaluating element: %s", element["id"])
@@ -162,7 +143,6 @@ class NoteEvaluator(BaseCalculator):
             items=items,
             summary=summary,
             stats=stats,
-            pii_masked=pii_masked,
             metadata=metadata or {},
         )
 
