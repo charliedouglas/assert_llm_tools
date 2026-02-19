@@ -10,6 +10,7 @@ Usage examples:
     assert evaluate --framework path/to/custom.yaml --input note.txt --output out.json
     assert evaluate --framework fca_suitability_v1 --input note.txt --verbose
     assert evaluate --framework fca_suitability_v1 --input note.txt --mask-pii
+    assert evaluate --framework fca_suitability_v1 --input note.txt --summary-only
 """
 from __future__ import annotations
 
@@ -184,6 +185,55 @@ def _format_report(report) -> str:
     return "\n".join(lines)
 
 
+def _format_summary_report(report) -> str:
+    """
+    Render a GapReport as a compact summary-only string for terminal output.
+
+    Only emits headline stats: framework, overall rating, score, and severity
+    gap counts. No element list, no suggestions, no evidence.
+
+    Layout::
+
+        Framework: fca_suitability_v1 (v1.0.0)
+        Overall:   Non-Compliant ❌
+        Score:     0.42
+        Gaps:      critical=1  high=0  medium=0  low=0
+        Elements:  3 total  (1 present / 1 partial / 1 missing)
+    """
+    lines: list[str] = []
+
+    fw_label = f"{report.framework_id} (v{report.framework_version})"
+    lines.append(_bold(f"Framework: {fw_label}"))
+
+    if report.passed:
+        overall_label = _green("Compliant ✅")
+    else:
+        overall_label = _red("Non-Compliant ❌")
+    lines.append(f"Overall:   {overall_label}")
+
+    lines.append(f"Score:     {_bold(f'{report.overall_score:.2f}')}")
+
+    stats = report.stats
+    lines.append(
+        f"Gaps:      "
+        f"{_red('critical=' + str(stats.critical_gaps))}  "
+        f"{_yellow('high=' + str(stats.high_gaps))}  "
+        f"{_cyan('medium=' + str(stats.medium_gaps))}  "
+        f"{_dim('low=' + str(stats.low_gaps))}"
+    )
+    lines.append(
+        f"Elements:  {stats.total_elements} total  "
+        f"({stats.present_count} present / {stats.partial_count} partial / "
+        f"{stats.missing_count} missing)"
+    )
+
+    if report.pii_masked:
+        lines.append(_dim("  ⚑ PII masking was applied before evaluation"))
+
+    lines.append("")
+    return "\n".join(lines)
+
+
 def _append_wrapped(lines: list, text: str, indent: str = "  ", width: int = 76) -> None:
     """Word-wrap *text* at *width* chars and append lines with *indent*."""
     import textwrap
@@ -197,6 +247,18 @@ def _append_wrapped(lines: list, text: str, indent: str = "  ", width: int = 76)
 def _report_to_dict(report) -> dict:
     """Convert a GapReport to a JSON-serialisable dict."""
     return asdict(report)
+
+
+def _report_to_summary_dict(report) -> dict:
+    """
+    Convert a GapReport to a JSON-serialisable summary dict.
+
+    Omits the ``elements`` / ``items`` array; retains only headline stats
+    suitable for quick batch overviews.
+    """
+    d = asdict(report)
+    d.pop("items", None)
+    return d
 
 
 # ── Sub-command: evaluate ─────────────────────────────────────────────────────
@@ -249,16 +311,25 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
             traceback.print_exc()
         return 2
 
+    summary_only = getattr(args, "summary_only", False)
+
     # ── Terminal output ───────────────────────────────────────────────────────
-    print(_format_report(report))
+    if summary_only:
+        print(_format_summary_report(report))
+    else:
+        print(_format_report(report))
 
     # ── JSON output ───────────────────────────────────────────────────────────
     if args.output:
         output_path = Path(args.output)
         try:
             output_path.parent.mkdir(parents=True, exist_ok=True)
+            report_dict = (
+                _report_to_summary_dict(report) if summary_only
+                else _report_to_dict(report)
+            )
             with open(output_path, "w", encoding="utf-8") as fh:
-                json.dump(_report_to_dict(report), fh, indent=2)
+                json.dump(report_dict, fh, indent=2)
             print(f"Report written to: {output_path}", file=sys.stderr)
         except OSError as exc:
             print(f"Error writing output file: {exc}", file=sys.stderr)
@@ -291,6 +362,40 @@ def _build_llm_config(args: argparse.Namespace):
 
 
 # ── Argument parser ───────────────────────────────────────────────────────────
+
+def _add_llm_args(parser: argparse.ArgumentParser) -> None:
+    """Add shared LLM provider override arguments to a sub-parser."""
+    llm_group = parser.add_argument_group(
+        "LLM provider (optional)",
+        description=(
+            "Override the default LLM provider. If omitted, the library "
+            "default (Bedrock/Claude) is used."
+        ),
+    )
+    llm_group.add_argument(
+        "--provider",
+        choices=["bedrock", "openai"],
+        default=None,
+        help="LLM provider to use.",
+    )
+    llm_group.add_argument(
+        "--model-id",
+        dest="model_id",
+        default=None,
+        help="Model ID / name for the chosen provider.",
+    )
+    llm_group.add_argument(
+        "--region",
+        default=None,
+        help="AWS region (Bedrock only).",
+    )
+    llm_group.add_argument(
+        "--api-key",
+        dest="api_key",
+        default=None,
+        help="API key (OpenAI only).",
+    )
+
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -337,6 +442,17 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional path for JSON report output (e.g. report.json).",
     )
     eval_p.add_argument(
+        "--summary-only",
+        action="store_true",
+        default=False,
+        dest="summary_only",
+        help=(
+            "Print headline stats only (framework, overall rating, score, "
+            "severity gap counts). Omits element list, suggestions, and evidence. "
+            "JSON output omits the 'items' array."
+        ),
+    )
+    eval_p.add_argument(
         "--verbose", "-v",
         action="store_true",
         default=False,
@@ -356,38 +472,7 @@ def _build_parser() -> argparse.ArgumentParser:
         dest="no_color",
         help="Disable ANSI colour in terminal output.",
     )
-
-    # LLM provider overrides (optional — if omitted, the library default is used)
-    llm_group = eval_p.add_argument_group(
-        "LLM provider (optional)",
-        description=(
-            "Override the default LLM provider. If omitted, the library "
-            "default (Bedrock/Claude) is used."
-        ),
-    )
-    llm_group.add_argument(
-        "--provider",
-        choices=["bedrock", "openai"],
-        default=None,
-        help="LLM provider to use.",
-    )
-    llm_group.add_argument(
-        "--model-id",
-        dest="model_id",
-        default=None,
-        help="Model ID / name for the chosen provider.",
-    )
-    llm_group.add_argument(
-        "--region",
-        default=None,
-        help="AWS region (Bedrock only).",
-    )
-    llm_group.add_argument(
-        "--api-key",
-        dest="api_key",
-        default=None,
-        help="API key (OpenAI only).",
-    )
+    _add_llm_args(eval_p)
 
     return parser
 

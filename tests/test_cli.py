@@ -6,6 +6,7 @@ Covers:
 - Terminal formatter output structure
 - JSON serialisation helper
 - _cmd_evaluate error paths (no LLM calls made)
+- --summary-only flag (END-54)
 """
 from __future__ import annotations
 
@@ -279,6 +280,7 @@ class TestCmdEvaluateErrors:
             output=None,
             verbose=False,
             mask_pii=False,
+            summary_only=False,
             provider=None,
             model_id=None,
             region=None,
@@ -402,3 +404,220 @@ class TestMain:
                     "--no-color",
                 ])
         assert exc_info.value.code == 0
+
+
+# ---------------------------------------------------------------------------
+# END-54: --summary-only flag tests
+# ---------------------------------------------------------------------------
+
+class TestSummaryOnlyFlag:
+    """Tests for the --summary-only flag on the evaluate subcommand."""
+
+    def setup_method(self):
+        import assert_llm_tools.cli as cli_module
+        cli_module._COLOUR = False
+
+    # ── Arg-parsing ──────────────────────────────────────────────────────────
+
+    def test_summary_only_flag_parsed(self):
+        from assert_llm_tools.cli import _build_parser
+        args = _build_parser().parse_args([
+            "evaluate", "--framework", "fca_suitability_v1",
+            "--input", "note.txt", "--summary-only",
+        ])
+        assert args.summary_only is True
+
+    def test_summary_only_default_false(self):
+        from assert_llm_tools.cli import _build_parser
+        args = _build_parser().parse_args([
+            "evaluate", "--framework", "fca_suitability_v1", "--input", "note.txt",
+        ])
+        assert args.summary_only is False
+
+    # ── _format_summary_report terminal output ────────────────────────────────
+
+    def test_summary_report_contains_framework(self):
+        from assert_llm_tools.cli import _format_summary_report
+        output = _format_summary_report(_make_report())
+        assert "fca_suitability_v1" in output
+
+    def test_summary_report_contains_score(self):
+        from assert_llm_tools.cli import _format_summary_report
+        output = _format_summary_report(_make_report())
+        assert "0.42" in output
+
+    def test_summary_report_contains_overall_rating(self):
+        from assert_llm_tools.cli import _format_summary_report
+        output = _format_summary_report(_make_report(passed=False))
+        assert "Non-Compliant" in output
+
+    def test_summary_report_compliant_label(self):
+        from assert_llm_tools.cli import _format_summary_report
+        output = _format_summary_report(_make_report(passed=True))
+        assert "Compliant" in output
+
+    def test_summary_report_contains_gap_counts(self):
+        from assert_llm_tools.cli import _format_summary_report
+        output = _format_summary_report(_make_report())
+        # Stats: critical=1, high=0, medium=0, low=0
+        assert "critical=1" in output
+        assert "high=0" in output
+
+    def test_summary_report_contains_element_counts(self):
+        from assert_llm_tools.cli import _format_summary_report
+        output = _format_summary_report(_make_report())
+        assert "3 total" in output
+        assert "1 present" in output
+
+    def test_summary_report_omits_element_ids(self):
+        from assert_llm_tools.cli import _format_summary_report
+        output = _format_summary_report(_make_report())
+        # Individual element IDs should NOT appear in summary output
+        assert "recommendation_rationale" not in output
+        assert "client_objectives" not in output
+        assert "risk_attitude" not in output
+
+    def test_summary_report_omits_gaps_section(self):
+        from assert_llm_tools.cli import _format_summary_report
+        output = _format_summary_report(_make_report())
+        assert "GAPS:" not in output
+
+    def test_summary_report_omits_present_section(self):
+        from assert_llm_tools.cli import _format_summary_report
+        output = _format_summary_report(_make_report())
+        assert "PRESENT:" not in output
+
+    def test_summary_report_omits_summary_text(self):
+        from assert_llm_tools.cli import _format_summary_report
+        output = _format_summary_report(_make_report())
+        assert "Two elements are absent or partial." not in output
+
+    # ── _report_to_summary_dict JSON output ───────────────────────────────────
+
+    def test_summary_dict_omits_items(self):
+        from assert_llm_tools.cli import _report_to_summary_dict
+        d = _report_to_summary_dict(_make_report())
+        assert "items" not in d
+
+    def test_summary_dict_retains_stats(self):
+        from assert_llm_tools.cli import _report_to_summary_dict
+        d = _report_to_summary_dict(_make_report())
+        assert "stats" in d
+        assert d["stats"]["total_elements"] == 3
+
+    def test_summary_dict_retains_score(self):
+        from assert_llm_tools.cli import _report_to_summary_dict
+        d = _report_to_summary_dict(_make_report())
+        assert d["overall_score"] == pytest.approx(0.42)
+
+    def test_summary_dict_retains_framework_id(self):
+        from assert_llm_tools.cli import _report_to_summary_dict
+        d = _report_to_summary_dict(_make_report())
+        assert d["framework_id"] == "fca_suitability_v1"
+
+    def test_summary_dict_is_json_serialisable(self):
+        from assert_llm_tools.cli import _report_to_summary_dict
+        d = _report_to_summary_dict(_make_report())
+        serialised = json.dumps(d)
+        data = json.loads(serialised)
+        assert "framework_id" in data
+
+    # ── _cmd_evaluate with --summary-only ─────────────────────────────────────
+
+    def test_cmd_evaluate_summary_only_terminal(self, tmp_path, capsys):
+        from assert_llm_tools.cli import _cmd_evaluate
+        import assert_llm_tools.cli as cli_module
+        cli_module._COLOUR = False
+
+        note = tmp_path / "note.txt"
+        note.write_text("A compliance note.")
+
+        report = _make_report(passed=False)
+        args = MagicMock(
+            framework="fca_suitability_v1",
+            input=str(note),
+            output=None,
+            verbose=False,
+            mask_pii=False,
+            summary_only=True,
+            provider=None,
+            model_id=None,
+            region=None,
+            api_key=None,
+        )
+
+        with patch("assert_llm_tools.cli.evaluate_note", return_value=report):
+            code = _cmd_evaluate(args)
+
+        assert code == 1
+        captured = capsys.readouterr()
+        # Summary output present
+        assert "fca_suitability_v1" in captured.out
+        assert "Non-Compliant" in captured.out
+        assert "critical=1" in captured.out
+        # Element-level detail absent
+        assert "recommendation_rationale" not in captured.out
+        assert "GAPS:" not in captured.out
+
+    def test_cmd_evaluate_summary_only_json_omits_items(self, tmp_path):
+        from assert_llm_tools.cli import _cmd_evaluate
+        import assert_llm_tools.cli as cli_module
+        cli_module._COLOUR = False
+
+        note = tmp_path / "note.txt"
+        note.write_text("A compliance note.")
+        out_file = tmp_path / "summary.json"
+
+        report = _make_report(passed=False)
+        args = MagicMock(
+            framework="fca_suitability_v1",
+            input=str(note),
+            output=str(out_file),
+            verbose=False,
+            mask_pii=False,
+            summary_only=True,
+            provider=None,
+            model_id=None,
+            region=None,
+            api_key=None,
+        )
+
+        with patch("assert_llm_tools.cli.evaluate_note", return_value=report):
+            _cmd_evaluate(args)
+
+        assert out_file.exists()
+        data = json.loads(out_file.read_text())
+        assert "items" not in data
+        assert "stats" in data
+        assert "overall_score" in data
+
+    def test_cmd_evaluate_no_summary_only_json_includes_items(self, tmp_path):
+        """Without --summary-only, JSON output should include items array."""
+        from assert_llm_tools.cli import _cmd_evaluate
+        import assert_llm_tools.cli as cli_module
+        cli_module._COLOUR = False
+
+        note = tmp_path / "note.txt"
+        note.write_text("A compliance note.")
+        out_file = tmp_path / "full.json"
+
+        report = _make_report(passed=False)
+        args = MagicMock(
+            framework="fca_suitability_v1",
+            input=str(note),
+            output=str(out_file),
+            verbose=False,
+            mask_pii=False,
+            summary_only=False,
+            provider=None,
+            model_id=None,
+            region=None,
+            api_key=None,
+        )
+
+        with patch("assert_llm_tools.cli.evaluate_note", return_value=report):
+            _cmd_evaluate(args)
+
+        data = json.loads(out_file.read_text())
+        assert "items" in data
+        assert len(data["items"]) == 3
