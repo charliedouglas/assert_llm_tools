@@ -55,10 +55,18 @@ all = [
 "Homepage" = "https://github.com/charliedouglas/assert"
 "Bug Tracker" = "https://github.com/charliedouglas/assert/issues"
 
+[project.scripts]
+assert = "assert_llm_tools.cli:main"
+
 [tool.setuptools]
 packages = [
     "assert_llm_tools",
     "assert_llm_tools.metrics",
     "assert_llm_tools.metrics.summary",
-    "assert_llm_tools.llm"
+    "assert_llm_tools.metrics.note",
+    "assert_llm_tools.llm",
+    "assert_llm_tools.frameworks",
 ]
+
+[tool.setuptools.package-data]
+"assert_llm_tools.frameworks" = ["*.yaml"]
