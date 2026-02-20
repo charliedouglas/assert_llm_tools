@@ -53,10 +53,5 @@ class LLMConfig:
         if self.provider == "openai" and not self.api_key:
             raise ValueError("API key is required for OpenAI")
 
-        # Model ID validation
-        if self.provider == "openai" and not any(
-            model in self.model_id for model in ["gpt-4", "gpt-3.5"]
-        ):
-            raise ValueError(
-                "Invalid OpenAI model ID. Must be GPT-4 or GPT-3.5 variant"
-            )
+        if not self.model_id:
+            raise ValueError("model_id must not be empty")
