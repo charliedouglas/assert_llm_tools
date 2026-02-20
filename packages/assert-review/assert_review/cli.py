@@ -24,7 +24,6 @@ from assert_core.llm.config import LLMConfig
 from .evaluate_note import evaluate_note
 from .models import GapReport
 
-
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 def _build_llm_config(args: argparse.Namespace) -> Optional[LLMConfig]:

@@ -5,9 +5,10 @@ load_framework() and _validate_framework() are intentionally kept separate
 from evaluate_note.py so they can be unit-tested and used independently
 (e.g. in a CLI validate-framework tool).
 """
-import yaml
 from pathlib import Path
 from typing import Any, Dict, Union
+
+import yaml
 
 # Built-in frameworks shipped with the package.
 # Resolved relative to this file so it works regardless of install location.
