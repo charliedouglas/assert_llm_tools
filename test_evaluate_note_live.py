@@ -70,7 +70,7 @@ print("=" * 60)
 
 report = evaluate_note(
     note_text=note_text,
-    framework="fca_suitability_v1",
+    framework="fca_suitability_v2",
     llm_config=llm_config,
     verbose=True,
 )
