@@ -53,7 +53,6 @@ report = evaluate_note(
     note_text=note,
     framework="fca_suitability_v1",   # built-in ID or path to a custom YAML
     llm_config=config,
-    mask_pii=False,                    # mask client PII before sending to LLM
     verbose=False,                     # include LLM reasoning in GapItem.notes
     custom_instruction=None,           # additional instruction appended to all element prompts
     pass_policy=None,                  # custom PassPolicy (see below)
@@ -73,7 +72,6 @@ report = evaluate_note(
 | `items` | `List[GapItem]` | Per-element evaluation results |
 | `summary` | `str` | LLM-generated narrative summary of the evaluation |
 | `stats` | `GapReportStats` | Counts by status and severity |
-| `pii_masked` | `bool` | Whether PII masking was applied |
 | `metadata` | `dict` | Caller-supplied metadata, passed through unchanged |
 
 **Overall rating values:**
@@ -127,21 +125,6 @@ report = evaluate_note(
     custom_instruction="This note relates to a high-net-worth client with complex tax considerations. Apply stricter standards for risk and objectives documentation.",
 )
 ```
-
-## PII Masking
-
-Pass `mask_pii=True` to detect and mask personally identifiable information before any text is sent to the LLM:
-
-```python
-report = evaluate_note(
-    note_text=note,
-    framework="fca_suitability_v1",
-    llm_config=config,
-    mask_pii=True,
-)
-```
-
-`mask_pii=False` is the default. For production use with real client data, set `mask_pii=True`. Note that output fields like `GapItem.evidence` may contain verbatim quotes from the note — treat them accordingly.
 
 ## Configurable Pass Policy
 
