@@ -41,6 +41,11 @@ include = ["assert_review*"]
 [tool.setuptools.package-data]
 assert_review = ["frameworks/*.yaml"]
 
+[tool.pytest.ini_options]
+markers = [
+    "golden: golden dataset calibration tests (require live LLM, set RUN_GOLDEN=1)",
+]
+
 [tool.ruff]
 line-length = 120
 target-version = "py39"

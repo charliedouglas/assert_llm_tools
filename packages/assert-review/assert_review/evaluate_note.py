@@ -163,7 +163,7 @@ class NoteEvaluator(BaseCalculator):
         into a GapItem.
         """
         prompt = self._build_element_prompt(note_text, element)
-        response = self.llm.generate(prompt, max_tokens=400)
+        response = self.llm.generate(prompt, max_tokens=500)
         return self._parse_element_response(response, element)
 
     def _build_element_prompt(
@@ -177,6 +177,24 @@ class NoteEvaluator(BaseCalculator):
             guidance_block = (
                 f"\nEvaluation guidance:\n{element['guidance'].strip()}\n"
             )
+
+        discriminating_criteria_block = ""
+        dc = element.get("discriminating_criteria")
+        if dc:
+            lines = [
+                "Discriminating criteria — what separates 'present' from 'partial/missing':"
+            ]
+            for spec in dc.get("required_specificity", []):
+                lines.append(f"  - {spec}")
+            pass_example = dc.get("pass_example", "").strip()
+            if pass_example:
+                lines.append(f'\nPASS example (this IS sufficient):\n  "{pass_example}"')
+            fail_example = dc.get("fail_example", "").strip()
+            if fail_example:
+                lines.append(
+                    f'\nFAIL example (this is NOT sufficient — mark partial or missing):\n  "{fail_example}"'
+                )
+            discriminating_criteria_block = "\n" + "\n".join(lines) + "\n"
 
         custom_block = ""
         if self.custom_instruction:
@@ -196,6 +214,7 @@ class NoteEvaluator(BaseCalculator):
             f"means there is no meaningful mention whatsoever.\n\n"
             f"Requirement ({required_label}): {element['description'].strip()}"
             f"{guidance_block}"
+            f"{discriminating_criteria_block}"
             f"{custom_block}\n"
             f"Note text:\n"
             f"---\n"

@@ -552,3 +552,91 @@ class TestEvaluateNoteIntegration:
         assert isinstance(report, GapReport)
         assert report.framework_id == "fca_suitability_v1"
         assert len(report.items) == 9
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DISCRIMINATING CRITERIA
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_ELEMENT_WITH_DC = {
+    "id": "elem_dc",
+    "description": "The note must document X.",
+    "required": True,
+    "severity": "critical",
+    "guidance": "Look for specific X language.",
+    "discriminating_criteria": {
+        "required_specificity": [
+            "Must state the client's named objective",
+            "Must reference a specific time horizon",
+        ],
+        "pass_example": "Client seeks income of £1,000/month from age 62.",
+        "fail_example": "Client wants income.",
+    },
+}
+
+_ELEMENT_WITHOUT_DC = {
+    "id": "elem_no_dc",
+    "description": "The note must document Y.",
+    "required": True,
+    "severity": "critical",
+    "guidance": "Look for Y.",
+}
+
+
+class TestDiscriminatingCriteriaPrompt:
+
+    def test_prompt_includes_specificity_items_when_dc_present(self):
+        ev = _make_evaluator()
+        prompt = ev._build_element_prompt("Some note.", _ELEMENT_WITH_DC)
+        assert "Must state the client's named objective" in prompt
+        assert "Must reference a specific time horizon" in prompt
+
+    def test_prompt_includes_pass_example_when_dc_present(self):
+        ev = _make_evaluator()
+        prompt = ev._build_element_prompt("Some note.", _ELEMENT_WITH_DC)
+        assert "Client seeks income of £1,000/month from age 62." in prompt
+        assert "PASS example" in prompt
+
+    def test_prompt_includes_fail_example_when_dc_present(self):
+        ev = _make_evaluator()
+        prompt = ev._build_element_prompt("Some note.", _ELEMENT_WITH_DC)
+        assert "Client wants income." in prompt
+        assert "FAIL example" in prompt
+
+    def test_prompt_omits_dc_block_when_dc_absent(self):
+        ev = _make_evaluator()
+        prompt = ev._build_element_prompt("Some note.", _ELEMENT_WITHOUT_DC)
+        assert "Discriminating criteria" not in prompt
+        assert "PASS example" not in prompt
+        assert "FAIL example" not in prompt
+
+    def test_prompt_still_includes_guidance_alongside_dc(self):
+        ev = _make_evaluator()
+        prompt = ev._build_element_prompt("Some note.", _ELEMENT_WITH_DC)
+        assert "Look for specific X language." in prompt
+        assert "Discriminating criteria" in prompt
+
+    def test_fca_v2_critical_elements_have_dc_in_framework(self):
+        """Smoke-test that the 5 critical elements in fca_suitability_v2 carry discriminating_criteria."""
+        from assert_review.loader import load_framework
+        fw = load_framework("fca_suitability_v2")
+        critical_ids = {
+            e["id"] for e in fw["elements"] if e["severity"] == "critical"
+        }
+        for elem in fw["elements"]:
+            if elem["id"] in critical_ids:
+                assert "discriminating_criteria" in elem, (
+                    f"Critical element '{elem['id']}' is missing discriminating_criteria"
+                )
+
+    def test_dc_with_no_pass_or_fail_example_does_not_crash(self):
+        ev = _make_evaluator()
+        element = {
+            **_ELEMENT_WITHOUT_DC,
+            "discriminating_criteria": {
+                "required_specificity": ["Must do X"],
+            },
+        }
+        prompt = ev._build_element_prompt("Some note.", element)
+        assert "Must do X" in prompt
+        assert "PASS example" not in prompt

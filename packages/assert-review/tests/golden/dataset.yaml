@@ -1,0 +1,416 @@
+# Golden dataset for fca_suitability_v2 calibration.
+#
+# Synthetic but realistic notes covering failure modes cited in FCA enforcement.
+# Only the 2-4 most diagnostic elements are specified per note — this avoids
+# over-specifying and making the dataset brittle as guidance evolves.
+#
+# Status values: present | partial | missing
+# Use these to detect false positives (model marks "present" when expected "missing")
+# and false negatives (model marks "missing" when expected "present").
+
+version: "1.0"
+framework_id: fca_suitability_v2
+
+notes:
+
+  - id: gold_standard
+    description: >
+      Full annual review note with all elements present and client-specific.
+      Named product, named risk score, separate CFL with financial buffer,
+      quantified objectives, specific time horizon. Should pass comfortably.
+    expected:
+      overall_pass: true
+      elements:
+        recommendation_rationale: present
+        capacity_for_loss: present
+        client_objectives: present
+        risk_attitude: present
+        client_identification: present
+    note: |
+      Client Meeting Note
+      Client: Sarah Chen (ref SC-2241)
+      Date: 10 January 2026
+      Adviser: Daniel Wright
+      Meeting type: Annual review — in-person at adviser's office
+      Attendees: Daniel Wright (adviser), Sarah Chen (client)
+
+      Client profile:
+      Sarah is 54 years old, works as a GP (gross income £95,000 p.a.) and
+      holds an NHS Pension (projected income £28,000/year from age 60) and
+      a self-invested personal pension (SIPP, current value £186,000). No
+      outstanding mortgage. Monthly discretionary spend ~£1,800; essential
+      expenditure ~£2,200/month.
+
+      Objectives:
+      Primary objective: retire fully at 60, supplementing NHS pension with
+      SIPP drawdown of £2,000/month. Secondary objective: IHT planning for
+      estate (estimated £800k). Time horizon: 6 years to drawdown.
+
+      Risk attitude:
+      Sarah completed the firm's risk questionnaire (version 3.1) and scored
+      41/60, placing her in the Balanced-Growth category. She confirmed the
+      questionnaire outcome reflects her stated preferences. Limitations
+      acknowledged: questionnaire uses hypothetical loss scenarios; adviser
+      explored real-loss comfort separately and confirmed alignment.
+
+      Capacity for loss:
+      Assessed separately from ATR. Essential expenditure covered by income;
+      NHS pension would cover living costs in full from age 60. SIPP losses
+      of up to 25% would not affect living standards. CFL assessed as
+      moderate-high. CFL does not constrain the Balanced-Growth ATR.
+
+      Knowledge and experience:
+      Sarah has held the SIPP for 12 years, previously consolidated two
+      occupational pension schemes via an adviser. Familiar with fund-based
+      investing. No direct equity experience. Assessed as adequate for
+      recommended product type.
+
+      Existing arrangements:
+      SIPP reviewed. Current allocation: 60% global equity, 40% fixed income.
+      Performance: +6.2% over 12 months vs benchmark +5.8%. Portfolio risk
+      profile consistent with Balanced-Growth. No rebalancing required.
+
+      Recommendation:
+      No change to SIPP allocation. The 60/40 equity/bond split remains
+      appropriate for Sarah's 6-year horizon to drawdown, Balanced-Growth
+      (41/60) ATR, and moderate-high CFL. Income projection at current growth
+      assumptions (5% nominal): ~£2,100/month at age 60 — within target range.
+      No alternative strategy was identified as offering materially better
+      alignment with her specific circumstances.
+
+      Charges:
+      Platform fee 0.15% p.a. Adviser fee 0.50% p.a. Weighted fund OCF
+      0.38% p.a. Total 1.03% p.a. (~£1,916/year at current value). Costs
+      discussed; confirmed fair value relative to services received under
+      the annual review agreement.
+
+      Vulnerability:
+      No vulnerability indicators identified. Sarah engaged actively
+      throughout and demonstrated clear understanding of all points discussed.
+
+      Client understanding:
+      Explained that performance cannot be guaranteed and that drawdown
+      income is subject to sequence-of-returns risk. Sarah confirmed she
+      understood the projection caveats and that she is comfortable with
+      the plan. No changes to authorisations required.
+
+      Actions:
+      (1) Adviser to issue updated suitability report by 17 January 2026.
+      (2) Next annual review: January 2027.
+
+  - id: thin_passing
+    description: >
+      Minimal but technically sufficient documentation. Critical elements
+      are present but without depth — risk score given, CFL referenced with
+      a buffer, objectives have monetary target and time horizon, rationale
+      names the product and links to client's profile. Should pass overall
+      but some warning elements will be partial.
+    expected:
+      overall_pass: true
+      elements:
+        recommendation_rationale: present
+        capacity_for_loss: present
+        client_objectives: present
+        risk_attitude: present
+    note: |
+      Client: Robert Mills (ref RM-0091)
+      Date: 5 February 2026
+      Adviser: Kim Taylor
+      Meeting type: Annual review
+
+      Robert is 47, employed (income £52,000 p.a.). Holds ISA (£38,000)
+      and workplace pension (£91,000). No mortgage.
+
+      Objectives:
+      Capital growth targeting retirement at 60. Target pension pot of
+      £300,000 at age 60 to support drawdown. Time horizon: 13 years.
+
+      Risk:
+      Scored 38/60 on the firm's questionnaire — Balanced-Growth category.
+      No conflict between score and discussion. Tool limitations noted.
+
+      Capacity for loss:
+      Robert has £15,000 in savings covering 8 months essential expenditure.
+      Investment losses would not affect living standards. CFL moderate.
+
+      Recommendation:
+      Maintained existing Global Equity Fund ISA allocation. The fund suits
+      Robert's 13-year growth horizon and Balanced-Growth (38/60) ATR; losses
+      within his moderate CFL tolerance.
+
+      Charges:
+      OCF 0.22%, adviser 0.5%, platform 0.15%. Total 0.87% p.a.
+
+      Client:
+      Confirmed he had read the suitability report and understood the
+      recommendation, including that values can fall.
+
+  - id: generic_rationale
+    description: >
+      Note with a rationale section but no client-specific linkage — uses
+      "matches your risk profile and objectives" language. This is the
+      archetypal thin note FCA enforcement cites. recommendation_rationale
+      should be partial or missing. Other elements may vary.
+    expected:
+      overall_pass: false
+      elements:
+        recommendation_rationale: partial
+        client_objectives: present
+        risk_attitude: present
+    note: |
+      Client: Jennifer Park (ref JP-3301)
+      Date: 12 February 2026
+      Adviser: Tom Hughes
+      Meeting type: Initial advice
+
+      Jennifer is 52 and has received a redundancy payment of £75,000
+      she wishes to invest for retirement.
+
+      Objectives:
+      Long-term growth to supplement retirement income. Time horizon:
+      approximately 10 years.
+
+      Risk:
+      Jennifer is a balanced investor. She understands markets go up and
+      down. She has some experience of ISA investing.
+
+      Capacity for loss:
+      Jennifer has some savings and can afford to take some risk with
+      this sum.
+
+      Recommendation:
+      I recommended the Diversified Growth Fund. This is a well-regarded
+      fund that matches your risk profile and investment objectives. It
+      offers a good balance of risk and return. This recommendation is
+      suitable for Jennifer based on her profile and circumstances.
+
+      Charges:
+      OCF 0.65%, adviser 0.5%. Total 1.15% p.a.
+
+      Client signed the suitability letter and confirmed she was happy
+      to proceed.
+
+  - id: conflated_atr_cfl
+    description: >
+      ATR and CFL mentioned but not distinguished — merged into a single
+      "risk assessment" paragraph with no financial buffer, no living
+      standards statement. Both risk_attitude and capacity_for_loss should
+      be partial. The note should fail overall because CFL is a critical
+      required element.
+    expected:
+      overall_pass: false
+      elements:
+        risk_attitude: partial
+        capacity_for_loss: partial
+    note: |
+      Client: David Okafor (ref DO-7712)
+      Date: 18 February 2026
+      Adviser: Sophie Grant
+      Meeting type: Retirement planning — initial advice
+
+      David, 61, is retiring next year. Pension pot: £420,000.
+      State pension from age 67. Savings: £12,000.
+
+      Objectives:
+      Generate income of £1,500/month in retirement to supplement state
+      pension. Time horizon: 25+ years in drawdown.
+
+      Risk assessment:
+      David is cautious to moderate. He understands that investments can
+      fall in value and is comfortable with short-term fluctuations
+      provided long-term capital is preserved. He does not want to take
+      excessive risk given his age and proximity to retirement.
+
+      Recommendation:
+      I recommended a multi-asset cautious portfolio with a 30/70
+      equity/bond split. This suits David's cautious risk approach and
+      income objective. The projected yield at 3.5% gives approximately
+      £14,700/year, meeting the income target.
+
+      Charges:
+      OCF 0.55%, adviser 0.5%, platform 0.20%. Total 1.25% p.a.
+
+      Client confirmed understanding of the recommendation.
+
+  - id: minimal_understanding
+    description: >
+      Uses "client happy to proceed" as the entire record of client
+      understanding — the archetypal thin record FCA criticises post-
+      Consumer Duty. client_understanding should be partial. Other
+      critical elements are substantively present so overall should pass.
+    expected:
+      overall_pass: true
+      elements:
+        client_understanding: partial
+        recommendation_rationale: present
+        capacity_for_loss: present
+    note: |
+      Client: Frances Abbott (ref FA-0054)
+      Date: 20 January 2026
+      Adviser: Mark Singh
+      Meeting type: Annual review
+
+      Frances, 49, teacher (income £38,000). ISA (£54,000), pension
+      (£130,000). Mortgage: £85,000 outstanding (7 years remaining).
+
+      Objectives:
+      Retire at 58 with supplementary income of £1,200/month. Time
+      horizon: 9 years to drawdown.
+
+      Risk:
+      Scored 33/60 on firm questionnaire — Balanced category. Limitations
+      acknowledged; discussed actual loss scenarios separately.
+
+      Capacity for loss:
+      Mortgage payments manageable from income. £8,000 instant-access
+      savings. Investment losses of up to 20% would not affect essential
+      expenditure. CFL moderate, consistent with ATR.
+
+      Recommendation:
+      Increased equity allocation from 55% to 65% in both ISA and pension
+      to target higher growth over the 9-year horizon. Aligns with Balanced
+      (33/60) ATR and moderate CFL. Projected to produce the £1,200/month
+      income target at age 58 at 5.5% nominal growth.
+
+      Charges:
+      OCF 0.30%, adviser 0.5%, platform 0.12%. Total 0.92% p.a.
+
+      Client happy to proceed.
+
+  - id: missing_cfl
+    description: >
+      Complete and well-documented note in all other respects, but CFL
+      is genuinely absent — no mention of financial buffer, essential
+      expenditure, savings, or whether losses affect living standards.
+      capacity_for_loss should be missing; note should fail overall.
+    expected:
+      overall_pass: false
+      elements:
+        capacity_for_loss: missing
+        recommendation_rationale: present
+        client_objectives: present
+        risk_attitude: present
+    note: |
+      Client: Paul Merton (ref PM-9901)
+      Date: 3 February 2026
+      Adviser: Lisa Chen
+      Meeting type: Annual review
+
+      Paul, 55, self-employed (income ~£70,000 variable). ISA (£90,000),
+      SIPP (£240,000). No mortgage.
+
+      Objectives:
+      Target retirement at 63 with drawdown income of £2,500/month.
+      Time horizon: 8 years.
+
+      Risk:
+      Paul completed the firm's questionnaire and scored 44/60, placing
+      him in the Growth category. He confirmed the score reflects his
+      stated preferences. Questionnaire limitations noted and discussed.
+
+      Knowledge and experience:
+      Paul has invested via ISA for 15 years. Familiar with equity funds;
+      previously held a self-managed share portfolio.
+
+      Recommendation:
+      Increased equity allocation from 65% to 75% in both ISA and SIPP.
+      Aligns with Paul's Growth (44/60) ATR and 8-year horizon to
+      retirement at 63. Projected to produce £2,600/month drawdown income
+      at age 63 at 6% nominal growth — within target range.
+
+      Charges:
+      ISA OCF 0.28%, SIPP OCF 0.32%. Adviser 0.5%, platform 0.15%.
+      Total blended 0.97% p.a.
+
+      Client confirmed he understood the recommendation and authorised
+      the rebalancing instruction.
+
+  - id: replacement_business
+    description: >
+      ISA provider switch note. Cost saving is documented but no comparison
+      of features or guarantees surrendered. Under FG12/16, replacement
+      business requires documented comparison of old vs new on cost,
+      features, and any loss of benefits. alternatives_considered should
+      be partial (cost compared but features not addressed).
+    expected:
+      overall_pass: true
+      elements:
+        alternatives_considered: partial
+        recommendation_rationale: present
+        charges_and_costs: present
+        capacity_for_loss: present
+    note: |
+      Client: Helen Shaw (ref HS-1122)
+      Date: 15 January 2026
+      Adviser: James Cole
+      Meeting type: Product review — ISA switch
+
+      Helen, 44, marketing director (income £85,000). ISA with Provider A
+      (current value £67,000, OCF 0.95% p.a.). No mortgage. Savings:
+      £25,000 in instant-access account.
+
+      Objectives:
+      Long-term growth. Time horizon: 16 years to retirement at 60.
+
+      Risk:
+      Scored 46/60 — Growth category. Limitations acknowledged.
+
+      Capacity for loss:
+      £25,000 savings buffer covers 14 months essential expenditure.
+      Investment losses of up to 30% would not affect living standards.
+      CFL high, consistent with Growth ATR.
+
+      Recommendation:
+      Switch ISA from Provider A to Provider B. Provider B offers the
+      same fund range at OCF 0.42% — saving £357/year at current value.
+      The Growth portfolio allocation is unchanged: 80% global equity,
+      20% fixed income. Switch recommended on cost grounds. Helen confirmed
+      no specific features of Provider A she wished to retain.
+
+      Charges post-switch:
+      OCF 0.42%, adviser 0.5%, platform 0.18%. Total 1.10% p.a.
+      Previous total: 1.65% p.a. Switch cost: nil (in-specie transfer).
+
+      Client:
+      Confirmed understanding of the switch and cooling-off rights.
+      No concerns raised.
+
+  - id: bare_review
+    description: >
+      Annual review note that states existing arrangements were "reviewed"
+      and "remain suitable" with no supporting detail. Classic pattern
+      FCA cites in thematic reviews. existing_arrangements should be
+      missing or partial; recommendation_rationale should be partial.
+      Note should fail overall.
+    expected:
+      overall_pass: false
+      elements:
+        existing_arrangements: missing
+        recommendation_rationale: partial
+        client_objectives: partial
+    note: |
+      Client: Brian Foster (ref BF-4409)
+      Date: 28 January 2026
+      Adviser: Kate Morris
+      Meeting type: Annual review
+
+      Annual review meeting with Brian Foster, age 67. Retired.
+
+      Risk:
+      Balanced. Unchanged from previous review.
+
+      Objectives:
+      Reviewed. No changes noted.
+
+      Existing arrangements:
+      Portfolio reviewed. Remains suitable.
+
+      Recommendation:
+      No changes recommended at this time. Portfolio continues to meet
+      the client's requirements.
+
+      Charges:
+      As per existing service agreement. No changes.
+
+      Client:
+      Confirmed he was happy to continue as is.
