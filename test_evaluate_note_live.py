@@ -15,6 +15,8 @@ Client Meeting Note — Margaret Thornton
 Date: 14 February 2026
 Adviser: James Patel
 Meeting type: Annual review
+Attendees: James Patel (adviser), Margaret Thornton (client)
+Channel: In-person at adviser’s office
 
 Client profile:
 Margaret is 58 years old and retired from teaching in 2023. She holds an existing
