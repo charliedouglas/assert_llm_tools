@@ -1,0 +1,25 @@
+name: CI — assert-core
+
+on:
+  push:
+    paths:
+      - 'packages/assert-core/**'
+  pull_request:
+    paths:
+      - 'packages/assert-core/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.11"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install assert-core
+        run: pip install -e "packages/assert-core[dev]"
+      - name: Run smoke tests
+        run: pytest packages/assert-core/tests/ -v
