@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "assert-review"
+version = "0.1.0"
+description = "LLM-based compliance note evaluation for financial services"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = [
+    "assert-core>=0.1.0",
+]
+
+# Implementation coming in END-90
