@@ -38,8 +38,10 @@ class LLMConfig:
         """
         Validate the configuration parameters.
 
-        Ensures all required fields are set for the specified provider
-        and that values meet provider-specific requirements.
+        Ensures all required fields are set for the specified provider.
+        Model ID validity is the responsibility of the provider at call time,
+        not config validation — this allows Azure OpenAI deployment names,
+        future models, and any provider-specific identifiers without breakage.
 
         Raises:
             ValueError: If configuration is invalid for the specified provider.
@@ -47,16 +49,11 @@ class LLMConfig:
         if self.provider not in ["bedrock", "openai"]:
             raise ValueError(f"Unsupported provider: {self.provider}")
 
+        if not self.model_id:
+            raise ValueError("model_id must not be empty")
+
         if self.provider == "bedrock" and not self.region:
             raise ValueError("AWS region is required for Bedrock")
 
         if self.provider == "openai" and not self.api_key:
             raise ValueError("API key is required for OpenAI")
-
-        # Model ID validation
-        if self.provider == "openai" and not any(
-            model in self.model_id for model in ["gpt-4", "gpt-3.5"]
-        ):
-            raise ValueError(
-                "Invalid OpenAI model ID. Must be GPT-4 or GPT-3.5 variant"
-            )
