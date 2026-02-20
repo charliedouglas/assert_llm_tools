@@ -6,10 +6,45 @@ build-backend = "setuptools.build_meta"
 name = "assert-review"
 version = "0.1.0"
 description = "LLM-based compliance note evaluation for financial services"
+readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
+authors = [
+    { name = "Charlie Douglas", email = "cdouglas@gmail.com" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Topic :: Office/Business :: Financial",
+]
 dependencies = [
     "assert-core>=0.1.0",
+    "pyyaml>=6.0",
 ]
 
-# Implementation coming in END-90
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-cov", "ruff>=0.4"]
+
+[project.scripts]
+assert-review = "assert_review.cli:main"
+
+[project.urls]
+"Homepage" = "https://github.com/charliedouglas/assert"
+"Bug Tracker" = "https://github.com/charliedouglas/assert/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["assert_review*"]
+
+[tool.setuptools.package-data]
+assert_review = ["frameworks/*.yaml"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
