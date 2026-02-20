@@ -1,5 +1,5 @@
-from assert_llm_tools.core import evaluate_summary
-from assert_llm_tools.llm.config import LLMConfig
+from assert_eval import evaluate_summary
+from assert_eval import LLMConfig
 
 metrics = [
     "coverage",

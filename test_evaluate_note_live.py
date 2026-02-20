@@ -1,5 +1,5 @@
-from assert_llm_tools.metrics.note import evaluate_note
-from assert_llm_tools.llm.config import LLMConfig
+from assert_review import evaluate_note
+from assert_review import LLMConfig
 
 # Select one of Bedrock or OpenAI
 llm_config = LLMConfig(

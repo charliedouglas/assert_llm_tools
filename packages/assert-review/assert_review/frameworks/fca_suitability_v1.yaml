@@ -1,0 +1,121 @@
+# assert_llm_tools/frameworks/fca_suitability_v1.yaml
+
+framework_id: fca_suitability_v1
+name: FCA Suitability Note Framework
+version: 1.0.0
+regulator: FCA
+description: >
+  Defines the required elements for a suitability note produced under
+  COBS 9.2 (Suitability Reports) when providing personal recommendations
+  on retail investment products.
+effective_date: "2024-01-01"
+reference: "COBS 9.2 / PS13/1"
+
+elements:
+
+  - id: client_objectives
+    description: >
+      The note must document the client's investment objectives, including
+      time horizon, purpose of investment (e.g. retirement, income, growth),
+      and any specific goals or constraints stated by the client.
+    required: true
+    severity: critical
+    guidance: >
+      Look for explicit statements of what the client wants to achieve,
+      not just a product recommendation. Phrases like "client seeks",
+      "investment goal", "target date", "income requirement" are strong signals.
+
+  - id: risk_attitude
+    description: >
+      The note must record the client's attitude to risk (ATR) including
+      the outcome of any risk profiling exercise and the assigned risk
+      category (e.g. cautious, balanced, adventurous).
+    required: true
+    severity: critical
+    guidance: >
+      Look for a named risk category, a score from a risk questionnaire,
+      or explicit adviser assessment of risk tolerance. Absence of any
+      risk language is a clear gap.
+
+  - id: capacity_for_loss
+    description: >
+      The note must distinguish capacity for loss from attitude to risk,
+      documenting whether the client can financially sustain a loss of
+      capital without materially impacting their standard of living.
+    required: true
+    severity: critical
+    guidance: >
+      This is distinct from ATR. Look for references to disposable income,
+      emergency funds, essential expenditure, or a statement that losses
+      would/would not affect living standards.
+
+  - id: financial_situation
+    description: >
+      The note must summarise the client's financial position including
+      income, expenditure, assets, liabilities, and any existing investment
+      holdings relevant to the recommendation.
+    required: true
+    severity: high
+    guidance: >
+      Income and expenditure figures, pension values, savings balances,
+      mortgage details, or a statement of net worth all qualify. A generic
+      "financial situation reviewed" with no supporting detail is insufficient.
+
+  - id: knowledge_and_experience
+    description: >
+      The note must record the client's knowledge of and experience with
+      the relevant investment type, per MiFID II appropriateness principles
+      as applied under FCA rules.
+    required: true
+    severity: high
+    guidance: >
+      Look for assessment of prior investment experience (e.g. "client has
+      held ISAs for 10 years"), product familiarity, or educational background
+      in finance. Note any limitations or gaps the adviser identified.
+
+  - id: recommendation_rationale
+    description: >
+      The note must explain why the recommended product(s) are suitable for
+      this specific client, linking the recommendation explicitly back to the
+      client's objectives, risk profile, and financial situation.
+    required: true
+    severity: critical
+    guidance: >
+      Generic product descriptions do not count. The rationale must be
+      personalised: "this fund was selected because..." tied to the client's
+      documented profile. Look for causal language linking client attributes
+      to the recommendation.
+
+  - id: charges_and_costs
+    description: >
+      The note must disclose all relevant charges and costs associated with
+      the recommended product(s) and the advice service, including ongoing
+      and one-off fees.
+    required: true
+    severity: high
+    guidance: >
+      Look for percentage or monetary figures for product charges (OCF, AMC),
+      platform fees, and adviser fees. A statement that costs were "discussed
+      separately" may be acceptable if cross-referenced to a costs disclosure doc.
+
+  - id: alternatives_considered
+    description: >
+      The note should record that the adviser considered alternative products
+      or strategies, and explain why the recommendation was preferred.
+    required: false
+    severity: medium
+    guidance: >
+      May be implicit ("this product was selected over alternatives because...")
+      or explicit (a comparison table). Complete absence is a gap but not
+      automatically a breach.
+
+  - id: client_confirmation
+    description: >
+      The note should record that the client received, understood, and
+      acknowledged the recommendation, or that the recommendation was
+      discussed with the client.
+    required: false
+    severity: low
+    guidance: >
+      May be a signature reference, verbal confirmation note, or statement
+      that the report was issued and accepted. Absence is minor but noteworthy.

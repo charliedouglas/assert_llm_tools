@@ -1,0 +1,46 @@
+name: Publish assert-review to PyPI
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  release-build:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/assert-review-v')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Install assert-core (build-time dependency)
+        run: pip install -e "packages/assert-core"
+      - name: Build release distributions
+        run: |
+          python -m pip install build
+          python -m build packages/assert-review/
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dists
+          path: packages/assert-review/dist/
+
+  pypi-publish:
+    runs-on: ubuntu-latest
+    needs:
+      - release-build
+    permissions:
+      id-token: write
+    environment:
+      name: pipit
+      url: https://pypi.org/p/assert-review
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+      - name: Publish release distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
