@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "assert-review"
-version = "0.1.1"
+version = "0.1.2"
 description = "LLM-based compliance note evaluation for financial services"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -20,7 +20,7 @@ classifiers = [
     "Topic :: Office/Business :: Financial",
 ]
 dependencies = [
-    "assert-core>=0.1.0",
+    "assert-core>=0.2.0",
     "pyyaml>=6.0",
 ]
 

@@ -72,22 +72,6 @@ results = evaluate_summary(
 )
 ```
 
-## PII Masking
-
-Pass `mask_pii=True` to detect and mask personally identifiable information before any text is sent to the LLM:
-
-```python
-results = evaluate_summary(
-    full_text=text,
-    summary=summary,
-    metrics=["coverage"],
-    llm_config=config,
-    mask_pii=True,
-)
-```
-
-`mask_pii=False` is the default. For production use with real client data, set `mask_pii=True`.
-
 ## LLM Configuration
 
 ```python
