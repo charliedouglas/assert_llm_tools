@@ -81,7 +81,7 @@ def _validate_framework(framework: dict) -> None:
         raise ValueError("Framework 'elements' must be a non-empty list.")
 
     required_element_fields = {"id", "description", "required", "severity"}
-    valid_severities = {"critical", "high", "medium", "low"}
+    valid_severities = {"critical", "high", "medium", "low", "warning", "info"}
 
     for i, element in enumerate(framework["elements"]):
         missing_fields = required_element_fields - set(element.keys())

@@ -1,0 +1,519 @@
+# assert_llm_tools/frameworks/fca_suitability_v2.yaml
+
+framework_id: fca_suitability_v2
+name: FCA Wealth Management Meeting Note Framework
+version: 2.0.0
+regulator: FCA
+description: >
+  Defines required and recommended documentation elements for wealth management
+  meeting notes produced under FCA rules, including COBS 9/9A (suitability),
+  SYSC 9 (record-keeping), MiFID II (conduct of business), Consumer Duty
+  (Principle 12 / PRIN 2A), and associated FCA guidance. Covers all meeting
+  types including advice meetings, annual reviews, ad-hoc client contact,
+  and onboarding. Firms should enable or disable elements based on their
+  compliance framework and CRM infrastructure.
+effective_date: "2025-01-01"
+references:
+  - "COBS 9.2 / 9A (Suitability)"
+  - "SYSC 9.1.1R (Record-keeping)"
+  - "MiFID II Article 16(7), Article 25(2)"
+  - "MiFID II Delegated Regulation Articles 54, 72, 76"
+  - "PRIN 2A / PS22/9 (Consumer Duty)"
+  - "FG11/5 (Assessing suitability: risk willing and able to take)"
+  - "FG21/1 (Guidance for firms on the fair treatment of vulnerable customers)"
+  - "FG12/16 (Replacement business and centralised investment propositions)"
+  - "TR15/12 (Wealth management firms: suitability of investment portfolios)"
+  - "TR24/1 (Retirement income advice)"
+
+severity_scale:
+  critical: >
+    Absence constitutes probable regulatory breach. Cited in majority of
+    FCA enforcement actions. Missing element means the note cannot
+    demonstrate compliance with core suitability or conduct obligations.
+  warning: >
+    Strongly expected under FCA rules or guidance. Absence creates material
+    risk of regulatory criticism, particularly under Consumer Duty. Cited
+    in thematic reviews and emerging enforcement actions.
+  info: >
+    Represents good practice or emerging regulatory expectation. Not yet
+    subject to standalone enforcement but on a clear trajectory toward
+    higher severity as FCA's Consumer Duty programme matures.
+
+elements:
+
+  # ──────────────────────────────────────────────
+  # TIER 1: CRITICAL
+  # ──────────────────────────────────────────────
+
+  - id: client_identification
+    description: >
+      The note must identify the client(s) to whom the meeting relates,
+      including full name(s) and any relevant reference identifiers.
+      For joint clients, both parties should be identified with notation
+      of who was present. Third parties (solicitors, accountants, power
+      of attorney holders) should be named with their roles.
+    required: true
+    severity: critical
+    regulatory_basis: >
+      SYSC 9.1.1R (records sufficient for FCA monitoring);
+      COBS 9A.4 (customer information records);
+      MiFID II Article 16(7) (face-to-face meeting records).
+    guidance: >
+      Look for client name, reference number, and client classification
+      (retail/professional). For joint accounts, verify both parties are
+      identified. Without client identification, no record has regulatory
+      value. Note: if the note is attached to a CRM client record, the
+      firm may consider structural identification sufficient — but the
+      note should still be interpretable in isolation.
+
+  - id: client_objectives
+    description: >
+      The note must document the client's investment objectives, including
+      time horizon, purpose of investment (e.g. retirement, income, growth,
+      capital preservation), and any specific goals or constraints. Objectives
+      should be quantified where possible with target amounts and dates.
+      Where objectives are unchanged from a prior meeting, the note must
+      confirm they were reviewed and remain current rather than remaining
+      silent.
+    required: true
+    severity: critical
+    regulatory_basis: >
+      COBS 9.2.2R(2) (purpose of investment, time horizon, risk preferences);
+      MiFID II Delegated Regulation Article 54(7) (adequate and up-to-date
+      information for ongoing advice);
+      Article 54(12) (suitability reports must reference investment term);
+      FG11/5 para 3.15 (different objectives assessed separately).
+    guidance: >
+      Look for explicit statements of what the client wants to achieve —
+      phrases like "client seeks", "investment goal", "target date", "income
+      requirement" are strong signals. Single-word objectives ("growth",
+      "retirement") without quantification, time horizon, or income
+      specification are insufficient per FG11/5. For review meetings,
+      "objectives reviewed, confirmed unchanged" is acceptable; silence
+      is not. FCA treats unclear or undocumented objectives as automatic
+      COBS 9.2 breaches.
+
+  - id: risk_attitude
+    description: >
+      The note must record the client's attitude to risk (ATR), including
+      the outcome of any risk profiling exercise and the assigned risk
+      category. Where a risk profiling tool was used, its limitations
+      should be acknowledged. This element must be documented separately
+      from capacity for loss. Where ATR conflicts with capacity for loss,
+      the resolution must be documented.
+    required: true
+    severity: critical
+    regulatory_basis: >
+      COBS 9.2.2R(1) (client's preferences regarding risk taking and
+      risk profile);
+      MiFID II Article 25(2) (risk tolerance as separate requirement);
+      FG11/5 (firms should use separate processes for ATR and CFL;
+      9 of 11 risk profiling tools reviewed had weaknesses producing
+      flawed outputs).
+    guidance: >
+      Look for a named risk category, a score from a risk questionnaire,
+      or explicit adviser assessment of risk tolerance. FG11/5 criticised
+      firms that conflated ATR and CFL into single automated outputs and
+      firms that relied on questionnaires without understanding tool
+      limitations. Non-committal "middle" answers on questionnaires
+      should not be interpreted as neutral risk appetite without further
+      exploration. Absence of any risk language in an advice note is a
+      clear gap cited in 100% of enforcement cases reviewed.
+
+  - id: capacity_for_loss
+    description: >
+      The note must document a separate assessment of the client's capacity
+      for loss — their ability to financially absorb falls in the value of
+      their investments without materially impacting their standard of living.
+      This must not be conflated with attitude to risk. Where capacity for
+      loss is low but stated risk appetite is high, CFL must be the binding
+      constraint, and the reasoning must be documented.
+    required: true
+    severity: critical
+    regulatory_basis: >
+      COBS 9.2.2R(1)(b) (able financially to bear related investment risks);
+      MiFID II Article 25(2) (ability to bear losses as separate requirement);
+      FG11/5 (unambiguous that CFL must be assessed separately from ATR;
+      identified conflation as most criticised documentation practice across
+      a decade of thematic reviews).
+    guidance: >
+      This is distinct from ATR. Look for references to disposable income,
+      emergency funds, essential expenditure, dependants' needs, or an
+      explicit statement that losses would or would not affect living
+      standards. FG11/5 states that where a customer does not have capacity
+      to sustain potential loss, the firm must explain that higher returns
+      cannot realistically be met. The single most impactful correction
+      a firm can make is ensuring CFL is never conflated with ATR.
+
+  - id: recommendation_rationale
+    description: >
+      The note must explain why the recommended product(s) or course of
+      action is suitable for this specific client, linking the recommendation
+      explicitly to the client's objectives, risk profile, capacity for loss,
+      knowledge and experience, and financial situation. Generic product
+      descriptions do not satisfy this requirement. For review meetings where
+      existing arrangements are confirmed as suitable, the note must explain
+      why they remain so rather than simply stating the conclusion.
+    required: true
+    severity: critical
+    regulatory_basis: >
+      COBS 9.4.7R (suitability reports must explain why recommendation suitable);
+      COBS 9A.3.2R / MiFID II Delegated Regulation Article 54(12) (outline of
+      advice given, how recommendation meets objectives with reference to
+      investment term, knowledge and experience, attitude to risk, and
+      capacity for loss);
+      Consumer Duty PRIN 2A (act to deliver good outcomes).
+    guidance: >
+      This element has the highest enforcement scrutiny of any element — cited
+      in 100% of FCA enforcement cases reviewed. The rationale must reference
+      all four MiFID II dimensions: objectives (including term), knowledge
+      and experience, attitude to risk, and capacity for loss. "This fund
+      matches your risk profile" is insufficient — it fails to address
+      objectives, time horizon, and capacity for loss. For independent
+      advisers, COBS 6.2A requires assessment of a sufficiently diverse
+      range. For replacement business, FG12/16 requires documented comparison
+      of existing vs proposed arrangements including cost, features, and
+      any loss of guarantees. A bare statement that "existing portfolio
+      remains suitable" without supporting reasoning risks an "unclear"
+      FCA rating.
+
+  # ──────────────────────────────────────────────
+  # TIER 2: WARNING
+  # ──────────────────────────────────────────────
+
+  - id: meeting_context
+    description: >
+      The note should record the date of the meeting, all attendees and
+      their roles, the meeting type (initial advice, annual review, ad-hoc),
+      and the channel (face-to-face, telephone, video). For telephone
+      meetings, firms should note that the call was recorded per SYSC 10A
+      where applicable.
+    required: true
+    severity: warning
+    regulatory_basis: >
+      MiFID II Article 16(7) (channel determines recording obligations);
+      MiFID II Delegated Regulation Article 76 (recording policies);
+      COBS 9A.4 (when and how information was obtained);
+      SM&CR (adviser identification for accountability).
+    guidance: >
+      Date and client attendees are the most important sub-elements — without
+      temporal ordering and participant identification, the note has limited
+      regulatory value. Firm attendees and adviser identity support SM&CR
+      accountability but may be determinable from other records. Channel
+      and location are relevant because they determine MiFID II Article 76
+      recording obligations. Meeting type provides helpful context but is
+      not explicitly mandated.
+
+  - id: financial_situation
+    description: >
+      The note should summarise the client's relevant financial position
+      including income, expenditure, assets, liabilities, and any existing
+      investment holdings material to the discussion. A full financial fact
+      find is not required in every meeting note, but changes to financial
+      circumstances must be captured, and for new recommendations the
+      financial context supporting the advice must be evident.
+    required: true
+    severity: warning
+    regulatory_basis: >
+      COBS 9.2.1R (suitability assessment based on client's existing
+      financial situation);
+      COBS 9.2.2R(1)(a) (information about financial situation including
+      ability to bear losses);
+      MiFID II Delegated Regulation Article 54(5) (source and extent of
+      regular income, assets, investments, real property).
+    guidance: >
+      Income and expenditure figures, pension values, savings balances,
+      mortgage details, or a statement of net worth all qualify. For review
+      meetings, "financial situation reviewed — no material changes since
+      last review" is acceptable if the underlying fact find is maintained
+      elsewhere. A generic "financial situation reviewed" with no supporting
+      detail and no cross-reference is insufficient. The financial situation
+      underpins both suitability and capacity for loss assessments.
+
+  - id: knowledge_and_experience
+    description: >
+      The note should record the client's knowledge of and experience with
+      the relevant investment types, particularly where complex or higher-risk
+      products are discussed. Any limitations or gaps the adviser identified
+      should be noted, along with how they were addressed.
+    required: true
+    severity: warning
+    regulatory_basis: >
+      COBS 9.2.2R(1)(c) (knowledge and experience in the investment field
+      relevant to the specific type of product or service);
+      MiFID II Delegated Regulation Article 54(3)-(4) (types of service,
+      transaction and financial instrument with which client is familiar;
+      nature, volume, frequency of transactions).
+    guidance: >
+      Look for assessment of prior investment experience (e.g. "client has
+      held ISAs for 10 years"), product familiarity, educational background,
+      or professional experience in finance. Where the client has limited
+      experience with a recommended product type, the note should record
+      how this was addressed (explanation provided, simpler alternative
+      considered). For ongoing clients, brief confirmation that experience
+      level remains as previously assessed is acceptable.
+
+  - id: existing_arrangements
+    description: >
+      The note should record a review of the client's existing investments
+      and financial arrangements, including current values, performance
+      against objectives, risk alignment, and whether existing arrangements
+      remain suitable. For annual reviews, this is a core obligation.
+    required: true
+    severity: warning
+    regulatory_basis: >
+      COBS 9.2.1R (suitability assessment based on existing financial situation);
+      MiFID II Delegated Regulation Article 54(13) (periodic suitability
+      assessment at least annually for ongoing relationships);
+      Consumer Duty PRIN 2A.4 (price and value outcome — fair value
+      assessment of ongoing services);
+      FCA October 2024 portfolio letter (concerns about ongoing advice fees
+      without delivery of services).
+    guidance: >
+      Look for current holdings with values, performance against benchmarks
+      or objectives, risk profile of portfolio versus ATR, and whether
+      arrangements remain suitable. TR15/12 found one-third of wealth
+      management firms fell substantially short of expected standards. For
+      annual reviews, failure to review existing arrangements constitutes
+      breach of Article 54(13) and Consumer Duty fair value requirements,
+      elevating this element toward critical severity in that context.
+
+  - id: charges_and_costs
+    description: >
+      The note should evidence that charges and costs were discussed,
+      including product charges (OCF, AMC), platform fees, adviser fees,
+      and any transaction costs. Separate cost disclosure documents should
+      be referenced. Under Consumer Duty, fair value must be considered —
+      not merely cost quantum.
+    required: true
+    severity: warning
+    regulatory_basis: >
+      COBS 6.1ZA.11R-12R / MiFID II Article 50 (aggregated cost disclosure
+      in cash and percentage terms);
+      COBS 6.1A.24R (total adviser charges in cash terms before contract);
+      Consumer Duty PRIN 2A.4 (price and value outcome);
+      TR14/21 (36% of wealth management firms failed initial charge
+      disclosure; 50% failed ongoing charge disclosure).
+    guidance: >
+      Look for percentage or monetary figures, or a cross-reference to a
+      separate ex-ante or ex-post cost disclosure document. Under Consumer
+      Duty, confirmation that costs represent fair value relative to benefits
+      received strengthens the note. For annual reviews, COBS 6.1ZA.12R
+      requires cost information at least annually — even a "no change"
+      review should confirm charges were reviewed and remain fair value.
+      For new recommendations, full ex-ante disclosure is a hard rule.
+
+  - id: vulnerability_indicators
+    description: >
+      The note should record any indicators of client vulnerability observed
+      or disclosed during the meeting, across the four FCA-defined drivers:
+      health, life events, resilience, and capability. Where no indicators
+      are identified, a brief positive confirmation is strongly recommended.
+      Vulnerability should be recorded using factual language about
+      circumstances and adjustments made, not labels.
+    required: true
+    severity: warning
+    regulatory_basis: >
+      FG21/1 (four vulnerability drivers: health, life events, resilience,
+      capability);
+      Consumer Duty PS22/9 (consider needs of customers with characteristics
+      of vulnerability at every stage);
+      FCA 2025/26 strategy (explicit focus on wealth manager vulnerability
+      identification — 49% of wealth firms had not identified any vulnerable
+      clients, less than 1% of retail clients reported as vulnerable).
+    guidance: >
+      This is not a checklist — FG21/1 explicitly states so. However, the
+      direction of travel strongly favours active documentation. FCA's
+      March 2025 multi-firm review criticised binary approaches to
+      vulnerability identification. Do not use the word "vulnerable" in
+      client-facing records per FG21/1 para 2.9. Use factual language:
+      "Client disclosed recent bereavement — adjusted pace of meeting
+      and offered follow-up call." Where no indicators observed: "No
+      vulnerability indicators identified during this meeting." Severity
+      is on a clear trajectory toward critical as Consumer Duty enforcement
+      matures, particularly for onboarding and life event meetings.
+    severity_trajectory: escalating
+
+  - id: actions_and_next_steps
+    description: >
+      The note should record all agreed actions with owners and target
+      dates, including adviser actions (rebalancing, applications, research),
+      client actions (providing documents, consulting other advisers), and
+      the date of the next scheduled review. Where no actions arise, this
+      should be explicitly stated.
+    required: true
+    severity: warning
+    regulatory_basis: >
+      SYSC 9.1.1R (records sufficient to demonstrate compliance);
+      COBS 2.1.1R (best interests — creating obligation to follow through);
+      Consumer Duty PRIN 2A (enable and support customers to pursue
+      financial objectives);
+      FCA 2025 ongoing services review (poor practice: ineffective
+      processes to ensure services delivered as agreed).
+    guidance: >
+      Look for specific, attributed actions with timeframes. "Actions:
+      (1) Adviser to rebalance portfolio — by 15 March. (2) Client to
+      provide pension statement — by end of month." is strong. Where no
+      actions arise: "No actions required — existing arrangements confirmed
+      suitable." Consumer Duty's "enable and support" requirement means
+      vague or unattributed actions weaken the note.
+
+  - id: client_understanding
+    description: >
+      The note should record that the client received, understood, and
+      acknowledged the advice or information provided. Post-Consumer Duty,
+      mere agreement is insufficient — the note should evidence that the
+      client understood what they were agreeing to, including key risks
+      and any disadvantages. For joint clients with different understanding
+      levels, each client's comprehension should be noted.
+    required: true
+    severity: warning
+    regulatory_basis: >
+      COBS 9.4.7R (suitability reports must explain disadvantages);
+      Consumer Duty PRIN 2A.5 / FG22/5 §8 (consumer understanding outcome —
+      communications must equip consumers to make effective, timely and
+      properly informed decisions);
+      COBS 9.4.11R (pension transfers — signed confirmation of understanding
+      explicitly required).
+    guidance: >
+      "Client happy to proceed" is almost certainly insufficient post-Consumer
+      Duty. FCA notes 91% of people consent to terms they haven't read.
+      Stronger: "Explained that switching would crystallise a CGT liability
+      and lose the existing product's guaranteed annuity rate. Client
+      confirmed they understood both points and wished to proceed."
+      For routine reviews with no changes, verbal confirmation documented
+      contemporaneously suffices. For significant recommendations (pension
+      transfers, high-risk investments), this element approaches critical
+      severity.
+
+  - id: tax_considerations
+    description: >
+      The note should record that relevant tax implications of the
+      recommendation or financial strategy were considered and discussed
+      with the client, without the adviser providing specific tax advice.
+      For pension access or transfers, tax disclosure is a hard regulatory
+      requirement.
+    required: true
+    severity: warning
+    regulatory_basis: >
+      FG12/16 (tax is one of three main factors dictating investment return
+      alongside charges and performance — firms expected to consider all
+      three);
+      COBS 19.4.18R (hard rule: description of tax implications required
+      before client accesses pension savings);
+      Multiple FOS decisions upheld complaints where tax implications
+      not considered.
+    guidance: >
+      Acceptable: "Discussed that proposed withdrawal may be subject to
+      income tax at client's marginal rate. Client advised to consult
+      accountant regarding IHT implications." Unacceptable: providing
+      specific tax calculations without appropriate qualifications, or
+      silence on tax where a recommendation has clear tax consequences.
+      For pension access or transfer advice, COBS 19.4.18R makes tax
+      disclosure mandatory — severity effectively elevates to critical
+      in that context. For general investment reviews with no tax-
+      triggering events, brief confirmation that no tax implications
+      arise is sufficient.
+
+  # ──────────────────────────────────────────────
+  # TIER 3: INFO
+  # ──────────────────────────────────────────────
+
+  - id: alternatives_considered
+    description: >
+      The note should record that the adviser considered alternative
+      products or strategies and explain why the recommendation was
+      preferred. For independent advisers, this supports the COBS 6.2A
+      obligation to assess a sufficiently diverse range. For replacement
+      business, documented comparison is expected per FG12/16.
+    required: false
+    severity: info
+    regulatory_basis: >
+      COBS 6.2A (independent advice — sufficiently diverse range);
+      FG12/16 (replacement business — documented comparison of existing
+      vs proposed including cost, features, loss of guarantees);
+      Consumer Duty PRIN 2A (act to deliver good outcomes — implicitly
+      requires showing recommended option was suitable among available
+      alternatives).
+    guidance: >
+      May be implicit ("this product was selected because...") or explicit
+      (a comparison or shortlist). Complete absence is a gap but not
+      automatically a breach for ongoing reviews where arrangements are
+      unchanged. For replacement business (switching, transfers), this
+      element's importance rises significantly — FG12/16 makes comparison
+      an expectation, and multiple enforcement actions cite failure to
+      consider alternatives.
+
+  - id: esg_preferences
+    description: >
+      The note should record whether the client's sustainability or ESG
+      preferences were discussed, including any specific preferences
+      expressed or confirmation that the client has no current preferences.
+    required: false
+    severity: info
+    regulatory_basis: >
+      Note: UK has NOT onshored EU MiFID II ESG suitability amendments
+      (Commission Delegated Regulation 2021/1253). No UK rule currently
+      requires collection of sustainability preferences as part of
+      suitability assessment. PS23/16 (SDR) is a product-labelling regime.
+      FCA anti-greenwashing rule (effective May 2024) applies to
+      communications, not suitability processes. CP24/8 proposes extending
+      SDR to portfolio management but remains consultative.
+    guidance: >
+      No enforcement action for ESG documentation failures to date.
+      However, regulatory trajectory (SDR extension, anti-greenwashing
+      maturation) means this element is likely to escalate. Good practice:
+      "Sustainability preferences discussed. Client expressed interest in
+      avoiding fossil fuel investments. Preferences secondary to financial
+      return objectives." Even where no preference: "Adviser raised
+      sustainability preferences. Client confirmed no specific preferences
+      at this time."
+    severity_trajectory: escalating
+
+  - id: conflicts_of_interest
+    description: >
+      The note should record confirmation that no material conflicts of
+      interest exist, or disclose any specific conflicts and how they
+      are being managed. Particularly relevant where the firm has
+      proprietary products, revenue-sharing arrangements, or where
+      contingent charging models apply.
+    required: false
+    severity: info
+    regulatory_basis: >
+      SYSC 10 (conflicts of interest management);
+      COBS 6.1A (adviser charging — disclosure of remuneration);
+      FCA enforcement actions citing undisclosed conflicts as aggravating
+      factors (IFM contingent charging, SVS Securities undisclosed
+      commissions).
+    guidance: >
+      A brief confirmation — "No material conflicts identified" — represents
+      good practice. Where conflicts exist (e.g. adviser recommending
+      in-house funds, contingent charging on pension transfers), explicit
+      disclosure and management approach should be documented. Absence is
+      not a standalone enforcement trigger but presence strengthens the
+      overall quality of the record.
+
+  - id: ongoing_service_confirmation
+    description: >
+      For review meetings, the note should reference the client's ongoing
+      service agreement level and confirm that this meeting constitutes
+      delivery of the agreed service. Fees charged should be aligned
+      with the service provided.
+    required: false
+    severity: info
+    regulatory_basis: >
+      Consumer Duty PRIN 2A.4 (price and value outcome);
+      FCA October 2024 portfolio letter (90% of new clients in ongoing
+      advice; revenue from ongoing advice rose from 60% to 80% between
+      2016-2023; concerns about fees charged without services delivered);
+      FCA 2025 ongoing advice review (firms must evidence delivery of
+      agreed services).
+    guidance: >
+      Look for reference to service tier (e.g. "Premium service — two
+      reviews per annum"), confirmation that this meeting is part of the
+      agreed service, and that fees remain aligned. FCA has explicitly
+      flagged firms charging ongoing advice fees without delivering
+      ongoing advice — and even charging fees for deceased customers.
+      This element supports Consumer Duty fair value evidence and is
+      likely to increase in importance.
+    severity_trajectory: escalating

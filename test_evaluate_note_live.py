@@ -65,12 +65,12 @@ the drawdown nomination on the pension. She was reminded that she has a 30-day
 cooling-off period.
 """
 
-print("Evaluating note against fca_suitability_v1...")
+print("Evaluating note against fca_suitability_v2...")
 print("=" * 60)
 
 report = evaluate_note(
     note_text=note_text,
-    framework="fca_suitability_v1",
+    framework="fca_suitability_v2",
     llm_config=llm_config,
     verbose=True,
 )
@@ -79,7 +79,9 @@ print(f"Framework:      {report.framework_id} v{report.framework_version}")
 print(f"Overall rating: {report.overall_rating}")
 print(f"Overall score:  {report.overall_score:.2f}")
 print(f"Passed:         {report.passed}")
-print(f"Stats:          {report.stats.present_count} present / {report.stats.partial_count} partial / {report.stats.missing_count} missing")
+print(
+    f"Stats:          {report.stats.present_count} present / {report.stats.partial_count} partial / {report.stats.missing_count} missing"
+)
 print()
 print("=" * 60)
 print("ELEMENT BREAKDOWN")

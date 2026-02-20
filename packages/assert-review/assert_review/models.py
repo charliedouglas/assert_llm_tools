@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Literal, Optional
 # ── Type aliases ───────────────────────────────────────────────────────────────
 
 ElementStatus = Literal["present", "partial", "missing"]
-ElementSeverity = Literal["critical", "high", "medium", "low"]
+ElementSeverity = Literal["critical", "high", "medium", "low", "warning", "info"]
 OverallRating = Literal["Compliant", "Minor Gaps", "Requires Attention", "Non-Compliant"]
 
 
@@ -109,6 +109,8 @@ class GapReportStats:
         high_gaps:              Missing/partial elements with severity == "high".
         medium_gaps:            Missing/partial elements with severity == "medium".
         low_gaps:               Missing/partial elements with severity == "low".
+        warning_gaps:           Missing/partial elements with severity == "warning".
+        info_gaps:              Missing/partial elements with severity == "info".
         required_missing_count: Required elements that are missing or partial.
     """
 
@@ -121,6 +123,8 @@ class GapReportStats:
     high_gaps: int
     medium_gaps: int
     low_gaps: int
+    warning_gaps: int
+    info_gaps: int
     required_missing_count: int
 
 
@@ -136,6 +140,7 @@ class PassPolicy:
         block_on_critical_partial:  Fail if any critical required element is partial
                                     with score below critical_partial_threshold.
         block_on_high_missing:      Fail if any high required element is missing.
+        block_on_warning_missing:   Fail if any warning required element is missing.
         critical_partial_threshold: Minimum score for a critical element to not
                                     block on partial status. Default 0.5.
     """
@@ -143,4 +148,5 @@ class PassPolicy:
     block_on_critical_missing: bool = True
     block_on_critical_partial: bool = True
     block_on_high_missing: bool = True
+    block_on_warning_missing: bool = True
     critical_partial_threshold: float = 0.5

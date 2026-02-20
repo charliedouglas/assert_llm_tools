@@ -375,6 +375,8 @@ class NoteEvaluator(BaseCalculator):
             high_gaps=_gap_count("high"),
             medium_gaps=_gap_count("medium"),
             low_gaps=_gap_count("low"),
+            warning_gaps=_gap_count("warning"),
+            info_gaps=_gap_count("info"),
             required_missing_count=required_missing,
         )
 
@@ -448,6 +450,10 @@ class NoteEvaluator(BaseCalculator):
 
             elif item.severity == "high":
                 if policy.block_on_high_missing and item.status == "missing":
+                    return False
+
+            elif item.severity == "warning":
+                if policy.block_on_warning_missing and item.status == "missing":
                     return False
 
         return True
