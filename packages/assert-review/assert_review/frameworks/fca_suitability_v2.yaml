@@ -65,6 +65,16 @@ elements:
       value. Note: if the note is attached to a CRM client record, the
       firm may consider structural identification sufficient — but the
       note should still be interpretable in isolation.
+    discriminating_criteria:
+      required_specificity:
+        - "States the client's full name (first and last name, not just a reference number)"
+        - "For joint clients: identifies both parties and notes who was present at the meeting"
+      pass_example: >
+        "Client: Margaret Thornton (ref MT-4421). Annual review. Attendees:
+        James Patel (adviser), Margaret Thornton (client)."
+      fail_example: >
+        "Meeting with client." or "Annual review conducted." — no name,
+        no identification of who was present.
 
   - id: client_objectives
     description: >
@@ -92,6 +102,19 @@ elements:
       "objectives reviewed, confirmed unchanged" is acceptable; silence
       is not. FCA treats unclear or undocumented objectives as automatic
       COBS 9.2 breaches.
+    discriminating_criteria:
+      required_specificity:
+        - "States a specific income target or capital goal in monetary terms — not just 'growth' or 'income'"
+        - "States a specific time horizon as an age, calendar date, or number of years — not just 'long term'"
+        - "For review meetings: explicitly confirms objectives were reviewed and are current, rather than being silent"
+      pass_example: >
+        "Primary goal: income supplement of £800–£1,000/month from age 62,
+        preserving residual capital for IHT gifting to two adult children.
+        Time horizon: 4 years to drawdown commencement."
+      fail_example: >
+        "Client's objective is long-term growth with some income." — no
+        monetary target, no specific time horizon, no link to client
+        circumstances.
 
   - id: risk_attitude
     description: >
@@ -119,6 +142,22 @@ elements:
       should not be interpreted as neutral risk appetite without further
       exploration. Absence of any risk language in an advice note is a
       clear gap cited in 100% of enforcement cases reviewed.
+    discriminating_criteria:
+      required_specificity:
+        - "Names the risk category assigned (e.g. 'Balanced', 'Growth', 'Cautious') — not just 'medium risk'"
+        - "Names or describes the profiling method used (e.g. 'firm questionnaire', 'FinaMetrica', 'adviser assessment')"
+        - "Includes a score, band, or indicator from the profiling exercise, not just a label"
+        - "Acknowledges at least one limitation of the tool or assessment process"
+      pass_example: >
+        "Margaret scored 34/60 on the firm's risk questionnaire (v3.1),
+        placing her in the Balanced category. Questionnaire limitations
+        discussed — hypothetical loss scenarios may not reflect real-world
+        behaviour; adviser explored actual loss comfort separately and
+        confirmed alignment."
+      fail_example: >
+        "Client is medium risk and comfortable with some market fluctuation."
+        — no named category, no score, no tool referenced, no limitations
+        acknowledged.
 
   - id: capacity_for_loss
     description: >
@@ -144,6 +183,22 @@ elements:
       to sustain potential loss, the firm must explain that higher returns
       cannot realistically be met. The single most impactful correction
       a firm can make is ensuring CFL is never conflated with ATR.
+    discriminating_criteria:
+      required_specificity:
+        - "Addresses CFL as a concept separate from ATR — uses distinct language or appears in a separate section"
+        - "References a concrete financial buffer: months of essential expenditure covered, liquid savings amount, or income surplus"
+        - "States explicitly whether investment losses would or would not affect the client's standard of living"
+      pass_example: >
+        "CFL assessed separately from ATR. Margaret holds £28,000 in liquid
+        savings (cash ISA and current account), covering 18 months of
+        essential expenditure. Investment losses up to 25% would not affect
+        her living standards. CFL assessed as moderate — does not constrain
+        the Balanced ATR."
+      fail_example: >
+        "Client understands investments can fall in value and is comfortable
+        with short-term volatility provided long-term goals are preserved."
+        — this describes ATR, not CFL; no financial buffer, no living
+        standards assessment.
 
   - id: recommendation_rationale
     description: >
@@ -176,6 +231,27 @@ elements:
       any loss of guarantees. A bare statement that "existing portfolio
       remains suitable" without supporting reasoning risks an "unclear"
       FCA rating.
+    discriminating_criteria:
+      required_specificity:
+        - "Names the specific product, fund, or strategy being recommended — not 'a suitable investment'"
+        - "Links the recommendation explicitly to the client's named time horizon (specific age, date, or number of years)"
+        - "References the client's specific risk score or named category from the profiling exercise"
+        - "Addresses capacity for loss as a documented constraint on the recommendation, distinct from ATR"
+        - "For product switches or replacement business: compares old vs new arrangement on cost, features, and any benefits surrendered"
+        - "For review meetings where no change is made: explains WHY existing arrangements remain suitable — not just states the conclusion"
+      pass_example: >
+        "Recommended switching the ISA to Provider X and commencing phased
+        pension drawdown from age 62. The ISA switch reduces the ongoing
+        charge from 0.85% to 0.45% (saving ~£640/year) with no change to
+        the fund or risk profile. Drawdown of £1,000/month from age 62 is
+        consistent with Margaret's income objective, her 4-year time horizon,
+        Balanced (34/60) ATR, and moderate CFL (constrained by £28k liquid
+        buffer). No guaranteed benefits are surrendered."
+      fail_example: >
+        "This recommendation is suitable for the client based on her risk
+        profile and investment objectives." — no named product, no time
+        horizon, no risk score, no CFL linkage, no client-specific
+        circumstances.
 
   # ──────────────────────────────────────────────
   # TIER 2: WARNING

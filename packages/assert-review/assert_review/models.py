@@ -148,5 +148,5 @@ class PassPolicy:
     block_on_critical_missing: bool = True
     block_on_critical_partial: bool = True
     block_on_high_missing: bool = True
-    block_on_warning_missing: bool = True
+    block_on_warning_missing: bool = False
     critical_partial_threshold: float = 0.5
