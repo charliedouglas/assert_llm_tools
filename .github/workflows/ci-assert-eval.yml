@@ -1,0 +1,31 @@
+name: CI — assert-eval
+
+on:
+  push:
+    paths:
+      - 'packages/assert-eval/**'
+      - 'packages/assert-core/**'
+  pull_request:
+    paths:
+      - 'packages/assert-eval/**'
+      - 'packages/assert-core/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.11"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install assert-core
+        run: pip install -e "packages/assert-core"
+      - name: Install assert-eval
+        run: pip install -e "packages/assert-eval[dev]"
+      - name: Lint
+        run: ruff check packages/assert-eval/assert_eval/
+      - name: Run smoke tests
+        run: pytest packages/assert-eval/tests/ -v

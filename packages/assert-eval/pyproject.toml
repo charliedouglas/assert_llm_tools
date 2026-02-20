@@ -12,4 +12,17 @@ dependencies = [
     "assert-core>=0.1.0",
 ]
 
-# Implementation coming in END-91
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-cov", "ruff>=0.4"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["assert_eval*"]
