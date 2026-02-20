@@ -2,7 +2,7 @@
 
 LLM-based summary quality evaluation.
 
-Scores a summary against source text across four metrics: coverage, factual consistency, factual alignment, and topic preservation. No PyTorch, no BERT, no heavy dependencies.
+Scores a summary against source text for coverage, factual accuracy, alignment, and topic preservation. No PyTorch, no BERT, no heavy dependencies.
 
 ## Installation
 
@@ -36,14 +36,14 @@ print(results)
 
 | Metric | Description |
 |--------|-------------|
-| `coverage` | What % of source document claims appear in the summary (recall) |
-| `factual_consistency` | What % of summary claims are supported by the source (precision) |
+| `coverage` | What % of source document claims appear in the summary (recall/completeness) |
+| `factual_consistency` | What % of summary claims are supported by the source (precision/accuracy) |
 | `factual_alignment` | F1 score combining coverage and factual_consistency |
-| `topic_preservation` | How well the main topics from the source are preserved |
+| `topic_preservation` | How well the main topics from the source are preserved in the summary |
 
 ## Custom Evaluation Instructions
 
-Tailor LLM evaluation criteria for your domain:
+Tailor the LLM's evaluation criteria for your domain:
 
 ```python
 results = evaluate_summary(
@@ -58,16 +58,56 @@ results = evaluate_summary(
 )
 ```
 
+## Verbose Output
+
+Pass `verbose=True` to include per-claim LLM reasoning in the results:
+
+```python
+results = evaluate_summary(
+    full_text=text,
+    summary=summary,
+    metrics=["coverage", "factual_consistency"],
+    llm_config=config,
+    verbose=True,
+)
+```
+
+## PII Masking
+
+Pass `mask_pii=True` to detect and mask personally identifiable information before any text is sent to the LLM:
+
+```python
+results = evaluate_summary(
+    full_text=text,
+    summary=summary,
+    metrics=["coverage"],
+    llm_config=config,
+    mask_pii=True,
+)
+```
+
+`mask_pii=False` is the default. For production use with real client data, set `mask_pii=True`.
+
 ## LLM Configuration
 
 ```python
 from assert_eval import LLMConfig
 
-# AWS Bedrock
+# AWS Bedrock (uses ~/.aws credentials by default)
 config = LLMConfig(
     provider="bedrock",
     model_id="us.amazon.nova-pro-v1:0",
     region="us-east-1",
+)
+
+# AWS Bedrock with explicit credentials
+config = LLMConfig(
+    provider="bedrock",
+    model_id="us.amazon.nova-pro-v1:0",
+    region="us-east-1",
+    api_key="your-aws-access-key-id",
+    api_secret="your-aws-secret-access-key",
+    aws_session_token="your-session-token",  # optional
 )
 
 # OpenAI
@@ -77,6 +117,42 @@ config = LLMConfig(
     api_key="your-openai-api-key",
 )
 ```
+
+### Supported Bedrock Model Families
+
+| Model Family | Example Model IDs |
+|---|---|
+| Amazon Nova | `us.amazon.nova-pro-v1:0`, `amazon.nova-lite-v1:0` |
+| Anthropic Claude | `anthropic.claude-3-sonnet-20240229-v1:0` |
+| Meta Llama | `meta.llama3-70b-instruct-v1:0` |
+| Mistral AI | `mistral.mistral-large-2402-v1:0` |
+| Cohere Command | `cohere.command-r-plus-v1:0` |
+| AI21 Labs | `ai21.jamba-1-5-large-v1:0` |
+
+## Proxy Configuration
+
+```python
+# Single proxy
+config = LLMConfig(
+    provider="bedrock", model_id="us.amazon.nova-pro-v1:0", region="us-east-1",
+    proxy_url="http://proxy.example.com:8080",
+)
+
+# Protocol-specific proxies
+config = LLMConfig(
+    provider="bedrock", model_id="us.amazon.nova-pro-v1:0", region="us-east-1",
+    http_proxy="http://proxy.example.com:8080",
+    https_proxy="http://proxy.example.com:8443",
+)
+
+# Authenticated proxy
+config = LLMConfig(
+    provider="bedrock", model_id="us.amazon.nova-pro-v1:0", region="us-east-1",
+    proxy_url="http://username:password@proxy.example.com:8080",
+)
+```
+
+Standard `HTTP_PROXY` / `HTTPS_PROXY` environment variables are also respected.
 
 ## Dependencies
 
