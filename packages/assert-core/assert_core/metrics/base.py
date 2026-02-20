@@ -1,7 +1,8 @@
 import re
-from typing import Optional, Dict, Union, List, Any
-from ..llm.config import LLMConfig
+from typing import List, Optional
+
 from ..llm.bedrock import BedrockLLM
+from ..llm.config import LLMConfig
 from ..llm.openai import OpenAILLM
 
 
@@ -122,8 +123,8 @@ class BaseCalculator:
             List of extracted claims
         """
         context_guidelines = {
-            "source": "For this source document, extract all significant factual claims to ensure comprehensive coverage analysis. Be thorough but avoid extracting trivial or redundant information.",
-            "summary": "For this summary, extract the core claims being asserted. Each claim should be independently verifiable against a source document.",
+            "source": "For this source document, extract all significant factual claims to ensure comprehensive coverage analysis. Be thorough but avoid extracting trivial or redundant information.",  # noqa: E501
+            "summary": "For this summary, extract the core claims being asserted. Each claim should be independently verifiable against a source document.",  # noqa: E501
             "general": "Extract claims at a balanced level of granularity.",
         }
 

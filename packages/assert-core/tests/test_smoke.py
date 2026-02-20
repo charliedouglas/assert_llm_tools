@@ -1,6 +1,6 @@
 """Smoke tests — assert-core installs and exports correctly (END-89)."""
 
-from assert_core import LLMConfig, BaseLLM, BedrockLLM, OpenAILLM
+from assert_core import LLMConfig, BaseLLM, BedrockLLM, OpenAILLM, detect_and_mask_pii
 from assert_core.metrics import BaseCalculator
 
 
@@ -34,3 +34,34 @@ def test_base_llm_importable():
 
 def test_basecalculator_importable():
     assert BaseCalculator is not None
+
+
+def test_detect_and_mask_pii_importable():
+    assert detect_and_mask_pii is not None
+
+
+def test_detect_and_mask_pii_masks_email():
+    result = detect_and_mask_pii("Contact alice@example.com for details.")
+    assert "[EMAIL]" in result
+    assert "alice@example.com" not in result
+
+
+def test_detect_and_mask_pii_masks_phone():
+    result = detect_and_mask_pii("Call us at 555-867-5309.")
+    assert "[PHONE]" in result
+    assert "555-867-5309" not in result
+
+
+def test_detect_and_mask_pii_masks_ssn():
+    result = detect_and_mask_pii("SSN: 123-45-6789")
+    assert "[SSN]" in result
+    assert "123-45-6789" not in result
+
+
+def test_detect_and_mask_pii_empty_string():
+    assert detect_and_mask_pii("") == ""
+
+
+def test_detect_and_mask_pii_no_pii():
+    text = "The quick brown fox jumps over the lazy dog."
+    assert detect_and_mask_pii(text) == text

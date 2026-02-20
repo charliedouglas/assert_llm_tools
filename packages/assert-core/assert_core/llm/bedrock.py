@@ -1,16 +1,17 @@
-import boto3
 import json
 import os
-from typing import Dict, Any, Optional
+from typing import Any, Dict
 from urllib.parse import urlparse
-from .base import BaseLLM
-from .config import LLMConfig
+
+import boto3
 from botocore.config import Config
+
+from .base import BaseLLM
 
 
 def _check_dependencies():
     try:
-        import boto3
+        import boto3  # noqa: F401
     except ImportError:
         raise ImportError(
             "Bedrock support requires additional dependencies. "
@@ -58,7 +59,7 @@ class BedrockLLM(BaseLLM):
             ValueError: If configuration is invalid.
         """
         _check_dependencies()
-        
+
         # Setup session kwargs (credentials)
         session_kwargs = {}
         if self.config.api_key and self.config.api_secret:
@@ -71,7 +72,7 @@ class BedrockLLM(BaseLLM):
 
         # Create the session
         session = boto3.Session(region_name=self.config.region, **session_kwargs)
-        
+
         # Setup proxy configuration for the client
         client_config = None
         proxies = self._get_proxy_config()
@@ -108,39 +109,39 @@ class BedrockLLM(BaseLLM):
     def _get_proxy_config(self) -> Dict[str, str]:
         """
         Get proxy configuration from config object or environment variables.
-        
+
         Returns:
             Dict containing proxy URLs for http and https
         """
         proxies = {}
-        
+
         # First check for proxy settings in the config object
         if hasattr(self.config, "proxy_url") and self.config.proxy_url:
             proxies["http"] = self.config.proxy_url
             proxies["https"] = self.config.proxy_url
-            
+
         if hasattr(self.config, "http_proxy") and self.config.http_proxy:
             proxies["http"] = self.config.http_proxy
-            
+
         if hasattr(self.config, "https_proxy") and self.config.https_proxy:
             proxies["https"] = self.config.https_proxy
-            
+
         # If no proxies in config, check environment variables
         if not proxies:
             if "HTTP_PROXY" in os.environ:
                 proxies["http"] = os.environ["HTTP_PROXY"]
             if "HTTPS_PROXY" in os.environ:
                 proxies["https"] = os.environ["HTTPS_PROXY"]
-                
+
         return proxies
-        
+
     def _mask_proxy_passwords(self, proxies: Dict[str, str]) -> Dict[str, str]:
         """
         Mask passwords in proxy URLs for secure logging.
-        
+
         Args:
             proxies: Dict with 'http' and 'https' keys containing proxy URLs
-            
+
         Returns:
             Dict with the same keys but passwords replaced with '*****'
         """
@@ -151,39 +152,37 @@ class BedrockLLM(BaseLLM):
                 parts = proxy_url.split('@', 1)
                 auth_part = parts[0]
                 host_part = parts[1]
-                
+
                 if ':' in auth_part:
                     # Extract username and mask password
                     protocol_and_user, _ = auth_part.rsplit(':', 1)
                     # Replace with masked password
                     proxies[protocol] = f"{protocol_and_user}:*****@{host_part}"
-                
+
         return proxies
 
-    
+
     def _test_proxy_connectivity(self, proxies: Dict[str, str]) -> None:
         """
         Test connectivity through the proxy before making API calls.
-        
+
         Args:
             proxies: Dict with 'http' and 'https' keys
-            
+
         Raises:
             ConnectionError: If proxy connectivity test fails
         """
         import socket
-        import urllib.error
-        import urllib.request
-        
+
         # Only test if we have HTTPS proxy (most common for API calls)
         if "https" in proxies and proxies["https"]:
             proxy_url = proxies["https"]
             parsed = urlparse(proxy_url)
-            
+
             try:
                 # Try to connect to the proxy host/port
                 with socket.create_connection(
-                    (parsed.hostname, parsed.port or 80), 
+                    (parsed.hostname, parsed.port or 80),
                     timeout=5
                 ):
                     # Use masked host for secure logging
