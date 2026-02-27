@@ -1,4 +1,3 @@
-import logging
 from typing import Dict, List, Optional
 
 from assert_core.llm.config import LLMConfig
@@ -7,8 +6,6 @@ from .metrics.coverage import calculate_coverage
 from .metrics.factual_alignment import calculate_factual_alignment
 from .metrics.factual_consistency import calculate_factual_consistency
 from .metrics.topic_preservation import calculate_topic_preservation
-
-logger = logging.getLogger(__name__)
 
 AVAILABLE_SUMMARY_METRICS = [
     "coverage",
