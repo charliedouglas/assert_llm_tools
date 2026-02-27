@@ -7,7 +7,6 @@ into a structured GapReport.
 """
 from __future__ import annotations
 
-import logging
 import re
 from typing import Any, Dict, List, Optional, Union
 
@@ -16,9 +15,6 @@ from assert_core.metrics.base import BaseCalculator
 
 from .loader import load_framework
 from .models import GapItem, GapReport, GapReportStats, PassPolicy
-
-logger = logging.getLogger(__name__)
-
 
 # ── Public entry point ─────────────────────────────────────────────────────────
 
@@ -124,7 +120,6 @@ class NoteEvaluator(BaseCalculator):
         # 2. Evaluate each element independently
         items: List[GapItem] = []
         for element in fw["elements"]:
-            logger.debug("Evaluating element: %s", element["id"])
             item = self._evaluate_element(note_text, element)
             items.append(item)
 
@@ -356,8 +351,7 @@ class NoteEvaluator(BaseCalculator):
         )
         try:
             return self.llm.generate(prompt, max_tokens=300).strip()
-        except Exception as exc:
-            logger.warning("Summary generation failed (%s); using fallback.", exc)
+        except Exception:
             return (
                 f"Evaluated {total} framework elements; "
                 f"{present_count} present, {len(gaps)} gap(s) identified."
