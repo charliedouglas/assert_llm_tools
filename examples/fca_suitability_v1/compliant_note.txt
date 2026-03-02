@@ -1,0 +1,200 @@
+ADVISER MEETING NOTE — SUITABILITY RECORD
+Client: Margaret Thornton
+Date of meeting: 14 February 2026
+Adviser: R. Bassett, DipPFS
+Meeting format: In person at client's home, 10:00–11:45
+Next review due: February 2027
+
+---
+
+PURPOSE OF MEETING
+
+This meeting was held to carry out the client's annual portfolio review, discuss
+pension decumulation planning ahead of her intended retirement date of June 2027,
+and consider a new ISA subscription for the current tax year.
+
+---
+
+CLIENT OBJECTIVES
+
+Margaret confirmed that her primary objective is to build sufficient pension income
+to retire comfortably at age 67 (June 2027 — 16 months from this meeting). She is
+targeting a net retirement income of approximately £28,000 per annum, comprising:
+her State Pension (projected £11,502 pa full new State Pension, confirmed via HMRC
+forecast letter seen today), a Teachers' Pension Scheme benefit of approximately
+£9,000 pa (confirmed from TP statement dated January 2026), and supplementary
+drawdown income of approximately £7,500–£8,000 pa from her personal pension.
+
+Secondary objective: capital preservation in real terms to support a potential care
+funding requirement in later life. Margaret is not seeking capital growth above
+inflation over the next 16 months; she wishes to de-risk progressively into
+retirement. She confirmed no liquidity requirements during the accumulation phase —
+she maintains a separate cash emergency fund of £12,000 (three months' expenditure).
+She would like to maximise her ISA allowance this year (£20,000) for tax-efficient
+capital in retirement.
+
+---
+
+ATTITUDE TO RISK AND CAPACITY FOR LOSS
+
+Margaret's attitude to risk was re-assessed today using the Dynamic Planner
+questionnaire (completed in the meeting). Score: 43/100 — Cautious/Balanced
+boundary, consistent with her score of 41/100 at the February 2025 review.
+Assigned risk category: Cautious (DP 4/10).
+
+Capacity for loss: assessed as Low-Medium. Margaret's financial position (see
+below) shows that her investment capital (£124,000 SIPP + £34,000 S&S ISA)
+represents approximately 78% of her liquid net worth. She is a single homeowner
+with modest monthly outgoings. While she has stable employment income until
+retirement and Teachers' Pension as a guaranteed income floor, a sustained
+portfolio loss of more than 15–20% would be a source of material financial stress
+and could affect her retirement income plan. I have positioned her capacity for
+loss at Low-Medium and treated this as the binding constraint, consistent with
+her Cautious ATR. No conflict between ATR and CfL requiring resolution.
+
+---
+
+FINANCIAL SITUATION
+
+Income: annual salary £41,200 (full-time teacher, Northwood Academy). Net monthly
+income approximately £2,720. Monthly committed expenditure: mortgage £610 (repayment,
+12 years remaining, outstanding balance £87,400, property estimated value £310,000),
+household and living costs approximately £1,200. Estimated monthly surplus: £910,
+of which £400 is currently paid into the personal pension by direct debit. No
+consumer debt. No dependants.
+
+Existing arrangements:
+  - Personal pension (SIPP, Transact): £124,000 (valued 10/02/2026). Fund: Vanguard
+    LifeStrategy 60% Equity. Contribution: £400 pm (basic rate relief applied at
+    source). Annual allowance utilisation: £4,800 pa — well within £60,000 limit.
+  - Teachers' Pension Scheme (DB): in payment from age 60 (estimated £9,000 pa,
+    confirmed from January 2026 TP statement).
+  - Stocks & Shares ISA (Transact): £34,000 (valued 10/02/2026). Fund: same as SIPP.
+  - Cash savings: £12,000 (current and easy access accounts).
+  - Property: primary residence (estimated £310,000, mortgage £87,400 outstanding).
+
+No other investments, pensions, or material financial assets disclosed. Margaret
+confirmed no changes to her financial situation since the February 2025 review other
+than a 2% salary increase and approximately £9,000 growth across the SIPP and ISA.
+
+---
+
+KNOWLEDGE AND EXPERIENCE
+
+Margaret has held the SIPP and ISA for seven years and is familiar with collective
+investment schemes including unit trusts and OEICs. She understands that investment
+returns fluctuate and that capital is not guaranteed. She has a basic understanding
+of risk and return trade-offs appropriate for a Cautious investor. She is not
+familiar with complex instruments (derivatives, structured products) and has no
+professional financial background. She confirmed she understands the recommendation
+being made today, and I offered to provide a simplified explanation of the proposed
+fund change; she declined, stating she was comfortable with the information provided.
+
+---
+
+RECOMMENDATION AND SUITABILITY RATIONALE
+
+I recommend the following:
+
+1. ISA subscription: £20,000 (full 2025/26 annual allowance) into the Transact
+   Stocks & Shares ISA, invested in the Royal London Sustainable Managed Income
+   Fund (OEIC, SFDR Article 8, OCF 0.37% pa). Reason for fund selection: the
+   fund's Cautious/Balanced risk profile (DP 4/10) aligns with Margaret's confirmed
+   ATR and CfL. The income-generating characteristic (target yield approximately
+   3.5% pa) supports her transition to an income-focused portfolio in retirement.
+   The managed allocation (approximately 50% bonds, 35% equity, 15% alternatives)
+   provides lower volatility consistent with her low-medium CfL and reduces
+   concentration risk relative to the existing LifeStrategy 60% holding.
+
+2. SIPP de-risking: switch 50% of the existing SIPP holding (approximately £62,000)
+   from Vanguard LifeStrategy 60% Equity to the same Royal London fund, phased over
+   three monthly switches to avoid timing risk. Reason: with retirement 16 months
+   away, sequencing risk management is appropriate. The resulting blended SIPP
+   allocation post-switch (approximately 30% equity / 55% bonds / 15% alternatives)
+   is well-suited to the transition to drawdown. No guaranteed annuity rates or
+   other benefits are lost by the switch (confirmed — SIPP is a standard contract).
+   No exit charges apply on the existing fund.
+
+3. Pension contribution: continue existing £400 pm SIPP contribution for the
+   remaining employment period (16 months, total approximately £6,400 gross
+   including tax relief). Reason: annual allowance headroom is sufficient (£4,800
+   utilised vs. £60,000 limit); contributions continue to benefit from basic rate
+   tax relief (20%); stopping contributions would reduce the terminal fund
+   unnecessarily given the modest impact on monthly cashflow.
+
+This recommendation is suitable because it addresses Margaret's specific objective
+of building a de-risked pension pot to support £7,500–£8,000 pa drawdown income
+in retirement, is consistent with her Cautious risk profile and Low-Medium CfL,
+uses instruments well within her knowledge and experience, and is appropriate for
+her 16-month time horizon.
+
+---
+
+CHARGES AND COSTS
+
+All costs quoted are per annum unless stated otherwise.
+
+ISA subscription (£20,000, Royal London Sustainable Managed Income Fund):
+  - Product OCF: 0.37% pa (£74 pa on £20,000)
+  - Platform charge (Transact): 0.25% pa on first £250,000 (£50 pa on £20,000)
+  - Adviser ongoing charge: 0.75% pa (£150 pa on £20,000)
+  - Total ongoing: 1.37% pa (£274 pa)
+  - One-off initial adviser charge: 1.0% of ISA subscription (£200)
+  - No dealing charge for fund switch within platform
+
+SIPP de-risking switch (£62,000 notional, phased):
+  - No exit charge on Vanguard LifeStrategy — confirmed
+  - Royal London fund OCF: 0.37% pa (£229 pa on £62,000)
+  - Platform charge: 0.25% pa (£155 pa on £62,000)
+  - Adviser ongoing charge: 0.75% pa (£465 pa on £62,000)
+  - Total ongoing SIPP charges post-switch (blended): approximately 1.37% pa
+
+Total portfolio ongoing adviser charge across SIPP + ISA (£158,000 total):
+  0.75% pa = £1,185 pa. Total all-in ongoing cost (product + platform + adviser):
+  approximately 1.37% pa = £2,165 pa.
+
+A separate Costs and Charges Illustration (ref: CC-2026-0214-MRT-001) was issued
+to Margaret in advance of this meeting and reviewed together. She confirmed she
+understood the charges and considered them reasonable given the service provided.
+
+---
+
+ALTERNATIVES CONSIDERED
+
+I considered retaining the Vanguard LifeStrategy 60% Equity throughout, but
+concluded this would leave Margaret's portfolio with excessive equity exposure
+(60%) given the 16-month time horizon and her Cautious ATR. I also considered the
+Vanguard LifeStrategy 40% Equity as an alternative de-risking vehicle (OCF 0.22%,
+lower than Royal London at 0.37%); however, it does not offer the income-generating
+characteristics relevant to Margaret's transition to drawdown, and lacks the managed
+alternatives allocation that provides diversification at this stage of the investment
+journey. The additional 0.15% pa cost of the Royal London fund is justified by these
+differentiating features.
+
+---
+
+CLIENT CONFIRMATION
+
+I presented and explained the recommendation verbally during the meeting. Margaret
+confirmed she understood the rationale, agreed with the recommended de-risking
+approach, and had no further questions. The Suitability Report and updated Costs
+and Charges Illustration will be issued within 5 business days (by 20/02/2026).
+Margaret was advised to await the report before giving implementation instructions.
+She confirmed she is comfortable with this process. A signed letter of authority
+will be requested with the Suitability Report.
+
+---
+
+ACTIONS
+
+1. Adviser: issue Suitability Report and updated CCI by 20/02/2026
+2. Adviser: initiate ISA subscription (£20,000) and first SIPP fund switch
+   (£20,667 — one third) upon receipt of signed LOA and payment confirmation
+3. Adviser: schedule second and third SIPP switches at monthly intervals
+   (March and April 2026)
+4. Client: confirm ISA payment method (direct bank transfer to Transact)
+5. Next annual review: February 2027 — calendar invite sent to client
+
+---
+
+END OF NOTE

@@ -1,0 +1,110 @@
+{
+  "_comment": "Illustrative expected GapReport output for minor_gaps_note.txt. Scores and evidence are approximate — actual LLM output will vary.",
+  "framework_id": "fca_suitability_v1",
+  "framework_version": "1.0.0",
+  "passed": false,
+  "overall_score": 0.58,
+  "pii_masked": false,
+  "overall_rating": "Requires Attention",
+  "meeting_type": null,
+  "metadata": {
+    "note_file": "minor_gaps_note.txt",
+    "expected_rating": "Minor Gaps"
+  },
+  "summary": "The note covers the key structural elements of a suitability record but has notable gaps that prevent a pass under the default policy. Client objectives and the time horizon are documented, and a risk questionnaire score is cited. However, the capacity for loss assessment relies on the client's self-attestation without independent verification of their overall wealth position — the adviser explicitly acknowledged this limitation. Knowledge and experience is not assessed: there is no record of the client's prior investment experience, product familiarity, or level of financial understanding, which is a required element under the framework. The recommendation rationale is reasonable but somewhat generic — the fund selection justification does not explicitly reference the client's specific financial situation or the interplay between the ISA and GIA tax treatment. Charges are partially disclosed (rates cited, but no monetary illustration and no reference to a formal CCI), and the full financial fact-find was not completed at this meeting. Alternatives were not documented. These gaps are remediable — most can be addressed via the financial fact-find and the suitability report — but as the note stands it is incomplete.",
+  "stats": {
+    "total_elements": 9,
+    "required_elements": 7,
+    "present_count": 4,
+    "partial_count": 3,
+    "missing_count": 2,
+    "critical_gaps": 2,
+    "high_gaps": 2,
+    "medium_gaps": 1,
+    "low_gaps": 0,
+    "required_missing_count": 1
+  },
+  "items": [
+    {
+      "element_id": "client_objectives",
+      "status": "present",
+      "score": 0.82,
+      "severity": "critical",
+      "required": true,
+      "evidence": "James is primarily focused on wealth accumulation over the medium to long term... expects to hold it for at least 10–15 years... no immediate income requirement... not planning any major expenditure in the next 5 years.",
+      "notes": "Time horizon and accumulation objective are clear. However, no specific return target or capital goal is stated, and the note does not quantify what 'comfortable accumulation' means for this client. Functional but could be more specific."
+    },
+    {
+      "element_id": "risk_attitude",
+      "status": "present",
+      "score": 0.85,
+      "severity": "critical",
+      "required": true,
+      "evidence": "James completed the firm's risk questionnaire via the client portal ahead of this meeting. Score: 67/100 — assessed as Moderately Adventurous (category 6/7 on the firm's scale). I discussed the result with James during the call; he confirmed it felt appropriate.",
+      "notes": "Questionnaire name not specified (only described as 'the firm's risk questionnaire'). Score and category present. Client confirmation of the result is recorded. Adequate."
+    },
+    {
+      "element_id": "capacity_for_loss",
+      "status": "partial",
+      "score": 0.45,
+      "severity": "critical",
+      "required": true,
+      "evidence": "I assessed his CfL as medium-high. He did not provide specific figures on his overall wealth position... my CfL assessment is based on his self-attestation that this sum is discretionary capital he could afford to lose without affecting his lifestyle. I would prefer to gather more detailed financial information at a follow-up meeting to strengthen this assessment.",
+      "notes": "CfL is assessed as a distinct step from ATR, which is good. However, the assessment is explicitly unverified — the adviser notes the limitation and defers detailed assessment. Without specific income, asset, and liability data, the CfL assessment cannot be substantiated. Partial credit: the concept is applied, but the evidence base is insufficient for a required critical element."
+    },
+    {
+      "element_id": "financial_situation",
+      "status": "present",
+      "score": 0.72,
+      "severity": "high",
+      "required": true,
+      "evidence": "Annual income in the region of £180,000–£220,000 (variable). He confirmed his outgoings are comfortably met by his income and he carries no consumer debt. He owns a property in London with a mortgage (details not obtained). He has a workplace pension but was unable to confirm the value during this call. Total liquid assets beyond this investment were not fully quantified.",
+      "notes": "Income range is documented and confirms the client's high-earning status. However, expenditure is not quantified, mortgage details are absent, and pension value is unknown. The adviser acknowledges this and commits to a full fact-find. Sufficient to proceed cautiously but below the standard expected for a completed suitability record."
+    },
+    {
+      "element_id": "knowledge_and_experience",
+      "status": "missing",
+      "score": 0.0,
+      "severity": "high",
+      "required": true,
+      "evidence": "",
+      "notes": "No assessment of James's investment knowledge or prior experience with financial instruments is recorded anywhere in the note. There is no reference to whether he has held similar investments before, his level of financial literacy, or whether any explanations were provided. This is a required element and its absence is a clear gap."
+    },
+    {
+      "element_id": "recommendation_rationale",
+      "status": "partial",
+      "score": 0.62,
+      "severity": "critical",
+      "required": true,
+      "evidence": "This allocation is consistent with a Moderately Adventurous risk profile and aligns with a 10–15 year accumulation time horizon. The global equity allocation provides diversified growth exposure. The bond element provides some downside cushion. The property component adds a real asset diversifier.",
+      "notes": "The rationale links the recommended allocation to the risk profile and time horizon, which is the core requirement. However, the justification is generic — it reads as a description of the asset classes rather than a client-specific rationale. It does not reference James's specific financial situation, income, or the tax treatment distinction between the ISA and GIA beyond a brief reference to the CGT annual exemption. Partial: the structure is present, the personalisation is weak."
+    },
+    {
+      "element_id": "charges_and_costs",
+      "status": "partial",
+      "score": 0.48,
+      "severity": "high",
+      "required": true,
+      "evidence": "Platform fee (Transact): 0.25% pa. Blended fund OCF: approximately 0.28% pa. Adviser initial charge: 1.5% (£675 on £45,000). Adviser ongoing charge: 0.60% pa. Total ongoing cost: approximately 1.13% pa. A full Costs and Charges Illustration will be issued with the suitability report.",
+      "notes": "Charge rates are disclosed for all major categories and a total ongoing figure is provided. However, no monetary illustration is provided in the note (only % figures, except the one-off initial charge). The note defers the formal CCI to the suitability report without cross-referencing a separately issued document. The note is partial — the structure is correct but the detail is incomplete."
+    },
+    {
+      "element_id": "alternatives_considered",
+      "status": "missing",
+      "score": 0.0,
+      "severity": "medium",
+      "required": false,
+      "evidence": "",
+      "notes": "No alternatives are mentioned. This is not a required element but its absence is a gap, particularly for an initial advice case where the client has not previously worked with the firm."
+    },
+    {
+      "element_id": "client_confirmation",
+      "status": "present",
+      "score": 0.78,
+      "severity": "low",
+      "required": false,
+      "evidence": "James indicated he was happy with the proposed approach and keen to proceed. I advised him that I would issue a Suitability Report within the next 10 days and that he should not action anything until he has received and reviewed it. He agreed.",
+      "notes": "Verbal confirmation and instruction to await the suitability report are recorded. Adequate for a meeting note, though 'happy with the proposed approach' is informal."
+    }
+  ]
+}

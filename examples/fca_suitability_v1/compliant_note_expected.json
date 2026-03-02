@@ -1,0 +1,110 @@
+{
+  "_comment": "Illustrative expected GapReport output for compliant_note.txt. Scores and evidence are approximate — actual LLM output will vary.",
+  "framework_id": "fca_suitability_v1",
+  "framework_version": "1.0.0",
+  "passed": true,
+  "overall_score": 0.94,
+  "pii_masked": false,
+  "overall_rating": "Compliant",
+  "meeting_type": null,
+  "metadata": {
+    "note_file": "compliant_note.txt",
+    "expected_rating": "Compliant"
+  },
+  "summary": "The note comprehensively covers all required suitability elements under COBS 9.2. Client objectives are clearly documented with specific income targets for retirement. Attitude to risk is evidenced by a named questionnaire (Dynamic Planner) with a numeric score, and capacity for loss is assessed distinctly with reference to the client's overall financial position and the proportion of liquid wealth at risk. The financial situation section provides detailed income, expenditure, asset, and liability figures. Knowledge and experience is assessed with appropriate depth. The recommendation rationale is client-specific and uses explicit causal language linking the client's profile to each element of the recommendation. Charges are disclosed in both percentage and monetary terms with a cross-reference to the separately issued CCI. Alternatives were considered with a reasoned explanation for the preferred product. Client confirmation of understanding and agreement was recorded. No material gaps identified.",
+  "stats": {
+    "total_elements": 9,
+    "required_elements": 7,
+    "present_count": 9,
+    "partial_count": 0,
+    "missing_count": 0,
+    "critical_gaps": 0,
+    "high_gaps": 0,
+    "medium_gaps": 0,
+    "low_gaps": 0,
+    "required_missing_count": 0
+  },
+  "items": [
+    {
+      "element_id": "client_objectives",
+      "status": "present",
+      "score": 0.97,
+      "severity": "critical",
+      "required": true,
+      "evidence": "Margaret confirmed that her primary objective is to build sufficient pension income to retire comfortably at age 67 (June 2027). She is targeting a net retirement income of approximately £28,000 per annum... Secondary objective: capital preservation in real terms to support a potential care funding requirement in later life.",
+      "notes": "Objectives are specific, quantified, and include both primary and secondary goals with explicit time horizon and liquidity requirements. Excellent."
+    },
+    {
+      "element_id": "risk_attitude",
+      "status": "present",
+      "score": 0.95,
+      "severity": "critical",
+      "required": true,
+      "evidence": "Margaret's attitude to risk was re-assessed today using the Dynamic Planner questionnaire. Score: 43/100 — Cautious/Balanced boundary, consistent with her score of 41/100 at the February 2025 review. Assigned risk category: Cautious (DP 4/10).",
+      "notes": "Named questionnaire, numeric score, consistency with prior year, and assigned category all present. Strong."
+    },
+    {
+      "element_id": "capacity_for_loss",
+      "status": "present",
+      "score": 0.92,
+      "severity": "critical",
+      "required": true,
+      "evidence": "Capacity for loss: assessed as Low-Medium. Margaret's investment capital represents approximately 78% of her liquid net worth... a sustained portfolio loss of more than 15–20% would be a source of material financial stress and could affect her retirement income plan.",
+      "notes": "CfL is assessed distinctly from ATR, with reference to specific financial metrics and the impact on retirement income. The note records that CfL was treated as the binding constraint. Very good."
+    },
+    {
+      "element_id": "financial_situation",
+      "status": "present",
+      "score": 0.95,
+      "severity": "high",
+      "required": true,
+      "evidence": "Income: annual salary £41,200... Net monthly income approximately £2,720. Monthly committed expenditure: mortgage £610... household and living costs approximately £1,200. Estimated monthly surplus: £910... No consumer debt. No dependants. [Full asset and liability breakdown follows.]",
+      "notes": "Income, expenditure, assets (pension, ISA, cash, property), liabilities (mortgage), and surplus all documented with specific figures. Comprehensive."
+    },
+    {
+      "element_id": "knowledge_and_experience",
+      "status": "present",
+      "score": 0.88,
+      "severity": "high",
+      "required": true,
+      "evidence": "Margaret has held the SIPP and ISA for seven years and is familiar with collective investment schemes including unit trusts and OEICs. She understands that investment returns fluctuate and that capital is not guaranteed... She is not familiar with complex instruments.",
+      "notes": "Prior experience is documented with duration, product types, and noted limitations. Client understanding was confirmed verbally. Good."
+    },
+    {
+      "element_id": "recommendation_rationale",
+      "status": "present",
+      "score": 0.96,
+      "severity": "critical",
+      "required": true,
+      "evidence": "This recommendation is suitable because it addresses Margaret's specific objective of building a de-risked pension pot to support £7,500–£8,000 pa drawdown income in retirement, is consistent with her Cautious risk profile and Low-Medium CfL, uses instruments well within her knowledge and experience, and is appropriate for her 16-month time horizon.",
+      "notes": "Rationale is personalised and explicitly links the recommendation to documented objectives, risk profile, CfL, knowledge, and time horizon. Each product element is justified with client-specific reasons. Excellent."
+    },
+    {
+      "element_id": "charges_and_costs",
+      "status": "present",
+      "score": 0.95,
+      "severity": "high",
+      "required": true,
+      "evidence": "Product OCF: 0.37% pa (£74 pa on £20,000). Platform charge: 0.25% pa (£50 pa). Adviser ongoing charge: 0.75% pa (£150 pa). Total ongoing: 1.37% pa (£274 pa). One-off initial adviser charge: 1.0% (£200). A separate Costs and Charges Illustration (ref: CC-2026-0214-MRT-001) was issued to Margaret in advance of this meeting.",
+      "notes": "All charge categories disclosed in both % and £ terms for both ISA and SIPP. Total all-in cost provided. CCI cross-reference present. Very good."
+    },
+    {
+      "element_id": "alternatives_considered",
+      "status": "present",
+      "score": 0.87,
+      "severity": "medium",
+      "required": false,
+      "evidence": "I considered retaining the Vanguard LifeStrategy 60% Equity throughout... I also considered the Vanguard LifeStrategy 40% Equity as an alternative... however, it does not offer the income-generating characteristics relevant to Margaret's transition to drawdown.",
+      "notes": "Two alternatives explicitly considered with reasons for rejection. The cost differential is acknowledged and justified. Good."
+    },
+    {
+      "element_id": "client_confirmation",
+      "status": "present",
+      "score": 0.90,
+      "severity": "low",
+      "required": false,
+      "evidence": "Margaret confirmed she understood the rationale, agreed with the recommended de-risking approach, and had no further questions. The Suitability Report... will be issued within 5 business days. Margaret was advised to await the report before giving implementation instructions.",
+      "notes": "Verbal confirmation recorded, report timeline specified, client instructed to await report before acting. Good."
+    }
+  ]
+}
